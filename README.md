@@ -1,7 +1,7 @@
 原项目:
 # VPSocketIO:[VPSocketIO](https://github.com/search?q=VPSocketIO)
 
-@[toc]
+[toc]
 
 Socket.IO client for iOS. Supports socket.io 2.0+
 
