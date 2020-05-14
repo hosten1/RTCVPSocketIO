@@ -75,7 +75,7 @@ Run `carthage update --platform ios,macosx`.
     }];
 ```
 
-## request请求后相应服务:
+## request请求后响应服务:
 ```objective-c
 [socket on:@"request" callback:^(NSArray *array,  RTCVPSocketAckEmitter *emitter) {
         
