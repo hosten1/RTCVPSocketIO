@@ -7,10 +7,10 @@
 //
 
 #import "ViewController.h"
-#import <VPSocketIO/VPSocketIO.h>
+#import <VPSocketIO/RTCVPSocketIO.h>
 
 
-@interface ClientSocketLogger : VPSocketLogger
+@interface ClientSocketLogger : RTCVPSocketLogger
 
 @end
 
@@ -34,7 +34,7 @@
 
 
 @interface ViewController () {
-    VPSocketIOClient *socket;
+    RTCVPSocketIOClient *socket;
 }
 @end
 
@@ -69,7 +69,7 @@
 
     NSString *urlString = @"http://localhost:8900";
     NSDictionary *connectParams = @{@"key":@"value"};
-    self->socket = [[VPSocketIOClient alloc] init:[NSURL URLWithString:urlString]
+    self->socket = [[RTCVPSocketIOClient alloc] init:[NSURL URLWithString:urlString]
                                  withConfig:@{@"log": @YES,
                                               @"forcePolling": @NO,
                                               @"secure": @YES,
@@ -83,11 +83,11 @@
                                               }];
     
     
-    [socket on:kSocketEventConnect callback:^(NSArray *array, VPSocketAckEmitter *emitter) {
+    [socket on:kSocketEventConnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         NSLog(@"!!!!socket connected");
     }];
     
-    [socket on:@"startGame" callback:^(NSArray *data, VPSocketAckEmitter *emitter) {
+    [socket on:@"startGame" callback:^(NSArray *data, RTCVPSocketAckEmitter *emitter) {
         if(data.count > 0)
         {
         }
