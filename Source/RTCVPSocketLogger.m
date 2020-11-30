@@ -7,7 +7,9 @@
 //
 
 #import "RTCVPSocketLogger.h"
-
+@interface RTCVPSocketLogger()
+@property(nonatomic, copy) void(^logCb)(NSString *message ,NSString *type);
+@end
 @implementation RTCVPSocketLogger
 
 - (instancetype)init
@@ -31,11 +33,15 @@
 -(void) printLog:(NSString*)logType message:(NSString*)message type:(NSString*)type
 {
     if(_log) {
-        NSLog(@"%@ %@: %@", logType, type, message);
+        NSLog(@"printLog = %@ %@: %@", logType, type, message);
     }
-    
+    if (_logCb) {
+        _logCb(message,type);
+    }
 }
-
+-(void)onLogMsgWithCB:(void (^)(NSString *, NSString *))cb{
+    self.logCb = cb;
+}
 -(void)dealloc {
     
 }

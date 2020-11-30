@@ -25,10 +25,10 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 
 typedef NS_ENUM(NSInteger, RTCVPAFNetworkReachabilityStatus) {
-    RTCVPAFNetworkReachabilityStatusUnknown          = -1,
-    RTCVPAFNetworkReachabilityStatusNotReachable     = 0,
-    RTCVPAFNetworkReachabilityStatusReachableViaWWAN = 1,
-    RTCVPAFNetworkReachabilityStatusReachableViaWiFi = 2,
+    RTCVPAFNetworkReachabilityStatusUnknown          = 0,
+    RTCVPAFNetworkReachabilityStatusNotReachable     = 1,
+    RTCVPAFNetworkReachabilityStatusReachableViaWWAN = 2,
+    RTCVPAFNetworkReachabilityStatusReachableViaWiFi = 3,
 };
 
 NS_ASSUME_NONNULL_BEGIN

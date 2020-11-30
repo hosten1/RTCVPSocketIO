@@ -14,5 +14,5 @@
 
 -(void) log:(NSString*)message type:(NSString*)type;
 -(void) error:(NSString*)message type:(NSString*)type;
-
+- (void) onLogMsgWithCB:(void(^)(NSString *message ,NSString *type))cb;
 @end

@@ -38,10 +38,8 @@
         [self.socket.ackHandlers addAck:_ackNum callback:callback];
         [self.socket  emitAck:_ackNum withItems:_items isEvent:YES];
         if(seconds >0 ) {
-            
             __weak typeof(self) weakSelf = self;
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC)), self.socket.handleQueue, ^
-            {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC)),(_socket == nil ? dispatch_get_global_queue(0, 0):self.socket.handleQueue), ^{
                 @autoreleasepool
                 {
                     __strong typeof(self) strongSelf = weakSelf;

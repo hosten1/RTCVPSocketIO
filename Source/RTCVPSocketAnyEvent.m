@@ -40,6 +40,8 @@
 }
 
 -(void)executeCallbackWith:(NSArray*)items withAck:(int)ack withSocket:(id<RTCVPSocketIOClientProtocol>)socket{
-    self.callback(items, [[RTCVPSocketAckEmitter alloc] initWithSocket:socket ackNum:ack]);
+    if (self && _callback) {
+        self.callback(items, [[RTCVPSocketAckEmitter alloc] initWithSocket:socket ackNum:ack]);
+    }
 }
 @end

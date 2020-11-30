@@ -88,17 +88,20 @@
         self.usePublicKeys = publicKeys;
         if(self.usePublicKeys) {
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
-                NSMutableArray *collect = [NSMutableArray array];
-                for(RTCJFRSSLCert *cert in certs) {
-                    if(cert.certData && !cert.key) {
-                        cert.key = [self extractPublicKey:cert.certData];
+                @autoreleasepool {
+                    NSMutableArray *collect = [NSMutableArray array];
+                    for(RTCJFRSSLCert *cert in certs) {
+                        if(cert.certData && !cert.key) {
+                            cert.key = [self extractPublicKey:cert.certData];
+                        }
+                        if(cert.key) {
+                            [collect addObject:CFBridgingRelease(cert.key)];
+                        }
                     }
-                    if(cert.key) {
-                        [collect addObject:CFBridgingRelease(cert.key)];
-                    }
+                    self.certificates = collect;
+                    self.isReady = YES;
                 }
-                self.certificates = collect;
-                self.isReady = YES;
+                
             });
         } else {
             NSMutableArray<NSData*> *collect = [NSMutableArray array];

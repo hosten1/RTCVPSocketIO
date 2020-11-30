@@ -15,6 +15,8 @@
 #import "RTCDefaultSocketLogger.h"
 #import "RTCVPStringReader.h"
 #import "NSString+RTCVPSocketIO.h"
+//lym
+#import "RTCVPAFNetworkReachabilityManager.h"
 
 typedef enum : NSUInteger {
     /// Called when the client connects. This is also called on a successful reconnection. A connect event gets one
@@ -39,7 +41,16 @@ NSString *const kSocketEventReconnect          = @"reconnect";
 NSString *const kSocketEventReconnectAttempt   = @"reconnectAttempt";
 NSString *const kSocketEventStatusChange       = @"statusChange";
 
+@interface  RTCVPSocketIOClientCacheData: NSObject
+@property(nonatomic, assign) int ack;
+@property(nonatomic, strong) NSArray *items;
+@property(nonatomic, assign) BOOL isEvent;
+@end
+@implementation RTCVPSocketIOClientCacheData
 
+
+
+@end
 @interface RTCVPSocketIOClient() <RTCVPSocketEngineClient>
 {
     int currentAck;
@@ -56,7 +67,11 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 @property (nonatomic, strong) id<RTCVPSocketEngineProtocol> engine;
 @property (nonatomic, strong) NSMutableArray<RTCVPSocketEventHandler*>* handlers;
 @property (nonatomic, strong) NSMutableArray<RTCVPSocketPacket*>* waitingPackets;
+// lym
+@property(nonatomic,strong) RTCVPAFNetworkReachabilityManager *manager;
+@property(nonatomic,assign) RTCVPAFNetworkReachabilityStatus currentNetWorkStatus;
 
+@property(nonatomic, strong) NSMutableArray<RTCVPSocketIOClientCacheData*> *dataCache;
 @end
 
 @implementation RTCVPSocketIOClient
@@ -129,10 +144,67 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         }
         
         RTCDefaultSocketLogger.logger.log = logEnabled;
+        // 检测指定服务器是否可达
+        if (!_manager) {
+            //创建网络监听对象
+            self.manager = [RTCVPAFNetworkReachabilityManager sharedManager];
+            //开始监听
+            [_manager startMonitoring];
+            self.currentNetWorkStatus = RTCVPAFNetworkReachabilityStatusUnknown;
+            //监听改变
+            __weak typeof(self)weakSelf = self;
+            [_manager setReachabilityStatusChangeBlock:^(RTCVPAFNetworkReachabilityStatus status) {
+                __strong typeof(weakSelf)strongSelf = weakSelf;
+                [strongSelf rtc_changNetWorkWithStatus:status];
+            }];
+        }
     }
     return self;
 }
+- (void)rtc_changNetWorkWithStatus:(RTCVPAFNetworkReachabilityStatus)status{
+//    if (_status == RTCVPSocketIOClientStatusDisconnected) {
+//
+//    }
+    if (_currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusUnknown) {//这种情况一般只有第一次初始化的时候出现
+        self.currentNetWorkStatus = status;
+        return;
+    }
+    switch (status) {
+        case RTCVPAFNetworkReachabilityStatusUnknown:
+          
+        case RTCVPAFNetworkReachabilityStatusNotReachable:{
+            [RTCDefaultSocketLogger.logger log:@"ERROR ==========No network===========" type:self.logType];
 
+            [self.engine disconnect:@"Unknown network or not reachable"];
+        }
+            break;
+        case RTCVPAFNetworkReachabilityStatusReachableViaWWAN:{
+            if (_currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi ) {//网络状态改变 WiFi to 4G
+                //                        [strongSelf.protoo reconnect];
+                [RTCDefaultSocketLogger.logger log:@"ERROR ==========网络状态改变 WiFi to 4G===========" type:self.logType];
+                
+            }else if(self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN){
+                [RTCDefaultSocketLogger.logger log:@"ERROR ==========网络状态改变 4G to 4G===========" type:self.logType];
+            }
+
+            [self.engine disconnect:@"network change"];
+        }
+            break;
+        case RTCVPAFNetworkReachabilityStatusReachableViaWiFi:{
+            if (self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN) {//网络状态改变 4G to WiFi
+                //                        [strongSelf.protoo reconnect];
+                [RTCDefaultSocketLogger.logger log:@"ERROR ==========/网络状态改变 4G to WiFi===========" type:self.logType];
+                
+            }else if (self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi) {//网络状态改变 WiFi to WiFi
+                //                        [strongSelf.protoo reconnect];
+                [RTCDefaultSocketLogger.logger log:@"ERROR ==========/网络状态改变 WiFi to WiFi===========" type:self.logType];
+            }
+            [self.engine disconnect:@"network change"];
+        }
+            break;
+    }
+    self.currentNetWorkStatus = status;
+}
 -(void) connect
 {
     [self connectWithTimeoutAfter:0 withHandler:nil];
@@ -187,6 +259,10 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 {
     [RTCDefaultSocketLogger.logger log:@"Client is being released" type:self.logType];
     [_engine disconnect: @"Client Deinit"];
+    if (_manager) {
+        [_manager stopMonitoring];
+        self.manager = nil;
+    }
     [RTCDefaultSocketLogger setLogger:nil];
 }
 
@@ -302,7 +378,11 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 {
     NSMutableArray *array = [NSMutableArray arrayWithObject:event];
     [array addObjectsFromArray:items];
-    return [self createOnAck:array];
+    if ([self isKindOfClass:[RTCVPSocketIOClient class]]) {
+        return [self createOnAck:array];
+    }
+    return nil;
+    
 }
 
 -(void)emitData:(NSArray*)data ack:(int) ack
@@ -331,6 +411,15 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Emitting Ack: %@", str] type:self.logType];
         
         [_engine send:str withData:packet.binary];
+    }else{
+        if (!_dataCache) {
+            self.dataCache = [NSMutableArray array];
+        }
+        RTCVPSocketIOClientCacheData *cacheData = [[RTCVPSocketIOClientCacheData alloc]init];
+        cacheData.ack = ack;
+        cacheData.items = items;
+        cacheData.isEvent = isEvent;
+        [self.dataCache addObject:cacheData];
     }
 }
 
@@ -517,14 +606,19 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         if(anyHandler) {
             anyHandler([[RTCVPSocketAnyEvent alloc] initWithEvent: event andItems: data]);
         }
-        
-        for (RTCVPSocketEventHandler *hdl in _handlers)
-        {
+        __weak typeof(self) weakSelf = self;
+        NSArray<RTCVPSocketEventHandler*> *enumArr = [NSArray arrayWithArray:_handlers];
+        [enumArr enumerateObjectsUsingBlock:^(RTCVPSocketEventHandler * _Nonnull hdl, NSUInteger idx, BOOL * _Nonnull stop) {
+            __strong typeof(weakSelf) strongSelf = weakSelf;
             if([hdl.event isEqualToString: event])
             {
-                [hdl executeCallbackWith:data withAck:ack withSocket:self];
+                [hdl executeCallbackWith:data withAck:ack withSocket:strongSelf];
             }
-        }
+        }];
+//        for (RTCVPSocketEventHandler *hdl in _handlers)
+//        {
+//
+//        }
     }
 }
 
@@ -546,8 +640,17 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 {
     [RTCDefaultSocketLogger.logger log:@"Socket connected" type:self.logType];
     self.status = RTCVPSocketIOClientStatusConnected;
-    [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventConnect)]
-                   withData:@[namespace]];
+    if (_dataCache.count > 0) {//如果发送消息过程中重连则继续发送消息
+        NSArray *tempArr = [NSArray arrayWithArray:_dataCache];
+        [tempArr  enumerateObjectsUsingBlock:^(RTCVPSocketIOClientCacheData * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            [self emitAck:obj.ack withItems:obj.items isEvent:obj.isEvent];
+            [self.dataCache removeObject:obj];
+        }];
+    }else{
+        [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventConnect)]
+                       withData:@[namespace]];
+    }
+   
 }
 
 -(void)didError:(NSString*)reason {

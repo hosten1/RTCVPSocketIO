@@ -13,7 +13,6 @@
 #import "RTCVPSocketEngine+Private.h"
 #import "RTCVPSocketEngine+EnginePollable.h"
 #import "RTCVPSocketEngine+EngineWebsocket.h"
-#import "RTCVPAFNetworkReachabilityManager.h"
 
 
 @interface RTCVPProbe : NSObject
@@ -56,9 +55,6 @@ NSURLSessionDelegate>
 
 @property (nonatomic, strong) RTCJFRSecurity* security;
 @property (nonatomic, strong) NSMutableArray<RTCVPProbe*>* probeWait;
-
-@property(nonatomic,strong) RTCVPAFNetworkReachabilityManager *manager;
-@property(nonatomic,assign) RTCVPAFNetworkReachabilityStatus currentNetWorkStatus;
 
 @end
 
@@ -143,66 +139,10 @@ NSURLSessionDelegate>
         }
         [self createURLs];
         
-        // 检测指定服务器是否可达
-        if (!_manager) {
-            //创建网络监听对象
-            self.manager = [RTCVPAFNetworkReachabilityManager sharedManager];
-            //开始监听
-            [_manager startMonitoring];
-            //监听改变
-            __weak typeof(self)weakSelf = self;
-            [_manager setReachabilityStatusChangeBlock:^(RTCVPAFNetworkReachabilityStatus status) {
-                __strong typeof(weakSelf)strongSelf = weakSelf;
-                if (strongSelf.currentNetWorkStatus == status) {
-                    return;
-                }
-                switch (status) {
-                    case RTCVPAFNetworkReachabilityStatusUnknown:
-                      
-                    case RTCVPAFNetworkReachabilityStatusNotReachable:{
-                        if (strongSelf.closed) {
-                            return;
-                        }
-                        if(strongSelf.connected){
-                            [strongSelf closeOutEngine:@"No network"];
-                            
-                        }
-                    }
-                        break;
-                    case RTCVPAFNetworkReachabilityStatusReachableViaWWAN:
-                        if (strongSelf.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi ) {//网络状态改变 WiFi to 4G
-                            //                        [strongSelf.protoo reconnect];
-                            if (strongSelf.closed) {
-                                return;
-                            }
-                            if(strongSelf.connected){
-                                [strongSelf closeOutEngine:@"Network change"];
-                                
-                            }
-                        }
-                        break;
-                    case RTCVPAFNetworkReachabilityStatusReachableViaWiFi:
-                        if (strongSelf.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN) {//网络状态改变 4G to WiFi
-                            //                        [strongSelf.protoo reconnect];
-                            if (strongSelf.closed) {
-                                return;
-                            }
-                            if(strongSelf.connected){
-                                [strongSelf closeOutEngine:@"Network change"];
-                                
-                            }
-                        }
-                        break;
-                }
-                strongSelf.currentNetWorkStatus = status;
-            }];
-        }
-        
     }
     
     return self;
 }
-
 
 -(void)setup {
     _engineQueue = dispatch_queue_create("com.socketio.engineHandleQueue", NULL);
@@ -243,9 +183,6 @@ NSURLSessionDelegate>
 }
 
 -(void)dealloc {
-    if (_manager) {
-        [_manager stopMonitoring];
-    }
     [RTCDefaultSocketLogger.logger log:@"Engine is being released" type:self.logType];
     _closed = YES;
     [self stopPolling];
@@ -338,6 +275,7 @@ NSURLSessionDelegate>
     _ws.queue = _engineQueue;
     //_ws.enableCompression = _compress;
     _ws.delegate = self;
+    _ws.voipEnabled = YES;
     _ws.selfSignedSSL = _selfSigned;
     _ws.security = _security;
     [_ws connect];
