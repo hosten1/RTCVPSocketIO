@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B91EEFD26281D35003120A7 /* VPSocketIOAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */; };
 		1BF8BF6024AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF3824AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h */; };
 		1BF8BF6124AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF3924AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m */; };
 		1BF8BF6224AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF3A24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h */; };
@@ -55,6 +56,16 @@
 		F06B19401F71466D003E81B1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F06B193E1F71466D003E81B1 /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		1B91EEFF26281D35003120A7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F06B19251F71466C003E81B1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F06B192C1F71466C003E81B1;
+			remoteInfo = VPSocketIOApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		1BF8BF8D24AAD2C9003B5EA3 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -70,6 +81,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VPSocketIOAppTests.m; sourceTree = "<group>"; };
+		1B91EEFE26281D35003120A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1BF8BF3824AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EngineWebsocket.h"; sourceTree = "<group>"; };
 		1BF8BF3924AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+RTCVPSocketIO.m"; sourceTree = "<group>"; };
 		1BF8BF3A24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EnginePollable.h"; sourceTree = "<group>"; };
@@ -124,6 +138,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1B91EEF726281D35003120A7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F06B192A1F71466C003E81B1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -142,6 +163,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1B91EEFB26281D35003120A7 /* VPSocketIOAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */,
+				1B91EEFE26281D35003120A7 /* Info.plist */,
+			);
+			path = VPSocketIOAppTests;
+			sourceTree = "<group>";
+		};
 		1BF8BF3724AAD13E003B5EA3 /* Category */ = {
 			isa = PBXGroup;
 			children = (
@@ -217,6 +247,7 @@
 				1BF8BF4324AAD13E003B5EA3 /* Source */,
 				F06B192F1F71466C003E81B1 /* VPSocketIO */,
 				F08E4F6F1F7ACFEB0032C8E3 /* VPSocketIO-iOS */,
+				1B91EEFB26281D35003120A7 /* VPSocketIOAppTests */,
 				F06B192E1F71466C003E81B1 /* Products */,
 				1BF8BF8624AAD274003B5EA3 /* Frameworks */,
 			);
@@ -227,6 +258,7 @@
 			children = (
 				F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */,
 				F08E4F6E1F7ACFEB0032C8E3 /* VPSocketIO.framework */,
+				1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -297,6 +329,24 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		1B91EEF926281D35003120A7 /* VPSocketIOAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B91EF0326281D35003120A7 /* Build configuration list for PBXNativeTarget "VPSocketIOAppTests" */;
+			buildPhases = (
+				1B91EEF626281D35003120A7 /* Sources */,
+				1B91EEF726281D35003120A7 /* Frameworks */,
+				1B91EEF826281D35003120A7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1B91EF0026281D35003120A7 /* PBXTargetDependency */,
+			);
+			name = VPSocketIOAppTests;
+			productName = VPSocketIOAppTests;
+			productReference = 1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		F06B192C1F71466C003E81B1 /* VPSocketIOApp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F06B19441F71466D003E81B1 /* Build configuration list for PBXNativeTarget "VPSocketIOApp" */;
@@ -342,6 +392,12 @@
 				LastUpgradeCheck = 1150;
 				ORGANIZATIONNAME = "Vasily Popov";
 				TargetAttributes = {
+					1B91EEF926281D35003120A7 = {
+						CreatedOnToolsVersion = 12.4;
+						DevelopmentTeam = WBAAXLQG52;
+						ProvisioningStyle = Automatic;
+						TestTargetID = F06B192C1F71466C003E81B1;
+					};
 					F06B192C1F71466C003E81B1 = {
 						CreatedOnToolsVersion = 8.3.2;
 						DevelopmentTeam = 7EB863BHDM;
@@ -368,11 +424,19 @@
 			targets = (
 				F06B192C1F71466C003E81B1 /* VPSocketIOApp */,
 				F08E4F6D1F7ACFEB0032C8E3 /* VPSocketIO */,
+				1B91EEF926281D35003120A7 /* VPSocketIOAppTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1B91EEF826281D35003120A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F06B192B1F71466C003E81B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -393,6 +457,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1B91EEF626281D35003120A7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B91EEFD26281D35003120A7 /* VPSocketIOAppTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F06B19291F71466C003E81B1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -429,6 +501,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		1B91EF0026281D35003120A7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F06B192C1F71466C003E81B1 /* VPSocketIOApp */;
+			targetProxy = 1B91EEFF26281D35003120A7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin PBXVariantGroup section */
 		F06B19391F71466D003E81B1 /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
@@ -449,6 +529,51 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		1B91EF0126281D35003120A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WBAAXLQG52;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = VPSocketIOAppTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.mediasoupTest.VPSocketIOAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VPSocketIOApp.app/VPSocketIOApp";
+			};
+			name = Debug;
+		};
+		1B91EF0226281D35003120A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WBAAXLQG52;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = VPSocketIOAppTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.mediasoupTest.VPSocketIOAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VPSocketIOApp.app/VPSocketIOApp";
+			};
+			name = Release;
+		};
 		F06B19421F71466D003E81B1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -660,6 +785,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1B91EF0326281D35003120A7 /* Build configuration list for PBXNativeTarget "VPSocketIOAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B91EF0126281D35003120A7 /* Debug */,
+				1B91EF0226281D35003120A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		F06B19281F71466C003E81B1 /* Build configuration list for PBXProject "VPSocketIO" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

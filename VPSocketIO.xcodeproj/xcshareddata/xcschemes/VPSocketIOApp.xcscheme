@@ -57,6 +57,16 @@
                ReferencedContainer = "container:VPSocketIO.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "1B91EEF926281D35003120A7"
+               BuildableName = "VPSocketIOAppTests.xctest"
+               BlueprintName = "VPSocketIOAppTests"
+               ReferencedContainer = "container:VPSocketIO.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

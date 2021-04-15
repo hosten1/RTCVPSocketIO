@@ -1,0 +1,11 @@
+language: objective-c
+xcode_project: VPSocketIO.xcodeproj
+xcode_scheme: VPSocketIOApp
+osx_image: xcode10.1
+
+script:
+- set -o pipefail
+- xcodebuild test -project "$TRAVIS_XCODE_PROJECT" -scheme "$TRAVIS_XCODE_SCHEME" -destination "name=iPhone 7" -enableCodeCoverage YES | xcpretty
+
+after_success:
+- bash <(curl -s https://codecov.io/bash)
