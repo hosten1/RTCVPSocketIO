@@ -7,6 +7,7 @@
 //
 
 #import <XCTest/XCTest.h>
+#import <VPSocketIO/RTCVPSocketIO.h>
 
 @interface VPSocketIOAppTests : XCTestCase
 
