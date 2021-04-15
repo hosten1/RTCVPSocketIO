@@ -142,9 +142,9 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 
     //everything is on a background thread.
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        weakSelf.isCreated = YES;
-        [weakSelf createHTTPRequest];
-        weakSelf.isCreated = NO;
+        self.isCreated = YES;
+        [self createHTTPRequest];
+        self.isCreated = NO;
     });
 }
 /////////////////////////////////////////////////////////////////////////////
@@ -256,6 +256,7 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     NSData *serializedRequest = (__bridge_transfer NSData *)(CFHTTPMessageCopySerializedMessage(urlRequest));
     [self initStreamsWithData:serializedRequest port:port];
     CFRelease(urlRequest);
+    CFRelease(requestMethod);
 }
 /////////////////////////////////////////////////////////////////////////////
 //Random String of 16 lowercase chars, SHA1 and base64 encoded.
@@ -307,6 +308,8 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     while (self.isRunLoop) {
         [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
     }
+//    CFRelease(readStream);
+//    CFRelease(writeStream);
 }
 /////////////////////////////////////////////////////////////////////////////
 

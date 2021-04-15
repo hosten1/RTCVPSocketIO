@@ -23,7 +23,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse*res
     
     [self doRequest:request withCallback:^(NSData *data, NSURLResponse *response, NSError *error)
      {
-         __strong typeof(self) strongSelf = weakSelf;
+         __strong typeof(weakSelf) strongSelf = weakSelf;
          if(strongSelf)
          {
              if(strongSelf.polling)
@@ -161,7 +161,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse*res
             __weak typeof(self) weakSelf = self;
             [self doRequest:request withCallback:^(NSData *data, NSURLResponse *response, NSError *error)
              {
-                 __strong typeof(self) strongSelf = weakSelf;
+                 __strong typeof(weakSelf) strongSelf = weakSelf;
                  if(strongSelf)
                  {
                      if(error != nil)

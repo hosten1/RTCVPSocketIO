@@ -96,6 +96,7 @@
                         }
                         if(cert.key) {
                             [collect addObject:CFBridgingRelease(cert.key)];
+
                         }
                     }
                     self.certificates = collect;

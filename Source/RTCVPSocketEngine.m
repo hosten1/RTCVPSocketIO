@@ -617,7 +617,7 @@ NSURLSessionDelegate>
                            {
                 @autoreleasepool
                 {
-                    __strong typeof(self) strongSelf = weakSelf;
+                    __strong typeof(weakSelf) strongSelf = weakSelf;
                     if(strongSelf) {
                         [strongSelf sendPing];
                     }

@@ -221,34 +221,33 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         
         [_engine connect];
         
-        if(timeout > 0)
+        if(timeout <= 0) {
+            return;
+        }
+        __weak typeof(self) weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)), _handleQueue, ^
         {
-            __weak typeof(self) weakSelf = self;
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)), _handleQueue, ^
+            @autoreleasepool
             {
-                @autoreleasepool
+                __strong typeof(weakSelf) strongSelf = weakSelf;
+                if(strongSelf != nil &&
+                   (strongSelf.status == RTCVPSocketIOClientStatusConnecting ||
+                    strongSelf.status == RTCVPSocketIOClientStatusNotConnected))
                 {
-                    __strong typeof(self) strongSelf = weakSelf;
-                    if(strongSelf != nil &&
-                       (strongSelf.status == RTCVPSocketIOClientStatusConnecting ||
-                        strongSelf.status == RTCVPSocketIOClientStatusNotConnected))
-                    {
-                        [strongSelf didDisconnect:@"Connection timeout"];
-                        if(handler) {
-                            handler();
-                        }
+                    [strongSelf didDisconnect:@"Connection timeout"];
+                    if(handler) {
+                        handler();
                     }
                 }
-            });
-        }
-    }
-    else {
+            }
+        });
+    } else {
         [RTCDefaultSocketLogger.logger log:@"Tried connecting on an already connected socket" type:self.logType];
     }
 }
 
 /// Disconnects the socket.
--(void) disconnect
+-(void)disconnect
 {
     [RTCDefaultSocketLogger.logger log:@"Closing socket" type:self.logType];
     _reconnects = NO;
@@ -329,6 +328,9 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     if(_engine)
     {
         [_engine syncResetClient];
+    }
+    if (!_socketURL || ! _config) {
+        return;
     }
     _engine = [[RTCVPSocketEngine alloc] initWithClient: self url: _socketURL options: _config];
 }
@@ -487,7 +489,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     RTCVPSocketEventHandler *handler = [[RTCVPSocketEventHandler alloc] initWithEvent:event
                                                                            uuid:uuid
                                                                     andCallback:^(NSArray *data, RTCVPSocketAckEmitter *emiter) {
-        __strong typeof(self) strongSelf = weakSelf;
+        __strong typeof(weakSelf) strongSelf = weakSelf;
         if(strongSelf) {
             [strongSelf offWithID:uuid];
             callback(data, emiter);
@@ -557,7 +559,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     {
        @autoreleasepool
        {
-           __strong typeof(self) strongSelf = weakSelf;
+           __strong typeof(weakSelf) strongSelf = weakSelf;
            if(strongSelf != nil)
            {
                if(strongSelf.status != RTCVPSocketIOClientStatusDisconnected &&
@@ -606,15 +608,18 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         if(anyHandler) {
             anyHandler([[RTCVPSocketAnyEvent alloc] initWithEvent: event andItems: data]);
         }
-        __weak typeof(self) weakSelf = self;
-        NSArray<RTCVPSocketEventHandler*> *enumArr = [NSArray arrayWithArray:_handlers];
-        [enumArr enumerateObjectsUsingBlock:^(RTCVPSocketEventHandler * _Nonnull hdl, NSUInteger idx, BOOL * _Nonnull stop) {
-            __strong typeof(weakSelf) strongSelf = weakSelf;
-            if([hdl.event isEqualToString: event])
-            {
-                [hdl executeCallbackWith:data withAck:ack withSocket:strongSelf];
-            }
-        }];
+//        __weak typeof(self) weakSelf = self;
+        if (_handlers.count > 0) {
+            NSArray<RTCVPSocketEventHandler*> *enumArr = [NSArray arrayWithArray:_handlers];
+            [enumArr enumerateObjectsUsingBlock:^(RTCVPSocketEventHandler * _Nonnull hdl, NSUInteger idx, BOOL * _Nonnull stop) {
+    //            __strong typeof(weakSelf) strongSelf = weakSelf;
+                if([hdl.event isEqualToString: event])
+                {
+                    [hdl executeCallbackWith:data withAck:ack withSocket:self];
+                }
+            }];
+        }
+       
 //        for (RTCVPSocketEventHandler *hdl in _handlers)
 //        {
 //
@@ -667,7 +672,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     {
         @autoreleasepool
         {
-            __strong typeof(self) strongSelf = weakSelf;
+            __strong typeof(weakSelf) strongSelf = weakSelf;
             if(strongSelf) {
                 [strongSelf _engineDidError:reason];
             }
@@ -693,7 +698,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     {
         @autoreleasepool
         {
-            __strong typeof(self) strongSelf = weakSelf;
+            __strong typeof(weakSelf) strongSelf = weakSelf;
             if(strongSelf) {
                [strongSelf _engineDidClose:reason];
             }
@@ -728,7 +733,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     {
         @autoreleasepool
         {
-            __strong typeof(self) strongSelf = weakSelf;
+            __strong typeof(weakSelf) strongSelf = weakSelf;
             if(strongSelf) {
                 [strongSelf parseSocketMessage:msg];
             }
@@ -743,7 +748,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     dispatch_async(_handleQueue, ^{
         @autoreleasepool
         {
-            __strong typeof(self) strongSelf = weakSelf;
+            __strong typeof(weakSelf) strongSelf = weakSelf;
             if(strongSelf) {
                 [strongSelf parseBinaryData:data];
             }

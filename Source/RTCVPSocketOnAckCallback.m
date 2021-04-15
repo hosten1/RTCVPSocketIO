@@ -42,7 +42,7 @@
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(seconds * NSEC_PER_SEC)),(_socket == nil ? dispatch_get_global_queue(0, 0):self.socket.handleQueue), ^{
                 @autoreleasepool
                 {
-                    __strong typeof(self) strongSelf = weakSelf;
+                    __strong typeof(weakSelf) strongSelf = weakSelf;
                     if(strongSelf) {
                         [strongSelf.socket.ackHandlers timeoutAck:strongSelf.ackNum
                                                           onQueue:strongSelf.socket.handleQueue];
