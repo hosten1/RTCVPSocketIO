@@ -14,6 +14,8 @@ It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
 
 # 使用简介
 
+# 如果使用https 等连接注意检查工程的info.plist配置
+
 ## Objective-C Example
 ```objective-c
 #import "RTCVPSocketIO.h"
