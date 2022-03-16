@@ -21,7 +21,7 @@ It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
 #import "RTCVPSocketIO.h"
 #import "RTCVPSocketAckEmitter.h"
 
-NSURL* url = [[NSURL alloc] initWithString:@"http://localhost:8080"];
+NSURL* url = [[NSURL alloc] initWithString:@"https://localhost:8080"];
 // 设置日志显示类
 RTCVPSocketLogger *logger = [[RTCVPSocketLogger alloc]init];
 // 自定义参数 
