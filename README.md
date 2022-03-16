@@ -13,7 +13,7 @@ It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
 ```objective-c
 #import <SocketIO-iOS/SocketIO-iOS.h>;
 NSURL* url = [[NSURL alloc] initWithString:@"http://localhost:8080"];
-SocketIOClient* socket = [[SocketIOClient alloc] init:url withConfig:@{@"log": @NO,
+RTCVPSocketIOClient* socket = [[RTCVPSocketIOClient alloc] init:url withConfig:@{@"log": @NO,
                                                  @"reconnects":@YES,
                                                  @"reconnectAttempts":@(20),
                                                  @"forcePolling": @NO,
@@ -87,7 +87,16 @@ Run `carthage update --platform ios,macosx`.
         self.notifyInfo(@"request",array,resp);       
     }];
 ```
-
+## 发送消息
+ ### 1.发送需要回掉的消息 
+```objective-c
+ RTCVPSocketOnAckCallback *callback = [blockSelf.socket emitWithAck:method items:@[message]];
+ [callback timingOutAfter:10 callback:^(NSArray *array) {
+                if ([array[0] isKindOfClass:[NSNull class]]) {
+                    NSLog(@"");
+                }
+}];
+```
 ## License
 MIT
 
