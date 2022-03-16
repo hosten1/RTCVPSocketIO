@@ -8,10 +8,17 @@ Socket.IO client for iOS. Supports socket.io 2.0+
 It's based on a official Swift library from here: [SocketIO-Client-Swift](https://github.com/socketio/socket.io-client-swift)
 
 It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
+# 引入项目 
+ ## 源码直接引入
+  <img width="165" alt="image" src="https://user-images.githubusercontent.com/19199389/158535755-7fc138df-4dd0-4ec2-bd4e-e7916dac7e2a.png">
+
+# 使用简介
 
 ## Objective-C Example
 ```objective-c
-#import <SocketIO-iOS/SocketIO-iOS.h>;
+#import "RTCVPSocketIO.h"
+#import "RTCVPSocketAckEmitter.h"
+
 NSURL* url = [[NSURL alloc] initWithString:@"http://localhost:8080"];
 RTCVPSocketIOClient* socket = [[RTCVPSocketIOClient alloc] init:url withConfig:@{@"log": @NO,
                                                  @"reconnects":@YES,
@@ -49,7 +56,14 @@ RTCVPSocketIOClient* socket = [[RTCVPSocketIOClient alloc] init:url withConfig:@
 [socket connect];
 
 ```
+## 输出库日志
 
+```objective-c
+     RTCVPSocketLogger *logger = [[RTCVPSocketLogger alloc]init];
+    [logger onLogMsgWithCB:^(NSString *message, NSString *type) {
+       
+    }];
+```
 ## Features
 - Supports socket.io 2.0+
 - Supports binary
