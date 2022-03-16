@@ -64,7 +64,11 @@ RTCVPSocketIOClient* socket = [[RTCVPSocketIOClient alloc] init:url withConfig:@
 [socket connect];
 
 ```
+上述在连接https的时候需要设置两个参数:secure和selfSigned的值要设为YES；http这两个参数需要设置为NO
+
 ## 连接服务
+ 
+ 
  除了 `[socket connect];` 方法，还提供设置连接超时方法,如下:
  
  ```objective-c
