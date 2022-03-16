@@ -22,7 +22,9 @@ It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
 #import "RTCVPSocketAckEmitter.h"
 
 NSURL* url = [[NSURL alloc] initWithString:@"http://localhost:8080"];
+// 设置日志显示类
 RTCVPSocketLogger *logger = [[RTCVPSocketLogger alloc]init];
+// 自定义参数 
  NSMutableDictionary *params = [NSMutableDictionary dictionary];
  [params setObject:@"参数" forKey: @"id"];
   [params setObject:@"123456" forKey: @"roomId"];
