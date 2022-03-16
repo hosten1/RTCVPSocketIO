@@ -56,6 +56,14 @@ RTCVPSocketIOClient* socket = [[RTCVPSocketIOClient alloc] init:url withConfig:@
 [socket connect];
 
 ```
+## 连接服务
+ 除了 `[socket connect];` 方法，还提供设置连接超时方法,如下:
+ 
+ ```objective-c
+ [_socket connectWithTimeoutAfter:10 withHandler:^{
+     
+    }];
+ ```
 ## 输出库日志
 
 ```objective-c
