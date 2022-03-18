@@ -60,9 +60,7 @@ dispatch_async(queue, block);\
             }
             RTCVPSocketOnAckCallback *callback = [blockSelf.socket emitWithAck:method items:@[message]];
             [callback timingOutAfter:10 callback:^(NSArray *array) {
-                if ([array[0] isKindOfClass:[NSNull class]]) {
-                    NSLog(@"");
-                }
+                NSLog(@">>>>>>>>>ack msg:%@",array);
             }];
         }
         
@@ -75,7 +73,7 @@ dispatch_async(queue, block);\
 }
 - (IBAction)sendMsg:(id)sender {
     
-    [self sendMessage:@{} withMethod:@"online"];
+    [self sendMessage:@{@"hello":@"你好呀，这是我发的第一条消息!!"} withMethod:@"online"];
     
 }
 - (IBAction)disconnect:(id)sender {
@@ -89,7 +87,12 @@ dispatch_async(queue, block);\
 -(void)socketExample
 {
     NSString *urlString = @"http://192.168.140.184:8000";
-    NSDictionary *connectParams = @{@"key":@"value"};
+    NSDictionary *connectParams = @{@"version_name":@"3.2.1",
+                                    @"version_code":@"43234",
+                                    @"platform":@"iOS",
+                                    @"mac":@"ff:44:55:dd:88",
+                                    @"tesolution":@"1820*1080"
+    };
     RTCVPSocketLogger *logger = [[RTCVPSocketLogger alloc]init];
     [logger onLogMsgWithCB:^(NSString *message, NSString *type) {
         if ([type isEqualToString:@"RTCVPSocketIOClient"]) {
@@ -101,7 +104,7 @@ dispatch_async(queue, block);\
         
     }];
     self.socket = [[RTCVPSocketIOClient alloc] init:[NSURL URLWithString:urlString]
-                                    withConfig:@{@"log": @YES,
+                                    withConfig:@{@"log": @NO,
                                                  @"reconnects":@YES,
                                                  @"reconnectAttempts":@(20),
                                                  @"forcePolling": @NO,
@@ -135,15 +138,15 @@ dispatch_async(queue, block);\
         });
     }];
     [_socket on:kSocketEventError callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
-        STRONGSELF
-       
+//        STRONGSELF
+        NSLog(@"=======>连接出错了:%@",array);
     }];
     
     
     [_socket connectWithTimeoutAfter:10 withHandler:^{
-        STRONGSELF
+//        STRONGSELF
        
-       
+        NSLog(@"=======>连接超时了");
     }];
     
 }

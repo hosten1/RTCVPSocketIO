@@ -33,9 +33,12 @@
                                     <action selector="disconnect:" destination="BYZ-38-t0r" eventType="touchUpInside" id="dAJ-lY-KKa"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="hoc-Ql-2nR">
-                                <rect key="frame" x="141" y="450" width="82" height="31"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="hoc-Ql-2nR">
+                                <rect key="frame" x="141" y="450" width="100" height="45"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="45" id="El6-OW-d19"/>
+                                    <constraint firstAttribute="width" constant="100" id="Tze-3K-X89"/>
+                                </constraints>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="发送消息"/>
                                 <connections>
@@ -45,10 +48,12 @@
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="hoc-Ql-2nR" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="125" id="1PC-4H-qLt"/>
                             <constraint firstItem="VQ6-Z9-1hn" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="93p-1u-Nfa"/>
                             <constraint firstItem="7Uv-Fv-Yiz" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="GIy-pH-0Fs"/>
                             <constraint firstItem="VQ6-Z9-1hn" firstAttribute="top" secondItem="7Uv-Fv-Yiz" secondAttribute="bottom" constant="17.5" id="Zwf-12-N5P"/>
                             <constraint firstItem="7Uv-Fv-Yiz" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="dQY-q6-vpC"/>
+                            <constraint firstItem="hoc-Ql-2nR" firstAttribute="top" secondItem="VQ6-Z9-1hn" secondAttribute="bottom" constant="54" id="yTv-Zd-4lj"/>
                         </constraints>
                     </view>
                 </viewController>
