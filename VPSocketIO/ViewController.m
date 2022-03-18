@@ -87,6 +87,7 @@ dispatch_async(queue, block);\
 -(void)socketExample
 {
     NSString *urlString = @"http://192.168.140.184:8000";
+    // 这个消息 是在http的消息体力包含
     NSDictionary *connectParams = @{@"version_name":@"3.2.1",
                                     @"version_code":@"43234",
                                     @"platform":@"iOS",
