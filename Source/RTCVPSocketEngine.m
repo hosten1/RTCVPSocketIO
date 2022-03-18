@@ -107,6 +107,9 @@ NSURLSessionDelegate>
             {
                 _socketPath = value;
                 
+                if (![_socketPath hasPrefix:@"/"]) {
+                    _socketPath = [NSString stringWithFormat:@"/%@",_socketPath];
+                }
                 if (![_socketPath hasSuffix:@"/"]) {
                     _socketPath = [_socketPath stringByAppendingString:@"/"];
                 }
