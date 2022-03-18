@@ -8,47 +8,23 @@
 
 /* Begin PBXBuildFile section */
 		1B91EEFD26281D35003120A7 /* VPSocketIOAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */; };
-		1B91EF072628209F003120A7 /* VPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B91EF062628209F003120A7 /* VPSocketIO.framework */; };
-		1B91EF232628263D003120A7 /* VPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B91EF062628209F003120A7 /* VPSocketIO.framework */; };
-		1B91EF242628263D003120A7 /* VPSocketIO.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1B91EF062628209F003120A7 /* VPSocketIO.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		1BF8BF6024AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF3824AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h */; };
-		1BF8BF6124AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF3924AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m */; };
-		1BF8BF6224AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF3A24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h */; };
-		1BF8BF6324AAD13E003B5EA3 /* NSString+RTCVPSocketIO.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF3B24AAD13E003B5EA3 /* NSString+RTCVPSocketIO.h */; };
-		1BF8BF6424AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF3C24AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.m */; };
-		1BF8BF6524AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF3D24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.m */; };
-		1BF8BF6624AAD13E003B5EA3 /* RTCJFRWebSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF3F24AAD13E003B5EA3 /* RTCJFRWebSocket.h */; };
-		1BF8BF6724AAD13E003B5EA3 /* RTCJFRSecurity.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4024AAD13E003B5EA3 /* RTCJFRSecurity.m */; };
-		1BF8BF6824AAD13E003B5EA3 /* RTCJFRWebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4124AAD13E003B5EA3 /* RTCJFRWebSocket.m */; };
-		1BF8BF6924AAD13E003B5EA3 /* RTCJFRSecurity.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF4224AAD13E003B5EA3 /* RTCJFRSecurity.h */; };
-		1BF8BF6A24AAD13E003B5EA3 /* RTCVPSocketEngine.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4424AAD13E003B5EA3 /* RTCVPSocketEngine.m */; };
-		1BF8BF6B24AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF4524AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.h */; };
-		1BF8BF6C24AAD13E003B5EA3 /* RTCVPSocketAckEmitter.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4624AAD13E003B5EA3 /* RTCVPSocketAckEmitter.m */; };
-		1BF8BF6D24AAD13E003B5EA3 /* RTCVPSocketPacket.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF4724AAD13E003B5EA3 /* RTCVPSocketPacket.h */; };
-		1BF8BF6E24AAD13E003B5EA3 /* RTCVPSocketAnyEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4824AAD13E003B5EA3 /* RTCVPSocketAnyEvent.m */; };
-		1BF8BF6F24AAD13E003B5EA3 /* RTCDefaultSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4924AAD13E003B5EA3 /* RTCDefaultSocketLogger.m */; };
-		1BF8BF7024AAD13E003B5EA3 /* RTCVPSocketIOClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4A24AAD13E003B5EA3 /* RTCVPSocketIOClient.m */; };
-		1BF8BF7124AAD13E003B5EA3 /* RTCVPSocketEngineProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF4B24AAD13E003B5EA3 /* RTCVPSocketEngineProtocol.h */; };
-		1BF8BF7224AAD13E003B5EA3 /* RTCVPSocketLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF4C24AAD13E003B5EA3 /* RTCVPSocketLogger.h */; };
-		1BF8BF7324AAD13E003B5EA3 /* RTCVPSocketAck.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4D24AAD13E003B5EA3 /* RTCVPSocketAck.m */; };
-		1BF8BF7424AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF4E24AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.m */; };
-		1BF8BF7524AAD13E003B5EA3 /* RTCVPSocketIO.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF4F24AAD13E003B5EA3 /* RTCVPSocketIO.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		1BF8BF7624AAD13E003B5EA3 /* RTCVPStringReader.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5024AAD13E003B5EA3 /* RTCVPStringReader.h */; };
-		1BF8BF7724AAD13E003B5EA3 /* RTCVPSocketAckManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF5124AAD13E003B5EA3 /* RTCVPSocketAckManager.m */; };
-		1BF8BF7824AAD13E003B5EA3 /* RTCVPSocketAckEmitter.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5224AAD13E003B5EA3 /* RTCVPSocketAckEmitter.h */; };
-		1BF8BF7924AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF5324AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.m */; };
-		1BF8BF7A24AAD13E003B5EA3 /* RTCVPSocketIOClientProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5424AAD13E003B5EA3 /* RTCVPSocketIOClientProtocol.h */; };
-		1BF8BF7B24AAD13E003B5EA3 /* RTCVPSocketEngine.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5524AAD13E003B5EA3 /* RTCVPSocketEngine.h */; };
-		1BF8BF7C24AAD13E003B5EA3 /* RTCVPSocketEngine+Private.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5624AAD13E003B5EA3 /* RTCVPSocketEngine+Private.h */; };
-		1BF8BF7D24AAD13E003B5EA3 /* RTCDefaultSocketLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5724AAD13E003B5EA3 /* RTCDefaultSocketLogger.h */; };
-		1BF8BF7E24AAD13E003B5EA3 /* RTCVPSocketAnyEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5824AAD13E003B5EA3 /* RTCVPSocketAnyEvent.h */; };
-		1BF8BF7F24AAD13E003B5EA3 /* RTCVPSocketPacket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF5924AAD13E003B5EA3 /* RTCVPSocketPacket.m */; };
-		1BF8BF8024AAD13E003B5EA3 /* RTCVPSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF5A24AAD13E003B5EA3 /* RTCVPSocketLogger.m */; };
-		1BF8BF8124AAD13E003B5EA3 /* RTCVPSocketIOClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5B24AAD13E003B5EA3 /* RTCVPSocketIOClient.h */; };
-		1BF8BF8224AAD13E003B5EA3 /* RTCVPSocketAckManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5C24AAD13E003B5EA3 /* RTCVPSocketAckManager.h */; };
-		1BF8BF8324AAD13E003B5EA3 /* RTCVPStringReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF8BF5D24AAD13E003B5EA3 /* RTCVPStringReader.m */; };
-		1BF8BF8424AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5E24AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.h */; };
-		1BF8BF8524AAD13E003B5EA3 /* RTCVPSocketAck.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF8BF5F24AAD13E003B5EA3 /* RTCVPSocketAck.h */; };
+		1BA15D2E27E4457200500655 /* RTCVPSocketEngine.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D0627E4457100500655 /* RTCVPSocketEngine.m */; };
+		1BA15D2F27E4457200500655 /* RTCVPSocketAckEmitter.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D0827E4457100500655 /* RTCVPSocketAckEmitter.m */; };
+		1BA15D3027E4457200500655 /* RTCVPSocketAnyEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D0A27E4457100500655 /* RTCVPSocketAnyEvent.m */; };
+		1BA15D3127E4457200500655 /* RTCDefaultSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D0B27E4457100500655 /* RTCDefaultSocketLogger.m */; };
+		1BA15D3227E4457200500655 /* RTCVPSocketIOClient.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D0C27E4457100500655 /* RTCVPSocketIOClient.m */; };
+		1BA15D3327E4457200500655 /* RTCVPSocketAck.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D0F27E4457100500655 /* RTCVPSocketAck.m */; };
+		1BA15D3427E4457200500655 /* RTCVPSocketOnAckCallback.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D1027E4457100500655 /* RTCVPSocketOnAckCallback.m */; };
+		1BA15D3527E4457200500655 /* RTCVPSocketAckManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D1327E4457100500655 /* RTCVPSocketAckManager.m */; };
+		1BA15D3627E4457200500655 /* RTCVPAFNetworkReachabilityManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D1527E4457100500655 /* RTCVPAFNetworkReachabilityManager.m */; };
+		1BA15D3727E4457200500655 /* RTCVPSocketPacket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D1B27E4457100500655 /* RTCVPSocketPacket.m */; };
+		1BA15D3827E4457200500655 /* RTCVPSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D1C27E4457100500655 /* RTCVPSocketLogger.m */; };
+		1BA15D3927E4457200500655 /* RTCVPStringReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D1F27E4457100500655 /* RTCVPStringReader.m */; };
+		1BA15D3A27E4457200500655 /* NSString+RTCVPSocketIO.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D2427E4457200500655 /* NSString+RTCVPSocketIO.m */; };
+		1BA15D3B27E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D2727E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.m */; };
+		1BA15D3C27E4457200500655 /* RTCVPSocketEngine+EnginePollable.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D2827E4457200500655 /* RTCVPSocketEngine+EnginePollable.m */; };
+		1BA15D3D27E4457200500655 /* RTCJFRSecurity.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D2B27E4457200500655 /* RTCJFRSecurity.m */; };
+		1BA15D3E27E4457200500655 /* RTCJFRWebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BA15D2C27E4457200500655 /* RTCJFRWebSocket.m */; };
 		F06B19321F71466D003E81B1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19311F71466D003E81B1 /* main.m */; };
 		F06B19351F71466D003E81B1 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19341F71466D003E81B1 /* AppDelegate.m */; };
 		F06B19381F71466D003E81B1 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19371F71466D003E81B1 /* ViewController.m */; };
@@ -74,7 +50,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				1B91EF242628263D003120A7 /* VPSocketIO.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -85,46 +60,44 @@
 		1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VPSocketIOAppTests.m; sourceTree = "<group>"; };
 		1B91EEFE26281D35003120A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1B91EF062628209F003120A7 /* VPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VPSocketIO.framework; path = framework/VPSocketIO.framework; sourceTree = "<group>"; };
-		1BF8BF3824AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EngineWebsocket.h"; sourceTree = "<group>"; };
-		1BF8BF3924AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+RTCVPSocketIO.m"; sourceTree = "<group>"; };
-		1BF8BF3A24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EnginePollable.h"; sourceTree = "<group>"; };
-		1BF8BF3B24AAD13E003B5EA3 /* NSString+RTCVPSocketIO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+RTCVPSocketIO.h"; sourceTree = "<group>"; };
-		1BF8BF3C24AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "RTCVPSocketEngine+EngineWebsocket.m"; sourceTree = "<group>"; };
-		1BF8BF3D24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "RTCVPSocketEngine+EnginePollable.m"; sourceTree = "<group>"; };
-		1BF8BF3F24AAD13E003B5EA3 /* RTCJFRWebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCJFRWebSocket.h; sourceTree = "<group>"; };
-		1BF8BF4024AAD13E003B5EA3 /* RTCJFRSecurity.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCJFRSecurity.m; sourceTree = "<group>"; };
-		1BF8BF4124AAD13E003B5EA3 /* RTCJFRWebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCJFRWebSocket.m; sourceTree = "<group>"; };
-		1BF8BF4224AAD13E003B5EA3 /* RTCJFRSecurity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCJFRSecurity.h; sourceTree = "<group>"; };
-		1BF8BF4424AAD13E003B5EA3 /* RTCVPSocketEngine.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketEngine.m; sourceTree = "<group>"; };
-		1BF8BF4524AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPAFNetworkReachabilityManager.h; sourceTree = "<group>"; };
-		1BF8BF4624AAD13E003B5EA3 /* RTCVPSocketAckEmitter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAckEmitter.m; sourceTree = "<group>"; };
-		1BF8BF4724AAD13E003B5EA3 /* RTCVPSocketPacket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketPacket.h; sourceTree = "<group>"; };
-		1BF8BF4824AAD13E003B5EA3 /* RTCVPSocketAnyEvent.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAnyEvent.m; sourceTree = "<group>"; };
-		1BF8BF4924AAD13E003B5EA3 /* RTCDefaultSocketLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCDefaultSocketLogger.m; sourceTree = "<group>"; };
-		1BF8BF4A24AAD13E003B5EA3 /* RTCVPSocketIOClient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketIOClient.m; sourceTree = "<group>"; };
-		1BF8BF4B24AAD13E003B5EA3 /* RTCVPSocketEngineProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketEngineProtocol.h; sourceTree = "<group>"; };
-		1BF8BF4C24AAD13E003B5EA3 /* RTCVPSocketLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketLogger.h; sourceTree = "<group>"; };
-		1BF8BF4D24AAD13E003B5EA3 /* RTCVPSocketAck.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAck.m; sourceTree = "<group>"; };
-		1BF8BF4E24AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketOnAckCallback.m; sourceTree = "<group>"; };
-		1BF8BF4F24AAD13E003B5EA3 /* RTCVPSocketIO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIO.h; sourceTree = "<group>"; };
-		1BF8BF5024AAD13E003B5EA3 /* RTCVPStringReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPStringReader.h; sourceTree = "<group>"; };
-		1BF8BF5124AAD13E003B5EA3 /* RTCVPSocketAckManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAckManager.m; sourceTree = "<group>"; };
-		1BF8BF5224AAD13E003B5EA3 /* RTCVPSocketAckEmitter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAckEmitter.h; sourceTree = "<group>"; };
-		1BF8BF5324AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPAFNetworkReachabilityManager.m; sourceTree = "<group>"; };
-		1BF8BF5424AAD13E003B5EA3 /* RTCVPSocketIOClientProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOClientProtocol.h; sourceTree = "<group>"; };
-		1BF8BF5524AAD13E003B5EA3 /* RTCVPSocketEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketEngine.h; sourceTree = "<group>"; };
-		1BF8BF5624AAD13E003B5EA3 /* RTCVPSocketEngine+Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+Private.h"; sourceTree = "<group>"; };
-		1BF8BF5724AAD13E003B5EA3 /* RTCDefaultSocketLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCDefaultSocketLogger.h; sourceTree = "<group>"; };
-		1BF8BF5824AAD13E003B5EA3 /* RTCVPSocketAnyEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAnyEvent.h; sourceTree = "<group>"; };
-		1BF8BF5924AAD13E003B5EA3 /* RTCVPSocketPacket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketPacket.m; sourceTree = "<group>"; };
-		1BF8BF5A24AAD13E003B5EA3 /* RTCVPSocketLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketLogger.m; sourceTree = "<group>"; };
-		1BF8BF5B24AAD13E003B5EA3 /* RTCVPSocketIOClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOClient.h; sourceTree = "<group>"; };
-		1BF8BF5C24AAD13E003B5EA3 /* RTCVPSocketAckManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAckManager.h; sourceTree = "<group>"; };
-		1BF8BF5D24AAD13E003B5EA3 /* RTCVPStringReader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPStringReader.m; sourceTree = "<group>"; };
-		1BF8BF5E24AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketOnAckCallback.h; sourceTree = "<group>"; };
-		1BF8BF5F24AAD13E003B5EA3 /* RTCVPSocketAck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAck.h; sourceTree = "<group>"; };
-		1BF8BF8724AAD274003B5EA3 /* VPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VPSocketIO.framework; path = VPSocketIO/framework/VPSocketIO.framework; sourceTree = "<group>"; };
+		1BA15D0627E4457100500655 /* RTCVPSocketEngine.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketEngine.m; sourceTree = "<group>"; };
+		1BA15D0727E4457100500655 /* RTCVPAFNetworkReachabilityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPAFNetworkReachabilityManager.h; sourceTree = "<group>"; };
+		1BA15D0827E4457100500655 /* RTCVPSocketAckEmitter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAckEmitter.m; sourceTree = "<group>"; };
+		1BA15D0927E4457100500655 /* RTCVPSocketPacket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketPacket.h; sourceTree = "<group>"; };
+		1BA15D0A27E4457100500655 /* RTCVPSocketAnyEvent.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAnyEvent.m; sourceTree = "<group>"; };
+		1BA15D0B27E4457100500655 /* RTCDefaultSocketLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCDefaultSocketLogger.m; sourceTree = "<group>"; };
+		1BA15D0C27E4457100500655 /* RTCVPSocketIOClient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketIOClient.m; sourceTree = "<group>"; };
+		1BA15D0D27E4457100500655 /* RTCVPSocketEngineProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketEngineProtocol.h; sourceTree = "<group>"; };
+		1BA15D0E27E4457100500655 /* RTCVPSocketLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketLogger.h; sourceTree = "<group>"; };
+		1BA15D0F27E4457100500655 /* RTCVPSocketAck.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAck.m; sourceTree = "<group>"; };
+		1BA15D1027E4457100500655 /* RTCVPSocketOnAckCallback.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketOnAckCallback.m; sourceTree = "<group>"; };
+		1BA15D1127E4457100500655 /* RTCVPSocketIO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIO.h; sourceTree = "<group>"; };
+		1BA15D1227E4457100500655 /* RTCVPStringReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPStringReader.h; sourceTree = "<group>"; };
+		1BA15D1327E4457100500655 /* RTCVPSocketAckManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAckManager.m; sourceTree = "<group>"; };
+		1BA15D1427E4457100500655 /* RTCVPSocketAckEmitter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAckEmitter.h; sourceTree = "<group>"; };
+		1BA15D1527E4457100500655 /* RTCVPAFNetworkReachabilityManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPAFNetworkReachabilityManager.m; sourceTree = "<group>"; };
+		1BA15D1627E4457100500655 /* RTCVPSocketIOClientProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOClientProtocol.h; sourceTree = "<group>"; };
+		1BA15D1727E4457100500655 /* RTCVPSocketEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketEngine.h; sourceTree = "<group>"; };
+		1BA15D1827E4457100500655 /* RTCVPSocketEngine+Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+Private.h"; sourceTree = "<group>"; };
+		1BA15D1927E4457100500655 /* RTCDefaultSocketLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCDefaultSocketLogger.h; sourceTree = "<group>"; };
+		1BA15D1A27E4457100500655 /* RTCVPSocketAnyEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAnyEvent.h; sourceTree = "<group>"; };
+		1BA15D1B27E4457100500655 /* RTCVPSocketPacket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketPacket.m; sourceTree = "<group>"; };
+		1BA15D1C27E4457100500655 /* RTCVPSocketLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketLogger.m; sourceTree = "<group>"; };
+		1BA15D1D27E4457100500655 /* RTCVPSocketIOClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOClient.h; sourceTree = "<group>"; };
+		1BA15D1E27E4457100500655 /* RTCVPSocketAckManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAckManager.h; sourceTree = "<group>"; };
+		1BA15D1F27E4457100500655 /* RTCVPStringReader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPStringReader.m; sourceTree = "<group>"; };
+		1BA15D2027E4457100500655 /* RTCVPSocketOnAckCallback.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketOnAckCallback.h; sourceTree = "<group>"; };
+		1BA15D2127E4457100500655 /* RTCVPSocketAck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAck.h; sourceTree = "<group>"; };
+		1BA15D2327E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EngineWebsocket.h"; sourceTree = "<group>"; };
+		1BA15D2427E4457200500655 /* NSString+RTCVPSocketIO.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+RTCVPSocketIO.m"; sourceTree = "<group>"; };
+		1BA15D2527E4457200500655 /* RTCVPSocketEngine+EnginePollable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EnginePollable.h"; sourceTree = "<group>"; };
+		1BA15D2627E4457200500655 /* NSString+RTCVPSocketIO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+RTCVPSocketIO.h"; sourceTree = "<group>"; };
+		1BA15D2727E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "RTCVPSocketEngine+EngineWebsocket.m"; sourceTree = "<group>"; };
+		1BA15D2827E4457200500655 /* RTCVPSocketEngine+EnginePollable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "RTCVPSocketEngine+EnginePollable.m"; sourceTree = "<group>"; };
+		1BA15D2A27E4457200500655 /* RTCJFRWebSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCJFRWebSocket.h; sourceTree = "<group>"; };
+		1BA15D2B27E4457200500655 /* RTCJFRSecurity.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCJFRSecurity.m; sourceTree = "<group>"; };
+		1BA15D2C27E4457200500655 /* RTCJFRWebSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCJFRWebSocket.m; sourceTree = "<group>"; };
+		1BA15D2D27E4457200500655 /* RTCJFRSecurity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCJFRSecurity.h; sourceTree = "<group>"; };
 		F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPSocketIOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06B19311F71466D003E81B1 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		F06B19331F71466D003E81B1 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -144,7 +117,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1B91EF072628209F003120A7 /* VPSocketIO.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -152,7 +124,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1B91EF232628263D003120A7 /* VPSocketIO.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -175,70 +146,68 @@
 			path = VPSocketIOAppTests;
 			sourceTree = "<group>";
 		};
-		1BF8BF3724AAD13E003B5EA3 /* Category */ = {
+		1BA15D0527E4457100500655 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				1BF8BF3824AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h */,
-				1BF8BF3924AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m */,
-				1BF8BF3A24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h */,
-				1BF8BF3B24AAD13E003B5EA3 /* NSString+RTCVPSocketIO.h */,
-				1BF8BF3C24AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.m */,
-				1BF8BF3D24AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.m */,
-			);
-			path = Category;
-			sourceTree = "<group>";
-		};
-		1BF8BF3E24AAD13E003B5EA3 /* jetfire */ = {
-			isa = PBXGroup;
-			children = (
-				1BF8BF3F24AAD13E003B5EA3 /* RTCJFRWebSocket.h */,
-				1BF8BF4024AAD13E003B5EA3 /* RTCJFRSecurity.m */,
-				1BF8BF4124AAD13E003B5EA3 /* RTCJFRWebSocket.m */,
-				1BF8BF4224AAD13E003B5EA3 /* RTCJFRSecurity.h */,
-			);
-			path = jetfire;
-			sourceTree = "<group>";
-		};
-		1BF8BF4324AAD13E003B5EA3 /* Source */ = {
-			isa = PBXGroup;
-			children = (
-				1BF8BF4424AAD13E003B5EA3 /* RTCVPSocketEngine.m */,
-				1BF8BF4524AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.h */,
-				1BF8BF4624AAD13E003B5EA3 /* RTCVPSocketAckEmitter.m */,
-				1BF8BF4724AAD13E003B5EA3 /* RTCVPSocketPacket.h */,
-				1BF8BF4824AAD13E003B5EA3 /* RTCVPSocketAnyEvent.m */,
-				1BF8BF4924AAD13E003B5EA3 /* RTCDefaultSocketLogger.m */,
-				1BF8BF4A24AAD13E003B5EA3 /* RTCVPSocketIOClient.m */,
-				1BF8BF4B24AAD13E003B5EA3 /* RTCVPSocketEngineProtocol.h */,
-				1BF8BF4C24AAD13E003B5EA3 /* RTCVPSocketLogger.h */,
-				1BF8BF4D24AAD13E003B5EA3 /* RTCVPSocketAck.m */,
-				1BF8BF4E24AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.m */,
-				1BF8BF4F24AAD13E003B5EA3 /* RTCVPSocketIO.h */,
-				1BF8BF5024AAD13E003B5EA3 /* RTCVPStringReader.h */,
-				1BF8BF5124AAD13E003B5EA3 /* RTCVPSocketAckManager.m */,
-				1BF8BF5224AAD13E003B5EA3 /* RTCVPSocketAckEmitter.h */,
-				1BF8BF5324AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.m */,
-				1BF8BF5424AAD13E003B5EA3 /* RTCVPSocketIOClientProtocol.h */,
-				1BF8BF5524AAD13E003B5EA3 /* RTCVPSocketEngine.h */,
-				1BF8BF5624AAD13E003B5EA3 /* RTCVPSocketEngine+Private.h */,
-				1BF8BF5724AAD13E003B5EA3 /* RTCDefaultSocketLogger.h */,
-				1BF8BF5824AAD13E003B5EA3 /* RTCVPSocketAnyEvent.h */,
-				1BF8BF5924AAD13E003B5EA3 /* RTCVPSocketPacket.m */,
-				1BF8BF5A24AAD13E003B5EA3 /* RTCVPSocketLogger.m */,
-				1BF8BF5B24AAD13E003B5EA3 /* RTCVPSocketIOClient.h */,
-				1BF8BF5C24AAD13E003B5EA3 /* RTCVPSocketAckManager.h */,
-				1BF8BF5D24AAD13E003B5EA3 /* RTCVPStringReader.m */,
-				1BF8BF5E24AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.h */,
-				1BF8BF5F24AAD13E003B5EA3 /* RTCVPSocketAck.h */,
+				1BA15D0627E4457100500655 /* RTCVPSocketEngine.m */,
+				1BA15D0727E4457100500655 /* RTCVPAFNetworkReachabilityManager.h */,
+				1BA15D0827E4457100500655 /* RTCVPSocketAckEmitter.m */,
+				1BA15D0927E4457100500655 /* RTCVPSocketPacket.h */,
+				1BA15D0A27E4457100500655 /* RTCVPSocketAnyEvent.m */,
+				1BA15D0B27E4457100500655 /* RTCDefaultSocketLogger.m */,
+				1BA15D0C27E4457100500655 /* RTCVPSocketIOClient.m */,
+				1BA15D0D27E4457100500655 /* RTCVPSocketEngineProtocol.h */,
+				1BA15D0E27E4457100500655 /* RTCVPSocketLogger.h */,
+				1BA15D0F27E4457100500655 /* RTCVPSocketAck.m */,
+				1BA15D1027E4457100500655 /* RTCVPSocketOnAckCallback.m */,
+				1BA15D1127E4457100500655 /* RTCVPSocketIO.h */,
+				1BA15D1227E4457100500655 /* RTCVPStringReader.h */,
+				1BA15D1327E4457100500655 /* RTCVPSocketAckManager.m */,
+				1BA15D1427E4457100500655 /* RTCVPSocketAckEmitter.h */,
+				1BA15D1527E4457100500655 /* RTCVPAFNetworkReachabilityManager.m */,
+				1BA15D1627E4457100500655 /* RTCVPSocketIOClientProtocol.h */,
+				1BA15D1727E4457100500655 /* RTCVPSocketEngine.h */,
+				1BA15D1827E4457100500655 /* RTCVPSocketEngine+Private.h */,
+				1BA15D1927E4457100500655 /* RTCDefaultSocketLogger.h */,
+				1BA15D1A27E4457100500655 /* RTCVPSocketAnyEvent.h */,
+				1BA15D1B27E4457100500655 /* RTCVPSocketPacket.m */,
+				1BA15D1C27E4457100500655 /* RTCVPSocketLogger.m */,
+				1BA15D1D27E4457100500655 /* RTCVPSocketIOClient.h */,
+				1BA15D1E27E4457100500655 /* RTCVPSocketAckManager.h */,
+				1BA15D1F27E4457100500655 /* RTCVPStringReader.m */,
+				1BA15D2027E4457100500655 /* RTCVPSocketOnAckCallback.h */,
+				1BA15D2127E4457100500655 /* RTCVPSocketAck.h */,
 			);
 			path = Source;
-			sourceTree = "<group>";
+			sourceTree = SOURCE_ROOT;
+		};
+		1BA15D2227E4457200500655 /* Category */ = {
+			isa = PBXGroup;
+			children = (
+				1BA15D2327E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.h */,
+				1BA15D2427E4457200500655 /* NSString+RTCVPSocketIO.m */,
+				1BA15D2527E4457200500655 /* RTCVPSocketEngine+EnginePollable.h */,
+				1BA15D2627E4457200500655 /* NSString+RTCVPSocketIO.h */,
+				1BA15D2727E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.m */,
+				1BA15D2827E4457200500655 /* RTCVPSocketEngine+EnginePollable.m */,
+			);
+			path = Category;
+			sourceTree = SOURCE_ROOT;
+		};
+		1BA15D2927E4457200500655 /* jetfire */ = {
+			isa = PBXGroup;
+			children = (
+				1BA15D2A27E4457200500655 /* RTCJFRWebSocket.h */,
+				1BA15D2B27E4457200500655 /* RTCJFRSecurity.m */,
+				1BA15D2C27E4457200500655 /* RTCJFRWebSocket.m */,
+				1BA15D2D27E4457200500655 /* RTCJFRSecurity.h */,
+			);
+			path = jetfire;
+			sourceTree = SOURCE_ROOT;
 		};
 		1BF8BF8624AAD274003B5EA3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				1B91EF062628209F003120A7 /* VPSocketIO.framework */,
-				1BF8BF8724AAD274003B5EA3 /* VPSocketIO.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -246,9 +215,6 @@
 		F06B19241F71466C003E81B1 = {
 			isa = PBXGroup;
 			children = (
-				1BF8BF3724AAD13E003B5EA3 /* Category */,
-				1BF8BF3E24AAD13E003B5EA3 /* jetfire */,
-				1BF8BF4324AAD13E003B5EA3 /* Source */,
 				F06B192F1F71466C003E81B1 /* VPSocketIO */,
 				F08E4F6F1F7ACFEB0032C8E3 /* VPSocketIO-iOS */,
 				1B91EEFB26281D35003120A7 /* VPSocketIOAppTests */,
@@ -270,6 +236,9 @@
 		F06B192F1F71466C003E81B1 /* VPSocketIO */ = {
 			isa = PBXGroup;
 			children = (
+				1BA15D2227E4457200500655 /* Category */,
+				1BA15D2927E4457200500655 /* jetfire */,
+				1BA15D0527E4457100500655 /* Source */,
 				F06B19331F71466D003E81B1 /* AppDelegate.h */,
 				F06B19341F71466D003E81B1 /* AppDelegate.m */,
 				F06B19361F71466D003E81B1 /* ViewController.h */,
@@ -306,27 +275,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1BF8BF7524AAD13E003B5EA3 /* RTCVPSocketIO.h in Headers */,
-				1BF8BF7824AAD13E003B5EA3 /* RTCVPSocketAckEmitter.h in Headers */,
-				1BF8BF6D24AAD13E003B5EA3 /* RTCVPSocketPacket.h in Headers */,
-				1BF8BF7B24AAD13E003B5EA3 /* RTCVPSocketEngine.h in Headers */,
-				1BF8BF7624AAD13E003B5EA3 /* RTCVPStringReader.h in Headers */,
-				1BF8BF7C24AAD13E003B5EA3 /* RTCVPSocketEngine+Private.h in Headers */,
-				1BF8BF6324AAD13E003B5EA3 /* NSString+RTCVPSocketIO.h in Headers */,
-				1BF8BF7D24AAD13E003B5EA3 /* RTCDefaultSocketLogger.h in Headers */,
-				1BF8BF6024AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.h in Headers */,
-				1BF8BF6B24AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.h in Headers */,
-				1BF8BF7E24AAD13E003B5EA3 /* RTCVPSocketAnyEvent.h in Headers */,
-				1BF8BF7224AAD13E003B5EA3 /* RTCVPSocketLogger.h in Headers */,
-				1BF8BF8424AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.h in Headers */,
-				1BF8BF8124AAD13E003B5EA3 /* RTCVPSocketIOClient.h in Headers */,
-				1BF8BF7124AAD13E003B5EA3 /* RTCVPSocketEngineProtocol.h in Headers */,
-				1BF8BF7A24AAD13E003B5EA3 /* RTCVPSocketIOClientProtocol.h in Headers */,
-				1BF8BF6924AAD13E003B5EA3 /* RTCJFRSecurity.h in Headers */,
-				1BF8BF6624AAD13E003B5EA3 /* RTCJFRWebSocket.h in Headers */,
-				1BF8BF6224AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.h in Headers */,
-				1BF8BF8224AAD13E003B5EA3 /* RTCVPSocketAckManager.h in Headers */,
-				1BF8BF8524AAD13E003B5EA3 /* RTCVPSocketAck.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -472,9 +420,26 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1BA15D3127E4457200500655 /* RTCDefaultSocketLogger.m in Sources */,
+				1BA15D2E27E4457200500655 /* RTCVPSocketEngine.m in Sources */,
 				F06B19381F71466D003E81B1 /* ViewController.m in Sources */,
+				1BA15D3027E4457200500655 /* RTCVPSocketAnyEvent.m in Sources */,
+				1BA15D3827E4457200500655 /* RTCVPSocketLogger.m in Sources */,
+				1BA15D3B27E4457200500655 /* RTCVPSocketEngine+EngineWebsocket.m in Sources */,
+				1BA15D3927E4457200500655 /* RTCVPStringReader.m in Sources */,
+				1BA15D3A27E4457200500655 /* NSString+RTCVPSocketIO.m in Sources */,
+				1BA15D3427E4457200500655 /* RTCVPSocketOnAckCallback.m in Sources */,
 				F06B19351F71466D003E81B1 /* AppDelegate.m in Sources */,
+				1BA15D2F27E4457200500655 /* RTCVPSocketAckEmitter.m in Sources */,
+				1BA15D3727E4457200500655 /* RTCVPSocketPacket.m in Sources */,
 				F06B19321F71466D003E81B1 /* main.m in Sources */,
+				1BA15D3227E4457200500655 /* RTCVPSocketIOClient.m in Sources */,
+				1BA15D3527E4457200500655 /* RTCVPSocketAckManager.m in Sources */,
+				1BA15D3C27E4457200500655 /* RTCVPSocketEngine+EnginePollable.m in Sources */,
+				1BA15D3627E4457200500655 /* RTCVPAFNetworkReachabilityManager.m in Sources */,
+				1BA15D3327E4457200500655 /* RTCVPSocketAck.m in Sources */,
+				1BA15D3E27E4457200500655 /* RTCJFRWebSocket.m in Sources */,
+				1BA15D3D27E4457200500655 /* RTCJFRSecurity.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -482,23 +447,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1BF8BF6A24AAD13E003B5EA3 /* RTCVPSocketEngine.m in Sources */,
-				1BF8BF8324AAD13E003B5EA3 /* RTCVPStringReader.m in Sources */,
-				1BF8BF7024AAD13E003B5EA3 /* RTCVPSocketIOClient.m in Sources */,
-				1BF8BF7424AAD13E003B5EA3 /* RTCVPSocketOnAckCallback.m in Sources */,
-				1BF8BF6C24AAD13E003B5EA3 /* RTCVPSocketAckEmitter.m in Sources */,
-				1BF8BF6E24AAD13E003B5EA3 /* RTCVPSocketAnyEvent.m in Sources */,
-				1BF8BF6524AAD13E003B5EA3 /* RTCVPSocketEngine+EnginePollable.m in Sources */,
-				1BF8BF8024AAD13E003B5EA3 /* RTCVPSocketLogger.m in Sources */,
-				1BF8BF7F24AAD13E003B5EA3 /* RTCVPSocketPacket.m in Sources */,
-				1BF8BF7924AAD13E003B5EA3 /* RTCVPAFNetworkReachabilityManager.m in Sources */,
-				1BF8BF7324AAD13E003B5EA3 /* RTCVPSocketAck.m in Sources */,
-				1BF8BF7724AAD13E003B5EA3 /* RTCVPSocketAckManager.m in Sources */,
-				1BF8BF6F24AAD13E003B5EA3 /* RTCDefaultSocketLogger.m in Sources */,
-				1BF8BF6424AAD13E003B5EA3 /* RTCVPSocketEngine+EngineWebsocket.m in Sources */,
-				1BF8BF6724AAD13E003B5EA3 /* RTCJFRSecurity.m in Sources */,
-				1BF8BF6824AAD13E003B5EA3 /* RTCJFRWebSocket.m in Sources */,
-				1BF8BF6124AAD13E003B5EA3 /* NSString+RTCVPSocketIO.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
