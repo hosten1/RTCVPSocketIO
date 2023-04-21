@@ -52,7 +52,7 @@ dispatch_async(queue, block);\
     [self socketExample];
 }
 
-- (void)sendMessage:(NSDictionary*)message withMethod:(NSString*)method{
+- (void)sendMessage:(NSDictionary*)message withMethod:(NSString*)method callback:(void(^)(NSArray *array))cb{
     
     WEAKSELF
     dispatch_async(_currentEngineProtooQueue, ^{
@@ -64,7 +64,8 @@ dispatch_async(queue, block);\
             }
             RTCVPSocketOnAckCallback *callback = [blockSelf.socket emitWithAck:method items:@[message]];
             [callback timingOutAfter:10 callback:^(NSArray *array) {
-                NSLog(@">>>>>>>>>ack msg:%@",array);
+                cb(array);
+            
             }];
         }
         
@@ -76,8 +77,29 @@ dispatch_async(queue, block);\
     // Dispose of any resources that can be recreated.
 }
 - (IBAction)sendMsg:(id)sender {
-    
-    [self sendMessage:@{@"hello":@"你好呀，这是我发的第一条消息!!"} withMethod:@"online"];
+    dispatch_queue_t quqe = dispatch_queue_create("com.test.queue", DISPATCH_QUEUE_SERIAL);
+    dispatch_async(quqe, ^{
+        NSLog(@"hello1>>>>>>>>>[%@] ",[NSThread currentThread]);
+        [self sendMessage:@{@"hello1":@"你好呀，这是我发的第一条消息!!"} withMethod:@"chatMessage1" callback:^(NSArray *array) {
+            NSLog(@"hello1>>>>>>>>>[%@] ack msg:%@",[NSThread currentThread],array);
+        }];
+
+    });
+    dispatch_async(quqe, ^{
+        NSLog(@"hello2>>>>>>>>>[%@]",[NSThread currentThread]);
+        [self sendMessage:@{@"hello2":@"你好呀，这是我发的第一条消息!!"} withMethod:@"chatMessage2" callback:^(NSArray *array) {
+            NSLog(@"hello2>>>>>>>>>[%@] ack msg:%@",[NSThread currentThread],array);
+        }];
+
+    });
+    dispatch_async(quqe, ^{
+        NSLog(@"hello3>>>>>>>>>[%@]",[NSThread currentThread]);
+        [self sendMessage:@{@"hello3":@"你好呀，这是我发的第一条消息!!"} withMethod:@"chatMessage3" callback:^(NSArray *array) {
+            NSLog(@"hello3 >>>>>>>>>[%@] ack msg:%@",[NSThread currentThread],array);
+        }];
+
+    });
+
     
 }
 - (IBAction)disconnect:(id)sender {
@@ -90,7 +112,7 @@ dispatch_async(queue, block);\
 
 -(void)socketExample
 {
-    NSString *urlString = @"http://192.168.141.187:3001";
+    NSString *urlString = @"http://39.97.110.12:10670";
 //    NSString *urlString = @"https://10.221.120.233:8443";
     // 这个消息 是在http的消息体力包含
     NSDictionary *connectParams = @{@"version_name":@"3.2.1",
@@ -110,7 +132,7 @@ dispatch_async(queue, block);\
         
     }];
     self.socket = [[RTCVPSocketIOClient alloc] init:[NSURL URLWithString:urlString]
-                                    withConfig:@{@"log": @YES,
+                                    withConfig:@{@"log": @NO,
                                                  @"reconnects":@YES,
                                                  @"reconnectAttempts":@(3),
                                                  @"forcePolling": @NO,

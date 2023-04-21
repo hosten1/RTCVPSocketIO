@@ -4,7 +4,7 @@
 [toc]
 
 Socket.IO client for iOS. Supports socket.io 2.0+
-
+<font color=red>注意： 服务端的版本不要太高 ,可如下配置：`"socket.io": "^2.1.1"`;</font>
 It's based on a official Swift library from here: [SocketIO-Client-Swift](https://github.com/socketio/socket.io-client-swift)
 
 It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
@@ -64,7 +64,8 @@ RTCVPSocketIOClient* socket = [[RTCVPSocketIOClient alloc] init:url withConfig:@
 [socket connect];
 
 ```
-上述在连接https的时候需要设置两个参数:secure和selfSigned的值要设为YES；http这两个参数需要设置为NO
+上述在连接https的时候需要设置两个参数:`secure`和`selfSigned`的值要设为YES；http的时候这两个参数需要设置为NO；
+`forceWebsockets`需要设置为yes；
 
 ## 连接服务
  
