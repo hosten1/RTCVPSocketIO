@@ -199,13 +199,15 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 
 //Uses CoreFoundation to build a HTTP request to send over TCP stream.
 - (void)createHTTPRequest {
-    CFURLRef url = CFURLCreateWithString(kCFAllocatorDefault, (CFStringRef)self.url.absoluteString, NULL);
+    CFStringRef cfAbsoluteString = (__bridge_retained  CFStringRef)self.url.absoluteString;
+    CFURLRef url = CFURLCreateWithString(kCFAllocatorDefault, cfAbsoluteString, NULL);
     CFStringRef requestMethod = CFSTR("GET");
     CFHTTPMessageRef urlRequest = CFHTTPMessageCreateRequest(kCFAllocatorDefault,
                                                              requestMethod,
                                                              url,
                                                              kCFHTTPVersion1_1);
     CFRelease(url);
+    CFRelease(cfAbsoluteString);
     
     NSNumber *port = _url.port;
     if (!port) {
@@ -273,8 +275,9 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 - (void)initStreamsWithData:(NSData*)data port:(NSNumber*)port {
     CFReadStreamRef readStream = NULL;
     CFWriteStreamRef writeStream = NULL;
-    CFStreamCreatePairWithSocketToHost(NULL, (__bridge CFStringRef)self.url.host, [port intValue], &readStream, &writeStream);
-    
+    CFStringRef cfStr = (__bridge_retained  CFStringRef)self.url.host;
+    CFStreamCreatePairWithSocketToHost(NULL, cfStr, [port intValue], &readStream, &writeStream);
+    CFRelease(cfStr);
     self.inputStream = (__bridge_transfer NSInputStream *)readStream;
     self.inputStream.delegate = self;
     self.outputStream = (__bridge_transfer NSOutputStream *)writeStream;
@@ -286,8 +289,13 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
         self.certValidated = YES; //not a https session, so no need to check SSL pinning
     }
     if(self.voipEnabled) {
-        [self.inputStream setProperty:NSStreamNetworkServiceTypeVoIP forKey:NSStreamNetworkServiceType];
-        [self.outputStream setProperty:NSStreamNetworkServiceTypeVoIP forKey:NSStreamNetworkServiceType];
+        if (@available(iOS 16.0, *)) {
+            [self.inputStream setProperty:NSStreamNetworkServiceTypeBackground forKey:NSStreamNetworkServiceType];
+            [self.outputStream setProperty:NSStreamNetworkServiceTypeBackground forKey:NSStreamNetworkServiceType];
+        } else {
+            [self.inputStream setProperty:NSStreamNetworkServiceTypeVoIP forKey:NSStreamNetworkServiceType];
+            [self.outputStream setProperty:NSStreamNetworkServiceTypeVoIP forKey:NSStreamNetworkServiceType];
+        }
     }
     if(self.selfSignedSSL) {
         NSString *chain = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;

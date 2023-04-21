@@ -14,6 +14,7 @@
 
 -(void) sendWebSocketMessage:(NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)datas
 {
+//    NSLog(@"===================type:%@ message:%@ datas:%@===============",@(type),message,datas);
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Sending ws: %@ as type:%@", message, self.stringEnginePacketType[@(type)]] type:@"SocketEngineWebSocket"];
     if (datas.count > 0) {
         [self.ws writeString:[NSString stringWithFormat:@"%lu%@",(unsigned long)type, message]];

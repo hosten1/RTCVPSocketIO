@@ -6,9 +6,13 @@
 //  Copyright © 2017 Vasily Popov. All rights reserved.
 //
 
+
 #import "ViewController.h"
-#import "RTCVPSocketIO.h"
-#import "RTCVPSocketAckEmitter.h"
+
+#import<VPSocketIO/RTCVPSocketIO.h>
+
+//#import "RTCVPSocketIO.h"
+//#import "RTCVPSocketAckEmitter.h"
 #ifndef WEAKSELF
 #define WEAKSELF __weak __typeof(&*self)weakSelf = self;
 #endif
@@ -86,7 +90,8 @@ dispatch_async(queue, block);\
 
 -(void)socketExample
 {
-    NSString *urlString = @"http://192.168.140.184:8000";
+    NSString *urlString = @"http://192.168.141.187:3001";
+//    NSString *urlString = @"https://10.221.120.233:8443";
     // 这个消息 是在http的消息体力包含
     NSDictionary *connectParams = @{@"version_name":@"3.2.1",
                                     @"version_code":@"43234",
@@ -105,15 +110,15 @@ dispatch_async(queue, block);\
         
     }];
     self.socket = [[RTCVPSocketIOClient alloc] init:[NSURL URLWithString:urlString]
-                                    withConfig:@{@"log": @NO,
+                                    withConfig:@{@"log": @YES,
                                                  @"reconnects":@YES,
-                                                 @"reconnectAttempts":@(20),
+                                                 @"reconnectAttempts":@(3),
                                                  @"forcePolling": @NO,
                                                  @"secure": @NO,
                                                  @"forceNew":@YES,
                                                  @"forceWebsockets":@YES,
                                                  @"selfSigned":@NO,
-                                                 @"reconnectWait":@3,
+                                                 @"reconnectWait":@2,
                                                  @"nsp":@"/",
                                                  @"connectParams":connectParams,
                                                  @"logger":logger

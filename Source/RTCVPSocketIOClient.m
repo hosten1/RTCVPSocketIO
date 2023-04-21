@@ -182,24 +182,26 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             if (_currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi ) {//网络状态改变 WiFi to 4G
                 //                        [strongSelf.protoo reconnect];
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========网络状态改变 WiFi to 4G===========" type:self.logType];
+                [self.engine disconnect:@"network change"];
                 
             }else if(self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN){
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========网络状态改变 4G to 4G===========" type:self.logType];
             }
 
-            [self.engine disconnect:@"network change"];
+            
         }
             break;
         case RTCVPAFNetworkReachabilityStatusReachableViaWiFi:{
             if (self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN) {//网络状态改变 4G to WiFi
                 //                        [strongSelf.protoo reconnect];
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========/网络状态改变 4G to WiFi===========" type:self.logType];
+                [self.engine disconnect:@"network change"];
                 
             }else if (self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi) {//网络状态改变 WiFi to WiFi
                 //                        [strongSelf.protoo reconnect];
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========/网络状态改变 WiFi to WiFi===========" type:self.logType];
             }
-            [self.engine disconnect:@"network change"];
+           
         }
             break;
     }
@@ -224,12 +226,12 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         if(timeout <= 0) {
             return;
         }
-        __weak typeof(self) weakSelf = self;
+        __weak typeof(self) weakSelf1 = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)), _handleQueue, ^
         {
             @autoreleasepool
             {
-                __strong typeof(weakSelf) strongSelf = weakSelf;
+                __strong typeof(weakSelf1) strongSelf = weakSelf1;
                 if(strongSelf != nil &&
                    (strongSelf.status == RTCVPSocketIOClientStatusConnecting ||
                     strongSelf.status == RTCVPSocketIOClientStatusNotConnected))
@@ -510,7 +512,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 /// Tries to reconnect to the server.
 -(void) reconnect {
     if(!reconnecting) {
-        [_engine disconnect:@"manual reconnect"];
+        [self tryReconnect:@"manual reconnect"];
     }
 }
 
