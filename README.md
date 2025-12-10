@@ -3,8 +3,23 @@
 
 [toc]
 
-Socket.IO client for iOS. Supports socket.io 2.0+
-<font color=red>注意： 服务端的版本不要太高 ,可如下配置：`"socket.io": "^2.1.1"`;</font>
+Socket.IO client for iOS. Supports socket.io 2.0+ and 3.0+
+
+## 协议支持
+- Socket.IO 2.0 (Engine.IO 3.x) - 默认支持
+- Socket.IO 3.0 (Engine.IO 4.x) - 新增支持，通过配置协议版本开启
+
+## 主要差异
+| 特性 | Socket.IO 2.0 | Socket.IO 3.0 |
+|------|--------------|--------------|
+| 协议版本 | EIO=3 | EIO=4 |
+| 心跳超时 | 默认 60s | 默认 20s |
+| 二进制数据 | Base64 编码 | 原生二进制 |
+| 心跳包格式 | 数字 "2"/"3" | 字符串 "2probe"/"3probe" |
+| 最大载荷 | 无限制 | 可配置 (maxPayload) |
+| 错误处理 | 简单消息 | 标准化的错误代码 |
+| 安全特性 | 基本安全 | 增强安全 (CORS, SameSite) |
+| 压缩支持 | Polling 压缩 | WebSocket 压缩 |
 It's based on a official Swift library from here: [SocketIO-Client-Swift](https://github.com/socketio/socket.io-client-swift)
 
 It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)

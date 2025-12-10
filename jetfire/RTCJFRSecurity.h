@@ -2,8 +2,8 @@
 //
 //  RTCJFRSecurity.h
 //
-//  Created by Austin and Dalton Cherry on on 9/3/15.
-//  Copyright (c) 2014-2017 Austin Cherry.
+//  Created by Austin and Dalton Cherry  (change on ) on 12/10/25.
+//  Copyright (c) 2014-2025 Austin Cherry.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -22,24 +22,23 @@
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface RTCJFRSSLCert : NSObject
 
 /**
  Designated init for certificates
  
- :param: data is the binary data of the certificate
- 
- :returns: a representation security object to be used with
+ @param data is the binary data of the certificate
+ @return a representation security object to be used with
  */
 - (instancetype)initWithData:(NSData *)data;
-
 
 /**
  Designated init for public keys
  
- :param: key is the public key to be used
- 
- :returns: a representation security object to be used with
+ @param key is the public key to be used
+ @return a representation security object to be used with
  */
 - (instancetype)initWithKey:(SecKeyRef)key;
 
@@ -50,33 +49,32 @@
 /**
  Use certs from main app bundle
  
- :param usePublicKeys: is to specific if the publicKeys or certificates should be used for SSL pinning validation
- 
- :returns: a representation security object to be used with
+ @param usePublicKeys is to specific if the publicKeys or certificates should be used for SSL pinning validation
+ @return a representation security object to be used with
  */
 - (instancetype)initWithCerts:(NSArray<RTCJFRSSLCert*>*)certs publicKeys:(BOOL)publicKeys;
 
 /**
  Designated init
  
- :param keys: is the certificates or public keys to use
- :param usePublicKeys: is to specific if the publicKeys or certificates should be used for SSL pinning validation
- 
- :returns: a representation security object to be used with
+ @param publicKeys is to specific if the publicKeys or certificates should be used for SSL pinning validation
+ @return a representation security object to be used with
  */
 - (instancetype)initUsingPublicKeys:(BOOL)publicKeys;
 
 /**
  Should the domain name be validated? Default is YES.
  */
-@property(nonatomic)BOOL validatedDN;
+@property(nonatomic, assign) BOOL validatedDN;
 
 /**
  Validate if the cert is legit or not.
- :param:  trust is the trust to validate
- :param: domain to validate along with the trust (can be nil)
- :return: YES or NO if valid.
+ @param trust is the trust to validate
+ @param domain to validate along with the trust (can be nil)
+ @return YES or NO if valid.
  */
-- (BOOL)isValid:(SecTrustRef)trust domain:(NSString*)domain;
+- (BOOL)isValid:(SecTrustRef)trust domain:(NSString* _Nullable)domain;
 
 @end
+
+NS_ASSUME_NONNULL_END
