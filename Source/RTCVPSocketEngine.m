@@ -55,6 +55,7 @@ NSURLSessionDelegate>
 
 @property (nonatomic, strong) RTCJFRSecurity* security;
 @property (nonatomic, strong) NSMutableArray<RTCVPProbe*>* probeWait;
+@property (nonatomic, assign) int protocolVersion;
 
 @end
 
@@ -127,19 +128,21 @@ NSURLSessionDelegate>
                 _security = value;
             }
             
-            if([key isEqualToString:@"compress"])
-            {
-                _compress = YES;
-            }
+            if([key isEqualToString:@"compress"]) {
+            _compress = YES;
         }
         
-        if(_sessionDelegate == nil)
-        {
-            _sessionDelegate = self;
+        // 从配置中读取协议版本
+        if([key isEqualToString:kRTCVPSocketIOConfigKeyProtocolVersion]) {
+            _protocolVersion = [value intValue];
         }
-        [self createURLs];
-        
     }
+    
+    if(_sessionDelegate == nil)
+    {
+        _sessionDelegate = self;
+    }
+    [self createURLs];
     
     return self;
 }
@@ -169,6 +172,16 @@ NSURLSessionDelegate>
     _probeWait = [NSMutableArray array];
     _secure = NO;
     _selfSigned = NO;
+    
+    // 设置默认协议版本为3.0
+    _protocolVersion = kRTCVPSocketIOProtocolVersion3;
+    
+    // 根据协议版本设置默认心跳超时
+    if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+        _pingTimeout = 20; // Engine.IO 4.x 默认心跳超时20s
+    } else {
+        _pingTimeout = 60; // Engine.IO 3.x 默认心跳超时60s
+    }
     
     _stringEnginePacketType = @{ @(RTCVPSocketEnginePacketTypeOpen) : @"open",
                                  @(RTCVPSocketEnginePacketTypeClose) : @"close",
@@ -225,6 +238,15 @@ NSURLSessionDelegate>
         else {
             urlWebSocketComponent.scheme = @"ws";
             urlPollingComponent.scheme = @"http";
+        }
+        
+        // 根据协议版本设置EIO参数
+        if (!_connectParams[@"EIO"]) {
+            if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+                _connectParams[@"EIO"] = @"4"; // Socket.IO 3.0 使用 EIO=4
+            } else {
+                _connectParams[@"EIO"] = @"3"; // 旧版本使用 EIO=3
+            }
         }
         
         for (id key in _connectParams.allKeys) {
@@ -595,9 +617,22 @@ NSURLSessionDelegate>
 -(void)handlePong:(NSString*)message
 {
     _pongsMissed = 0;
-    // We should upgrade
-    if ([message isEqualToString:@"3probe"]) {
-        [self upgradeTransport];
+    
+    // 处理心跳包和探测包
+    if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+        // Engine.IO 4.x 使用字符串格式
+        if ([message isEqualToString:@"3probe"]) {
+            [self upgradeTransport];
+        }
+        // Engine.IO 4.x 的心跳包格式为 "2" 或 "3"
+        // 不需要额外处理，只需要重置pongsMissed即可
+    } else {
+        // Engine.IO 3.x 使用数字格式
+        if ([message isEqualToString:@"3probe"]) {
+            [self upgradeTransport];
+        }
+        // Engine.IO 3.x 的心跳包格式为 "2" 或 "3"
+        // 不需要额外处理，只需要重置pongsMissed即可
     }
 }
 

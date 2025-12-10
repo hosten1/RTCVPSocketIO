@@ -41,6 +41,20 @@ NSString *const kSocketEventReconnect          = @"reconnect";
 NSString *const kSocketEventReconnectAttempt   = @"reconnectAttempt";
 NSString *const kSocketEventStatusChange       = @"statusChange";
 
+// 配置键常量
+NSString *const kRTCVPSocketIOConfigKeyForceNew = @"forceNew";
+NSString *const kRTCVPSocketIOConfigKeyReconnects = @"reconnects";
+NSString *const kRTCVPSocketIOConfigKeyReconnectWait = @"reconnectWait";
+NSString *const kRTCVPSocketIOConfigKeyTimeout = @"timeout";
+NSString *const kRTCVPSocketIOConfigKeyQuery = @"query";
+NSString *const kRTCVPSocketIOConfigKeyNsp = @"nsp";
+NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors = @"ignoreSSLErrors";
+NSString *const kRTCVPSocketIOConfigKeyProtocolVersion = @"protocolVersion";
+
+// Socket.IO 3.0协议支持常量
+const int kRTCVPSocketIOProtocolVersion2 = 2;
+const int kRTCVPSocketIOProtocolVersion3 = 3;
+
 @interface  RTCVPSocketIOClientCacheData: NSObject
 @property(nonatomic, assign) int ack;
 @property(nonatomic, strong) NSArray *items;
@@ -182,7 +196,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             if (_currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi ) {//网络状态改变 WiFi to 4G
                 //                        [strongSelf.protoo reconnect];
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========网络状态改变 WiFi to 4G===========" type:self.logType];
-                [self.engine disconnect:@"network change"];
+                [self.engine disconnect:@"network change WiFi to 4G"];
                 
             }else if(self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN){
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========网络状态改变 4G to 4G===========" type:self.logType];
@@ -195,7 +209,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             if (self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWWAN) {//网络状态改变 4G to WiFi
                 //                        [strongSelf.protoo reconnect];
                 [RTCDefaultSocketLogger.logger log:@"ERROR ==========/网络状态改变 4G to WiFi===========" type:self.logType];
-                [self.engine disconnect:@"network change"];
+                [self.engine disconnect:@"network change with 4G to WiFi"];
                 
             }else if (self.currentNetWorkStatus == RTCVPAFNetworkReachabilityStatusReachableViaWiFi) {//网络状态改变 WiFi to WiFi
                 //                        [strongSelf.protoo reconnect];
@@ -254,6 +268,10 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     [RTCDefaultSocketLogger.logger log:@"Closing socket" type:self.logType];
     _reconnects = NO;
     [self didDisconnect:@"Disconnect"];
+}
+-(void)disconnectWithHandler:(RTCVPSocketIOVoidHandler)handler{
+    [self disconnect];
+    if(handler)handler();
 }
 
 -(void)dealloc
@@ -387,6 +405,54 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     }
     return nil;
     
+}
+
+-(void) emitWithAck:(NSString*)event 
+              items:(NSArray*)items 
+           ackBlock:(void(^)(NSArray * _Nullable data, NSError * _Nullable error))ackBlock {
+    [self emitWithAck:event items:items ackBlock:ackBlock timeout:10.0];
+}
+
+-(void) emitWithAck:(NSString*)event 
+              items:(NSArray*)items 
+           ackBlock:(void(^)(NSArray * _Nullable data, NSError * _Nullable error))ackBlock
+            timeout:(NSTimeInterval)timeout {
+    if (!event) {
+        if (ackBlock) {
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain" 
+                                                 code:-1 
+                                             userInfo:@{NSLocalizedDescriptionKey: @"Event name cannot be nil"}];
+            ackBlock(nil, error);
+        }
+        return;
+    }
+    
+    if (!items) {
+        items = @[];
+    }
+    
+    RTCVPSocketOnAckCallback *callback = [self emitWithAck:event items:items];
+    if (callback) {
+        [callback timingOutAfter:timeout callback:^(NSArray * _Nullable array) {
+            if (ackBlock) {
+                if (array) {
+                    ackBlock(array, nil);
+                } else {
+                    NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain" 
+                                                         code:-1 
+                                                     userInfo:@{NSLocalizedDescriptionKey: @"ACK timeout"}];
+                    ackBlock(nil, error);
+                }
+            }
+        }];
+    } else {
+        if (ackBlock) {
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain" 
+                                                 code:-1 
+                                             userInfo:@{NSLocalizedDescriptionKey: @"Failed to create ACK callback"}];
+            ackBlock(nil, error);
+        }
+    }
 }
 
 -(void)emitData:(NSArray*)data ack:(int) ack
