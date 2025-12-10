@@ -500,7 +500,14 @@ NSURLSessionDelegate>
 -(void) parseEngineData:(NSData*)data
 {
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got binary data:%@",data] type:self.logType];
-    [client parseEngineBinaryData:[data subdataWithRange:NSMakeRange(1, data.length-1)]];
+    
+    if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+        // Engine.IO 4.x 使用原生二进制数据，直接处理
+        [client parseEngineBinaryData:data];
+    } else {
+        // Engine.IO 3.x 使用Base64编码，需要跳过第一个字节
+        [client parseEngineBinaryData:[data subdataWithRange:NSMakeRange(1, data.length-1)]];
+    }
 }
 
 /// Parses a raw engine.io packet.
@@ -644,7 +651,14 @@ NSURLSessionDelegate>
         }
         else {
             _pongsMissed += 1;
-            [self write:@"" withType:RTCVPSocketEnginePacketTypePing withData:@[]];
+            
+            if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+                // Engine.IO 4.x 使用字符串格式心跳包 "2"
+                [self write:@"2" withType:RTCVPSocketEnginePacketTypePing withData:@[]];
+            } else {
+                // Engine.IO 3.x 使用空字符串心跳包
+                [self write:@"" withType:RTCVPSocketEnginePacketTypePing withData:@[]];
+            }
             
             __weak typeof(self) weakSelf = self;
             
@@ -667,7 +681,14 @@ NSURLSessionDelegate>
         
         [RTCDefaultSocketLogger.logger log:@"Upgrading transport to WebSockets" type:self.logType];
         _fastUpgrade = YES;
-        [self sendPollMessage:@"" withType:RTCVPSocketEnginePacketTypeNoop withData:@[]];
+        
+        if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+            // Engine.IO 4.x 发送 "2probe" 作为探测包
+            [_ws writeString:@"2probe"];
+        } else {
+            // Engine.IO 3.x 发送空字符串作为探测包
+            [self sendPollMessage:@"" withType:RTCVPSocketEnginePacketTypeNoop withData:@[]];
+        }
     }
 }
 
