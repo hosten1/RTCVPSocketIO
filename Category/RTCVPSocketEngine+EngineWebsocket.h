@@ -9,9 +9,20 @@
 #import "RTCVPSocketEngine.h"
 #import "RTCVPSocketEngine+Private.h"
 
-@interface RTCVPSocketEngine (EngineWebsocket)
-
+@interface RTCVPSocketEngine (EngineWebsocket) <RTCJFRWebSocketDelegate>
 -(void) sendWebSocketMessage:(NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)datas;
--(void) probeWebSocket;
+
+/// 探测WebSocket连接
+- (void)probeWebSocket;
+/// 创建WebSocket并连接
+- (void)createWebSocketAndConnect;
+
+
+
+/// 刷新WebSocket等待队列
+- (void)flushProbeWait;
+
+/// 刷新等待发送到WebSocket的消息
+- (void)flushWaitingForPostToWebSocket;
 
 @end
