@@ -9,29 +9,41 @@
 #import "RTCVPSocketEngine+EngineWebsocket.h"
 #import "RTCDefaultSocketLogger.h"
 #import "RTCVPSocketEngine+Private.h"
+#import "NSString+RTCVPSocketIO.h"
 
 @implementation RTCVPSocketEngine (EngineWebsocket)
-- (void)createWebSocketAndConnect {
-    self.ws = [[RTCJFRWebSocket alloc] initWithURL:self.urlWebSocket protocols:nil];
-    self.ws.queue = self.engineQueue;
+-(void) createWebSocketAndConnect
+{
+    self.ws = [[RTCJFRWebSocket alloc] initWithURL:[self _urlWebSocketWithSid] protocols:nil];
+    
+    if( self.cookies != nil) {
+        NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies: self.cookies];
+        
+        for (id key in headers.allKeys) {
+            [ self.ws addHeader:headers[key] forKey:key];
+        }
+        
+    }
+    
+    for (id key in  self.extraHeaders.allKeys) {
+        [ self.ws addHeader: self.extraHeaders[key] forKey:key];
+    }
+    
+    self.ws.queue =  self.engineQueue;
+    //_ws.enableCompression = _compress;
     self.ws.delegate = self;
     self.ws.voipEnabled = YES;
-    self.ws.selfSignedSSL = self.selfSigned;
-    self.ws.security = self.security;
-
-    // 添加cookies和extraHeaders
-    if (self.cookies.count > 0) {
-        NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies:self.cookies];
-        for (NSString *key in headers) {
-            [self.ws addHeader:headers[key] forKey:key];
-        }
-    }
-
-    for (NSString *key in self.extraHeaders) {
-        [self.ws addHeader:self.extraHeaders[key] forKey:key];
-    }
-
+    self.ws.selfSignedSSL =  self.selfSigned;
+    self.ws.security =  self.security;
     [self.ws connect];
+}
+
+- (NSURL *)_urlWebSocketWithSid {
+    
+    NSURLComponents *components = [NSURLComponents componentsWithURL:self.urlWebSocket resolvingAgainstBaseURL:NO];
+    NSString *sidComponent = self.sid.length > 0? [NSString stringWithFormat:@"&sid=%@", [self.sid urlEncode]] : @"";
+    components.percentEncodedQuery = [NSString stringWithFormat:@"%@%@", components.percentEncodedQuery,sidComponent];
+    return components.URL;
 }
 
 -(void) sendWebSocketMessage:(NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)datas

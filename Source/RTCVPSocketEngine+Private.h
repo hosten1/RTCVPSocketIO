@@ -19,6 +19,8 @@ typedef enum : NSUInteger{
     RTCVPSocketEnginePacketTypeNoop = 0x6,
 } RTCVPSocketEnginePacketType;
 
+
+@class RTCVPProbe;
 @interface RTCVPSocketEngine ()
 
 @property (nonatomic, strong, readonly) NSDictionary *stringEnginePacketType;
@@ -36,11 +38,26 @@ typedef enum : NSUInteger{
 @property (nonatomic) BOOL forcePolling;
 @property (nonatomic) BOOL forceWebsockets;
 @property (nonatomic) BOOL probing;
+@property (nonatomic, strong) NSMutableArray<NSHTTPCookie*>* cookies;
+@property (nonatomic, strong) NSMutableDictionary *connectParams;
+@property (nonatomic, strong) NSMutableDictionary*extraHeaders;
+@property (nonatomic, strong) dispatch_queue_t engineQueue;
+@property (nonatomic, strong) NSURL *urlWebSocket;
+@property (nonatomic) BOOL secure;
+@property (nonatomic) BOOL selfSigned;
+@property (nonatomic, strong) RTCJFRSecurity* security;
+@property (nonatomic) BOOL closed;
+@property (nonatomic) BOOL compress;
+@property (nonatomic) BOOL connected;
+@property (nonatomic, strong, readonly) NSString* logType;
+@property (nonatomic, strong) NSMutableArray<RTCVPProbe*>* probeWait;
+
 
 
 - (void)didError:(NSString*)reason;
 - (void)doFastUpgrade;
 - (void)addHeaders:(NSMutableURLRequest *)request;
 - (void)parseEngineMessage:(NSString*)message;
-- (void)flushWaitingForPostToWebSocket;
+-(void) closeOutEngine:(NSString*)reason;
+-(void) parseEngineData:(NSData*)data;
 @end

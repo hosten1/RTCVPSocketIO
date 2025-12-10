@@ -41,19 +41,7 @@ NSString *const kSocketEventReconnect          = @"reconnect";
 NSString *const kSocketEventReconnectAttempt   = @"reconnectAttempt";
 NSString *const kSocketEventStatusChange       = @"statusChange";
 
-// 配置键常量
-NSString *const kRTCVPSocketIOConfigKeyForceNew = @"forceNew";
-NSString *const kRTCVPSocketIOConfigKeyReconnects = @"reconnects";
-NSString *const kRTCVPSocketIOConfigKeyReconnectWait = @"reconnectWait";
-NSString *const kRTCVPSocketIOConfigKeyTimeout = @"timeout";
-NSString *const kRTCVPSocketIOConfigKeyQuery = @"query";
-NSString *const kRTCVPSocketIOConfigKeyNsp = @"nsp";
-NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors = @"ignoreSSLErrors";
-NSString *const kRTCVPSocketIOConfigKeyProtocolVersion = @"protocolVersion";
 
-// Socket.IO 3.0协议支持常量
-const int kRTCVPSocketIOProtocolVersion2 = 2;
-const int kRTCVPSocketIOProtocolVersion3 = 3;
 
 @interface  RTCVPSocketIOClientCacheData: NSObject
 @property(nonatomic, assign) int ack;

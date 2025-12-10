@@ -34,19 +34,9 @@ typedef void (^RTCVPSocketAnyEventHandler)(RTCVPSocketAnyEvent*event);
 typedef void (^RTCVPSocketAckHandler)(id _Nullable data, NSError * _Nullable error);
 typedef void (^RTCVPSocketConnectHandler)(BOOL connected, NSError * _Nullable error);
 
-// 配置键常量
-extern NSString *const kRTCVPSocketIOConfigKeyForceNew;
-extern NSString *const kRTCVPSocketIOConfigKeyReconnects;
-extern NSString *const kRTCVPSocketIOConfigKeyReconnectWait;
-extern NSString *const kRTCVPSocketIOConfigKeyTimeout;
-extern NSString *const kRTCVPSocketIOConfigKeyQuery;
-extern NSString *const kRTCVPSocketIOConfigKeyNsp;
-extern NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors;
-extern NSString *const kRTCVPSocketIOConfigKeyProtocolVersion;
 
-// Socket.IO 3.0协议支持常量
-extern const int kRTCVPSocketIOProtocolVersion2;
-extern const int kRTCVPSocketIOProtocolVersion3;
+
+
 
 // Socket.IO配置类
 @interface RTCVPSocketIOConfig : NSObject

@@ -10,6 +10,19 @@
 
 #import "RTCVPSocketLogger.h"
 NS_ASSUME_NONNULL_BEGIN
+// Socket.IO 3.0协议支持常量
+extern const int kRTCVPSocketIOProtocolVersion2;
+extern const int kRTCVPSocketIOProtocolVersion3;
+
+// 配置键常量
+extern NSString *const kRTCVPSocketIOConfigKeyForceNew;
+extern NSString *const kRTCVPSocketIOConfigKeyReconnects;
+extern NSString *const kRTCVPSocketIOConfigKeyReconnectWait;
+extern NSString *const kRTCVPSocketIOConfigKeyTimeout;
+extern NSString *const kRTCVPSocketIOConfigKeyQuery;
+extern NSString *const kRTCVPSocketIOConfigKeyNsp;
+extern NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors;
+extern NSString *const kRTCVPSocketIOConfigKeyProtocolVersion;
 
 typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
     RTCVPSocketIOTransportAuto,      // 自动选择

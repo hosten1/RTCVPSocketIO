@@ -11,6 +11,7 @@
 #import "RTCDefaultSocketLogger.h"
 #import "RTCVPStringReader.h"
 #import "NSString+RTCVPSocketIO.h"
+#import "RTCVPSocketEngine+EngineWebsocket.h"
 
 typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse*response, NSError*error);
 

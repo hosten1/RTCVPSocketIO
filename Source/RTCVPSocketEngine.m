@@ -13,35 +13,14 @@
 #import "RTCVPSocketEngine+Private.h"
 #import "RTCVPSocketEngine+EnginePollable.h"
 #import "RTCVPSocketEngine+EngineWebsocket.h"
-
-
-@interface RTCVPProbe : NSObject
-
-@property (nonatomic, strong) NSString *message;
-@property (nonatomic) RTCVPSocketEnginePacketType type;
-@property (nonatomic, strong) NSArray *data;
-
-@end
-
-@implementation RTCVPProbe
-
-@end
+#import "RTCVPSocketIOConfig.h"
+#import "RTCVPProbe.h"
 
 @interface RTCVPSocketEngine()<RTCJFRWebSocketDelegate,
 NSURLSessionDelegate>
-@property (nonatomic, strong, readonly) NSString* logType;
 
-@property (nonatomic) BOOL closed;
-@property (nonatomic) BOOL compress;
-@property (nonatomic) BOOL connected;
-@property (nonatomic, strong) NSMutableArray<NSHTTPCookie*>* cookies;
-@property (nonatomic, strong) NSMutableDictionary *connectParams;
-@property (nonatomic, strong) NSMutableDictionary*extraHeaders;
-@property (nonatomic, strong) dispatch_queue_t engineQueue;
 
 @property (nonatomic, strong) NSString *socketPath;
-@property (nonatomic, strong) NSURL *urlWebSocket;
-
 @property (nonatomic, weak) id<NSURLSessionDelegate> sessionDelegate;
 @property (nonatomic, strong) NSURL *url;
 
@@ -50,11 +29,7 @@ NSURLSessionDelegate>
 
 @property (nonatomic) int pongsMissed;
 @property (nonatomic) int pongsMissedMax;
-@property (nonatomic) BOOL secure;
-@property (nonatomic) BOOL selfSigned;
 
-@property (nonatomic, strong) RTCJFRSecurity* security;
-@property (nonatomic, strong) NSMutableArray<RTCVPProbe*>* probeWait;
 @property (nonatomic, assign) int protocolVersion;
 
 @end
@@ -129,21 +104,21 @@ NSURLSessionDelegate>
             }
             
             if([key isEqualToString:@"compress"]) {
-            _compress = YES;
+                _compress = YES;
+            }
+            
+            // 从配置中读取协议版本
+            if([key isEqualToString:kRTCVPSocketIOConfigKeyProtocolVersion]) {
+                _protocolVersion = [value intValue];
+            }
         }
         
-        // 从配置中读取协议版本
-        if([key isEqualToString:kRTCVPSocketIOConfigKeyProtocolVersion]) {
-            _protocolVersion = [value intValue];
+        if(_sessionDelegate == nil)
+        {
+            _sessionDelegate = self;
         }
+        [self createURLs];
     }
-    
-    if(_sessionDelegate == nil)
-    {
-        _sessionDelegate = self;
-    }
-    [self createURLs];
-    
     return self;
 }
 
@@ -277,31 +252,7 @@ NSURLSessionDelegate>
 
 #pragma mark - create websocket
 
--(void) createWebSocketAndConnect
-{
-    _ws = [[RTCJFRWebSocket alloc] initWithURL:self.urlWebSocketWithSid protocols:nil];
-    
-    if(_cookies != nil) {
-        NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies:_cookies];
-        
-        for (id key in headers.allKeys) {
-            [_ws addHeader:headers[key] forKey:key];
-        }
-        
-    }
-    
-    for (id key in _extraHeaders.allKeys) {
-        [_ws addHeader:_extraHeaders[key] forKey:key];
-    }
-    
-    _ws.queue = _engineQueue;
-    //_ws.enableCompression = _compress;
-    _ws.delegate = self;
-    _ws.voipEnabled = YES;
-    _ws.selfSignedSSL = _selfSigned;
-    _ws.security = _security;
-    [_ws connect];
-}
+
 
 #pragma mark - RTCVPSocketEngineProtocol
 
