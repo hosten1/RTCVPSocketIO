@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 
+#import "RTCVPSocketLogger.h"
 NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
@@ -104,6 +105,8 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
 @property (nonatomic, copy, nullable) NSString *authToken;
 
 #pragma mark - 日志配置
+
+@property(nonatomic, strong) RTCVPSocketLogger* logger;
 
 /// 是否启用日志（默认：NO）
 @property (nonatomic, assign) BOOL loggingEnabled;

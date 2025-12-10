@@ -7,6 +7,7 @@
 //
 
 #import "RTCVPSocketLogger.h"
+
 @interface RTCVPSocketLogger()
 @property(nonatomic, copy) void(^logCb)(NSString *message ,NSString *type);
 @end
