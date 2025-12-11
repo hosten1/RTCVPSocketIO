@@ -488,20 +488,17 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         [dataArray addObjectsFromArray:items];
     }
     
-    // 添加ACK ID到数组末尾
-    [dataArray addObject:@(ackId)];
-    
     // 如果有ACK回调，注册它
     if (ackBlock) {
         [self registerAckCallback:ackId callback:ackBlock timeout:timeout];
     }
     
-    // 创建Socket.IO包
+    // 创建Socket.IO包 - isEvent应该为YES，因为我们发送的是事件
     RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromEmit:dataArray
                                                                ID:ackId
                                                               nsp:self.nsp
                                                               ack:NO
-                                                          isEvent:NO];
+                                                          isEvent:YES];
     
     NSString *str = packet.packetString;
     
@@ -1026,12 +1023,39 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     // 解析Socket.IO协议消息
     // 消息格式: [type][nsp][data]，例如: 2["event",{"data":"value"}]
     
-    // 提取类型字符
-    NSString *typeStr = [message substringToIndex:1];
+    // 提取类型字符和可能的ACK ID
+    NSMutableString *typeStr = [NSMutableString string];
+    NSMutableString *idStr = [NSMutableString string];
+    int i = 0;
+    
+    // 第一个字符是类型
+    if (i < message.length) {
+        [typeStr appendString:[message substringWithRange:NSMakeRange(i, 1)]];
+        i++;
+    }
+    
+    // 检查后续字符是否为数字（可能是ACK ID）
+    while (i < message.length) {
+        char c = [message characterAtIndex:i];
+        if (isdigit(c)) {
+            [idStr appendString:[message substringWithRange:NSMakeRange(i, 1)]];
+            i++;
+        } else {
+            break;
+        }
+    }
+    
+    // 转换类型
     RTCVPPacketType type = [typeStr integerValue];
     
-    // 提取内容部分（类型之后的所有内容）
-    NSString *content = [message substringFromIndex:1];
+    // 转换ACK ID
+    int ackId = -1;
+    if (idStr.length > 0) {
+        ackId = [idStr integerValue];
+    }
+    
+    // 提取内容部分（类型和ID之后的所有内容）
+    NSString *content = [message substringFromIndex:i];
     
     // 处理不同类型的消息
     switch (type) {
@@ -1050,7 +1074,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             // 事件名称会从data[0]自动提取
             RTCVPSocketPacket *packet = [[RTCVPSocketPacket alloc] init:type 
                                                                    data:jsonArray 
-                                                                     ID:-1 
+                                                                     ID:ackId 
                                                                     nsp:@"/" 
                                                            placeholders:0 
                                                            binary:@[]];
@@ -1061,7 +1085,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             // 连接消息
             return [[RTCVPSocketPacket alloc] init:type 
                                              data:@[] 
-                                               ID:-1 
+                                               ID:ackId 
                                               nsp:@"/" 
                                      placeholders:0 
                                      binary:@[]];
@@ -1071,7 +1095,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             // 断开连接消息
             return [[RTCVPSocketPacket alloc] init:type 
                                              data:@[] 
-                                               ID:-1 
+                                               ID:ackId 
                                               nsp:@"/" 
                                      placeholders:0 
                                      binary:@[]];
@@ -1086,9 +1110,10 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
                 jsonArray = @[];
             }
             
+            // 创建数据包，使用解析出的ackId
             return [[RTCVPSocketPacket alloc] init:type 
                                              data:jsonArray 
-                                               ID:-1 
+                                               ID:ackId 
                                               nsp:@"/" 
                                      placeholders:0 
                                      binary:@[]];

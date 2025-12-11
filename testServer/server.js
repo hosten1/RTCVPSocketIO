@@ -95,8 +95,11 @@ io.on('connection', (socket) => {
   socket.on('customEvent', (data, callback) => {
     console.log('Custom event:', data);
     
-    if (callback) {
+    // 检查callback是否为函数
+    if (typeof callback === 'function') {
       callback({ success: true, response: `Processed: ${JSON.stringify(data)}` });
+    } else {
+      console.log('No callback provided for customEvent');
     }
   });
   

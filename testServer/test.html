@@ -122,6 +122,7 @@
             <button id="connect">Connect to Server</button>
             <button id="disconnect" disabled>Disconnect</button>
             <button id="sendCustomEvent">Send Custom Event</button>
+            <button id="testAck" disabled>ACK Test</button>
         </div>
         
         <div class="input-area">
@@ -151,6 +152,7 @@
         const disconnectBtn = document.getElementById('disconnect');
         const sendBtn = document.getElementById('send');
         const sendCustomEventBtn = document.getElementById('sendCustomEvent');
+        const testAckBtn = document.getElementById('testAck');
         const serverUrlInput = document.getElementById('serverUrl');
         
         // Socket instance
@@ -174,6 +176,8 @@
                 disconnectBtn.disabled = false;
                 sendBtn.disabled = false;
                 messageInput.disabled = false;
+                sendCustomEventBtn.disabled = false;
+                testAckBtn.disabled = false;
                 addMessage('Connected to server');
             } else {
                 statusElement.className = 'status disconnected';
@@ -182,6 +186,8 @@
                 disconnectBtn.disabled = true;
                 sendBtn.disabled = true;
                 messageInput.disabled = true;
+                sendCustomEventBtn.disabled = true;
+                testAckBtn.disabled = true;
                 addMessage('Disconnected from server');
             }
         }
@@ -290,6 +296,52 @@
                 socket.emit('customEvent', customData, (ack) => {
                     addMessage(`Custom event ACK: ${JSON.stringify(ack)}`, 'system');
                 });
+            }
+        });
+        
+        // ACK test button event listener
+        testAckBtn.addEventListener('click', async () => {
+            if (socket) {
+                addMessage('🔄 Starting concurrent ACK test...', 'system');
+                
+                // Test parameters
+                const testCount = 10; // Test 10 concurrent ACKs
+                let completedCount = 0;
+                let successCount = 0;
+                let failureCount = 0;
+                const startTime = Date.now();
+                
+                for (let i = 0; i < testCount; i++) {
+                    const testIndex = i;
+                    
+                    // Send with ACK
+                    socket.emit('customEvent', {
+                        testIndex: testIndex,
+                        message: `ACK Test ${testIndex}`,
+                        timestamp: Date.now()
+                    }, (ack) => {
+                        completedCount++;
+                        
+                        if (ack && ack.success) {
+                            successCount++;
+                            addMessage(`✅ ACK ${testIndex} success: ${JSON.stringify(ack)}`, 'system');
+                        } else {
+                            failureCount++;
+                            addMessage(`❌ ACK ${testIndex} failed: ${JSON.stringify(ack)}`, 'system');
+                        }
+                        
+                        // All tests completed
+                        if (completedCount === testCount) {
+                            const endTime = Date.now();
+                            const duration = (endTime - startTime) / 1000;
+                            
+                            addMessage(`📊 Concurrent ACK test completed: Total ${testCount}, Success ${successCount}, Failed ${failureCount}, Duration ${duration.toFixed(2)}s`, 'system');
+                        }
+                    });
+                    
+                    // Small delay to avoid too many requests at once
+                    await new Promise(resolve => setTimeout(resolve, 5));
+                }
             }
         });
     </script>

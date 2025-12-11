@@ -148,11 +148,13 @@
 -(NSString*) createPacketString
 {
     NSString *typeString = [NSString stringWithFormat:@"%d", (int)_type];
-    NSString *bString = @"";
+    NSString *binaryCountString = typeString;
+    
+    // 只对二进制事件添加binary count
     if(_type == RTCVPPacketTypeBinaryEvent || _type == RTCVPPacketTypeBinaryAck) {
-        bString = [NSString stringWithFormat:@"%lu-", (unsigned long)_binary.count];
+        NSString *bString = [NSString stringWithFormat:@"%lu-", (unsigned long)_binary.count];
+        binaryCountString = [typeString stringByAppendingString:bString];
     }
-    NSString *binaryCountString =  [typeString stringByAppendingString:bString];
 
     NSString *nsAddpString = [_nsp isEqualToString:@"/"]? @"": _nsp;
     NSString *nspString = [binaryCountString stringByAppendingString:nsAddpString];

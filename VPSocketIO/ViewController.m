@@ -31,6 +31,7 @@
 @property(nonatomic, strong) UIButton *sendButton;
 @property(nonatomic, strong) UIButton *connectButton;
 @property(nonatomic, strong) UIButton *disconnectButton;
+@property(nonatomic, strong) UIButton *ackTestButton;
 @property(nonatomic, strong) UIView *inputContainerView;
 
 @end
@@ -126,6 +127,17 @@
     self.disconnectButton.clipsToBounds = YES;
     self.disconnectButton.enabled = NO;
     
+    // ACK并发测试按钮
+    self.ackTestButton = [[UIButton alloc] initWithFrame:CGRectZero];
+    self.ackTestButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.ackTestButton setTitle:@"ACK Test" forState:UIControlStateNormal];
+    [self.ackTestButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [self.ackTestButton setBackgroundColor:[UIColor systemPurpleColor]];
+    [self.ackTestButton addTarget:self action:@selector(ackTestButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+    self.ackTestButton.layer.cornerRadius = 8.0;
+    self.ackTestButton.clipsToBounds = YES;
+    self.ackTestButton.enabled = NO;
+    
     // 添加子视图
     [self.inputContainerView addSubview:self.inputTextField];
     [self.inputContainerView addSubview:self.sendButton];
@@ -135,6 +147,7 @@
     [self.view addSubview:self.inputContainerView];
     [self.view addSubview:self.connectButton];
     [self.view addSubview:self.disconnectButton];
+    [self.view addSubview:self.ackTestButton];
     
     // 设置约束
     [NSLayoutConstraint activateConstraints:@[
@@ -179,11 +192,18 @@
         [self.connectButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
         
         // 断开连接按钮
-        [self.disconnectButton.leadingAnchor constraintEqualToAnchor:self.connectButton.trailingAnchor constant:10],
-        [self.disconnectButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
-        [self.disconnectButton.widthAnchor constraintEqualToConstant:120],
-        [self.disconnectButton.heightAnchor constraintEqualToConstant:40],
-        [self.disconnectButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
+            [self.disconnectButton.leadingAnchor constraintEqualToAnchor:self.connectButton.trailingAnchor constant:10],
+            [self.disconnectButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
+            [self.disconnectButton.widthAnchor constraintEqualToConstant:120],
+            [self.disconnectButton.heightAnchor constraintEqualToConstant:40],
+            [self.disconnectButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
+            
+        // ACK测试按钮
+            [self.ackTestButton.leadingAnchor constraintEqualToAnchor:self.disconnectButton.trailingAnchor constant:10],
+            [self.ackTestButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
+            [self.ackTestButton.widthAnchor constraintEqualToConstant:120],
+            [self.ackTestButton.heightAnchor constraintEqualToConstant:40],
+            [self.ackTestButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
     ]];
 }
 
@@ -349,6 +369,10 @@
             id data = array.firstObject;
             if ([data isKindOfClass:[NSDictionary class]]) {
                 NSDictionary *messageData = (NSDictionary *)data;
+                
+                // 打印收到的消息到日志
+                NSLog(@"📥 收到消息: %@", messageData);
+                
                 NSString *sender = messageData[@"sender"];
                 NSString *message = messageData[@"message"];
                 
@@ -374,6 +398,7 @@
         self.disconnectButton.enabled = connected;
         self.sendButton.enabled = connected;
         self.inputTextField.enabled = connected;
+        self.ackTestButton.enabled = connected;
         
         if (connected) {
             self.statusLabel.text = @"已连接";
@@ -427,6 +452,58 @@
     [self addMessage:@"🔄 正在断开连接..." type:@"system"];
 }
 
+- (void)ackTestButtonTapped:(id)sender {
+    // 并发ACK测试
+    [self addMessage:@"🔄 开始并发ACK测试..." type:@"system"];
+    
+    // 测试参数
+    const NSInteger testCount = 10; // 测试10个并发ACK
+    __block NSInteger completedCount = 0;
+    __block NSInteger successCount = 0;
+    __block NSInteger failureCount = 0;
+    
+    // 记录开始时间
+    CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
+    
+    for (NSInteger i = 0; i < testCount; i++) {
+        NSInteger testIndex = i;
+        
+        // 发送带ACK的自定义事件
+        [self.socket emitWithAck:@"customEvent" 
+                         items:@[@{        
+                             @"testIndex": @(testIndex),
+                             @"message": [NSString stringWithFormat:@"ACK Test %ld", (long)testIndex],
+                             @"timestamp": @([NSDate date].timeIntervalSince1970)
+                         }] 
+                      ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+            dispatch_async(dispatch_get_main_queue(), ^{                
+                completedCount++;
+                
+                if (error) {
+                    failureCount++;
+                    [self addMessage:[NSString stringWithFormat:@"❌ ACK %ld 失败: %@", (long)testIndex, error.localizedDescription] type:@"system"];
+                } else {
+                    successCount++;
+                    [self addMessage:[NSString stringWithFormat:@"✅ ACK %ld 成功: %@", (long)testIndex, data] type:@"system"];
+                }
+                
+                // 所有测试完成，显示结果
+                if (completedCount == testCount) {
+                    CFAbsoluteTime endTime = CFAbsoluteTimeGetCurrent();
+                    double duration = endTime - startTime;
+                    
+                    [self addMessage:[NSString stringWithFormat:@"📊 并发ACK测试完成: 总请求 %ld, 成功 %ld, 失败 %ld, 耗时 %.2fs", 
+                                      (long)testCount, (long)successCount, (long)failureCount, duration] 
+                               type:@"system"];
+                }
+            });
+        } timeout:10.0];
+        
+        // 添加小延迟避免请求过于集中
+        usleep(5000); // 5ms延迟
+    }
+}
+
 - (void)inputTextFieldReturn:(id)sender {
     [self sendMessage:self.inputTextField.text];
 }
@@ -442,10 +519,15 @@
     // 确保Socket已连接
     if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
         // 发送消息
-        [self.socket emit:@"chatMessage" items:@[@{        
+        NSDictionary *messageData = @{        
             @"message": message,
             @"timestamp": @([NSDate date].timeIntervalSince1970)
-        }]];
+        };
+        
+        // 打印发送的消息到日志
+        NSLog(@"📤 发送消息: %@", messageData);
+        
+        [self.socket emit:@"chatMessage" items:@[messageData]];
         
     } else {
         [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
