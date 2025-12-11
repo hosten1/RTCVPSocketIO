@@ -162,8 +162,12 @@ NSURLSessionDelegate>
     
     // 设置协议
     BOOL secure = self.config.secure;
+    // 仅当URL明确指定https或wss时才使用安全连接
     if ([_url.scheme hasPrefix:@"https"] || [_url.scheme hasPrefix:@"wss"]) {
         secure = YES;
+    } else {
+        // 非加密连接，强制使用非安全协议
+        secure = NO;
     }
     
     if (secure) {

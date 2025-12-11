@@ -282,10 +282,35 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     self.inputStream.delegate = self;
     self.outputStream = (__bridge_transfer NSOutputStream *)writeStream;
     self.outputStream.delegate = self;
+    
+    // 修改SSL配置部分
     if([self.url.scheme isEqualToString:@"wss"] || [self.url.scheme isEqualToString:@"https"]) {
+        // 仅对wss/https设置SSL属性
         [self.inputStream setProperty:NSStreamSocketSecurityLevelNegotiatedSSL forKey:NSStreamSocketSecurityLevelKey];
         [self.outputStream setProperty:NSStreamSocketSecurityLevelNegotiatedSSL forKey:NSStreamSocketSecurityLevelKey];
+        
+        // 添加更宽松的SSL设置
+        NSDictionary *sslSettings = @{
+            (__bridge NSString *)kCFStreamSSLValidatesCertificateChain: @NO,
+            (__bridge NSString *)kCFStreamSSLAllowsExpiredCertificates: @YES,
+            (__bridge NSString *)kCFStreamSSLAllowsAnyRoot: @YES,
+            (__bridge NSString *)kCFStreamSSLPeerName: [NSNull null]
+        };
+        [self.inputStream setProperty:sslSettings forKey:(__bridge NSString *)kCFStreamPropertySSLSettings];
+        [self.outputStream setProperty:sslSettings forKey:(__bridge NSString *)kCFStreamPropertySSLSettings];
+        if(self.selfSignedSSL) {
+               NSString *chain = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;
+               NSString *peerName = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;
+               NSString *key = (__bridge_transfer NSString *)kCFStreamPropertySSLSettings;
+               NSDictionary *settings = @{chain: [[NSNumber alloc] initWithBool:NO],
+                                          peerName: [NSNull null]};
+               [self.inputStream setProperty:settings forKey:key];
+               [self.outputStream setProperty:settings forKey:key];
+           }
     } else {
+        // 对于ws/http，明确设置不使用SSL
+        [self.inputStream setProperty:NSStreamSocketSecurityLevelNone forKey:NSStreamSocketSecurityLevelKey];
+        [self.outputStream setProperty:NSStreamSocketSecurityLevelNone forKey:NSStreamSocketSecurityLevelKey];
         self.certValidated = YES; //not a https session, so no need to check SSL pinning
     }
     if(self.voipEnabled) {
@@ -297,15 +322,8 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
             [self.outputStream setProperty:NSStreamNetworkServiceTypeVoIP forKey:NSStreamNetworkServiceType];
         }
     }
-    if(self.selfSignedSSL) {
-        NSString *chain = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;
-        NSString *peerName = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;
-        NSString *key = (__bridge_transfer NSString *)kCFStreamPropertySSLSettings;
-        NSDictionary *settings = @{chain: [[NSNumber alloc] initWithBool:NO],
-                                   peerName: [NSNull null]};
-        [self.inputStream setProperty:settings forKey:key];
-        [self.outputStream setProperty:settings forKey:key];
-    }
+    // 移除独立的selfSignedSSL处理，SSL设置只在安全连接中处理
+    // 非安全连接不应设置任何SSL相关属性
     self.isRunLoop = YES;
     [self.inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     [self.outputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];

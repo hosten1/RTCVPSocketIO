@@ -148,7 +148,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "E2943984-EF2C-4477-862F-8A6CD659DD6B"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Category/RTCVPSocketEngine+EngineWebsocket.m"
@@ -164,7 +164,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "C3FA6C4A-867F-4421-BFDF-240F31939793"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Category/RTCVPSocketEngine+EngineWebsocket.m"
@@ -174,6 +174,82 @@
             endingLineNumber = "270"
             landmarkName = "-websocket:didReceiveMessage:"
             landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "D02DA672-023D-4C5E-90D0-864B95661320"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "jetfire/RTCJFRWebSocket.m"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "334"
+            endingLineNumber = "334"
+            landmarkName = "-initStreamsWithData:port:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "28DD9C03-7EC6-496A-BD5E-4A45002B64BC"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "jetfire/RTCJFRWebSocket.m"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "354"
+            endingLineNumber = "354"
+            landmarkName = "-stream:handleEvent:"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "28DD9C03-7EC6-496A-BD5E-4A45002B64BC - 304a146c836865d8"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[RTCJFRWebSocket stream:handleEvent:]"
+                  moduleName = "VPSocketIO"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/luoyongmeng/Documents/githab/RTCVPSocketIO/jetfire/RTCJFRWebSocket.m"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "354"
+                  endingLineNumber = "354">
+               </Location>
+               <Location
+                  uuid = "28DD9C03-7EC6-496A-BD5E-4A45002B64BC - 304a146c836865f9"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[RTCJFRWebSocket stream:handleEvent:]"
+                  moduleName = "VPSocketIO"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/luoyongmeng/Documents/githab/RTCVPSocketIO/jetfire/RTCJFRWebSocket.m"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "355"
+                  endingLineNumber = "355">
+               </Location>
+               <Location
+                  uuid = "28DD9C03-7EC6-496A-BD5E-4A45002B64BC - 304a146c836865f9"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "-[RTCJFRWebSocket stream:handleEvent:]"
+                  moduleName = "VPSocketIO"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/luoyongmeng/Documents/githab/RTCVPSocketIO/jetfire/RTCJFRWebSocket.m"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "355"
+                  endingLineNumber = "355">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
