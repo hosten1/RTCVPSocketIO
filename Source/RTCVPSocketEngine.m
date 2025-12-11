@@ -414,14 +414,15 @@ NSURLSessionDelegate>
     
     // 确定传输方式
     switch (self.config.transport) {
-        case RTCVPSocketIOTransportWebSocket:
+        case RTCVPSocketIOTransportWebSocket:{
             [self log:@"Using WebSocket transport" level:RTCLogLevelInfo];
             self.polling = NO;
             self.websocket = YES;
             [self createWebSocketAndConnect];
+        }
             break;
             
-        case RTCVPSocketIOTransportPolling:
+        case RTCVPSocketIOTransportPolling:{
             [self log:@"Using Polling transport" level:RTCLogLevelInfo];
             // 开始轮询握手
             NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:self.urlPolling];
@@ -429,9 +430,10 @@ NSURLSessionDelegate>
             [self addHeadersToRequest:request];
             
             [self doLongPoll:request];
+        }
             break;
             
-        default: // RTCVPSocketIOTransportAuto
+        case RTCVPSocketIOTransportAuto: {// RTCVPSocketIOTransportAuto{
             [self log:@"Using Auto transport" level:RTCLogLevelInfo];
             // 自动协商传输方式，默认使用轮询握手
             NSMutableURLRequest *autoRequest = [NSMutableURLRequest requestWithURL:self.urlPolling];
@@ -439,6 +441,7 @@ NSURLSessionDelegate>
             [self addHeadersToRequest:autoRequest];
             
             [self doLongPoll:autoRequest];
+        }
             break;
     }
 }
@@ -613,9 +616,24 @@ NSURLSessionDelegate>
     [self log:[NSString stringWithFormat:@"Ping interval: %ldms, timeout: %ldms", (long)self.pingInterval, (long)self.pingTimeout] level:RTCLogLevelDebug];
     
     // 决定是否升级到 WebSocket
-    BOOL shouldUpgrade = canUpgradeToWebSocket &&
-                       !self.config.forcePolling &&
-                       (self.config.forceWebsockets || self.config.transport == RTCVPSocketIOTransportWebSocket);
+    BOOL shouldUpgrade = NO;
+    
+    switch (self.config.transport) {
+        case RTCVPSocketIOTransportWebSocket:
+            // 强制WebSocket，直接升级
+            shouldUpgrade = canUpgradeToWebSocket;
+            break;
+            
+        case RTCVPSocketIOTransportAuto:
+            // 自动模式，根据服务器支持决定
+            shouldUpgrade = canUpgradeToWebSocket;
+            break;
+            
+        case RTCVPSocketIOTransportPolling:
+            // 强制轮询，不升级
+            shouldUpgrade = NO;
+            break;
+    }
     
     if (shouldUpgrade) {
         [self log:@"Upgrading to WebSocket..." level:RTCLogLevelDebug];

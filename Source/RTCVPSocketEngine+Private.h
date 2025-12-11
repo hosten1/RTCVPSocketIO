@@ -57,8 +57,7 @@ typedef enum : NSUInteger{
 @property (nonatomic, strong) RTCVPSocketIOConfig *config;
 
 @property (nonatomic, strong, readonly) NSDictionary *stringEnginePacketType;
-@property (nonatomic) BOOL forcePolling;
-@property (nonatomic) BOOL forceWebsockets;
+
 @property (nonatomic, strong) NSMutableDictionary *connectParams;
 @property (nonatomic, strong) NSMutableDictionary*extraHeaders;
 @property (nonatomic) BOOL secure;

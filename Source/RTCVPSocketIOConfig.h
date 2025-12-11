@@ -42,12 +42,6 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
 /// 协议版本（默认：RTCVPSocketIOProtocolVersion3）
 @property (nonatomic, assign) RTCVPSocketIOProtocolVersion protocolVersion;
 
-/// 是否强制轮训协议
-@property (nonatomic, assign) BOOL forcePolling;
-
-/// 是否强制使用WebSocket
-@property (nonatomic, assign) BOOL forceWebsockets;
-
 /// 心跳间隔（秒，默认：25）
 @property (nonatomic, assign) NSInteger pingInterval;
 

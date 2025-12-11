@@ -190,7 +190,7 @@
 - (void)websocketDidConnect:(RTCJFRWebSocket *)socket {
     [self log:@"WebSocket connected" level:RTCLogLevelInfo];
     
-    if (self.config.forceWebsockets || self.config.transport == RTCVPSocketIOTransportWebSocket) {
+    if (self.config.transport == RTCVPSocketIOTransportWebSocket) {
         // 强制 WebSocket 模式，直接使用
         self.websocket = YES;
         self.polling = NO;
@@ -212,9 +212,13 @@
                 [self.client engineDidOpen:@"WebSocket connected"];
             }
         }
-    } else {
-        // 需要探测 WebSocket
+    } else if (self.config.transport == RTCVPSocketIOTransportAuto) {
+        // 自动模式，需要探测 WebSocket
         [self probeWebSocket];
+    } else {
+        // 强制轮询，关闭 WebSocket
+        [self log:@"WebSocket not needed for polling transport" level:RTCLogLevelDebug];
+        [socket disconnect];
     }
 }
 

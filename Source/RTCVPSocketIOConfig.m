@@ -21,8 +21,7 @@ NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors = @"ignoreSSLErrors";
 NSString *const kRTCVPSocketIOConfigKeyProtocolVersion = @"protocolVersion";
 
 // 缺失的配置键常量
-NSString *const kRTCVPSocketIOConfigKeyForcePolling = @"forcePolling";
-NSString *const kRTCVPSocketIOConfigKeyForceWebsockets = @"forceWebsockets";
+
 NSString *const kRTCVPSocketIOConfigKeyPath = @"path";
 NSString *const kRTCVPSocketIOConfigKeySecure = @"secure";
 NSString *const kRTCVPSocketIOConfigKeyPingInterval = @"pingInterval";
@@ -69,8 +68,7 @@ const int kRTCVPSocketIOProtocolVersion3 = 3;
         _connectTimeout = 10;
         _transport = RTCVPSocketIOTransportAuto;
         _protocolVersion = kRTCVPSocketIOProtocolVersionDefault;
-        _forcePolling = NO;
-        _forceWebsockets = NO;
+
         _pingInterval = 25;
         _pingTimeout = 20;
         _enableBinary = YES;
@@ -113,11 +111,7 @@ const int kRTCVPSocketIOProtocolVersion3 = 3;
     for (NSString *key in dict.allKeys) {
         id value = dict[key];
         
-        if ([key isEqualToString:kRTCVPSocketIOConfigKeyForcePolling]) {
-            self.forcePolling = [value boolValue];
-        } else if ([key isEqualToString:kRTCVPSocketIOConfigKeyForceWebsockets]) {
-            self.forceWebsockets = [value boolValue];
-        } else if ([key isEqualToString:kRTCVPSocketIOConfigKeyPath]) {
+        if ([key isEqualToString:kRTCVPSocketIOConfigKeyPath]) {
             self.path = value;
         } else if ([key isEqualToString:kRTCVPSocketIOConfigKeySecure]) {
             self.secure = [value boolValue];
