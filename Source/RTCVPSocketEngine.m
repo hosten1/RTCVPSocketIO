@@ -29,6 +29,8 @@ NSURLSessionDelegate>
 
 @property (nonatomic, assign) int protocolVersion;
 
+@property(nonatomic, assign)NSUInteger reconnectAttempts;
+
 @end
 
 
@@ -117,6 +119,8 @@ NSURLSessionDelegate>
     _pingTimeout = self.config.pingTimeout * 1000;
     _pongsMissed = 0;
     _pongsMissedMax = MAX(1, _pingTimeout / _pingInterval);
+    
+    self.reconnectAttempts = 0;
     
     // 创建 URLSession
     NSOperationQueue *queue = [[NSOperationQueue alloc] init];
@@ -295,6 +299,7 @@ NSURLSessionDelegate>
     }
 }
 
+// 修改 sendPing 方法，同时发送两种心跳
 - (void)sendPing {
     if (self.pongsMissed >= self.pongsMissedMax) {
         [self log:@"Ping timeout, closing connection" level:RTCLogLevelError];
@@ -304,17 +309,24 @@ NSURLSessionDelegate>
     
     self.pongsMissed++;
     
+    [self log:[NSString stringWithFormat:@"发送心跳，错过次数: %ld/%ld",
+               (long)self.pongsMissed, (long)self.pongsMissedMax]
+         level:RTCLogLevelDebug];
+    
+    // 发送Engine.IO心跳
     NSString *pingMessage = @"";
     if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
-        // Engine.IO 4.x+ 使用 "2" 作为 ping
-        pingMessage = @"2";
+        pingMessage = @"2"; // Engine.IO 4.x ping
     }
-    
-    [self log:[NSString stringWithFormat:@"Sending ping, missed pongs: %ld/%ld",
-               (long)self.pongsMissed, (long)self.pongsMissedMax] level:RTCLogLevelDebug];
-    
     [self write:pingMessage withType:RTCVPSocketEnginePacketTypePing withData:@[]];
+    
+    // 同时发送WebSocket协议心跳（如果使用WebSocket）
+    if (self.websocket && self.ws && [self.ws isConnected]) {
+        [self.ws writePing:nil]; // 发送空的WebSocket Ping
+    }
 }
+
+
 
 #pragma mark - WebSocket 探测超时
 
@@ -418,6 +430,8 @@ NSURLSessionDelegate>
             [self log:@"Using WebSocket transport" level:RTCLogLevelInfo];
             self.polling = NO;
             self.websocket = YES;
+            
+            // 创建并连接WebSocket
             [self createWebSocketAndConnect];
         }
             break;
@@ -433,7 +447,7 @@ NSURLSessionDelegate>
         }
             break;
             
-        case RTCVPSocketIOTransportAuto: {// RTCVPSocketIOTransportAuto{
+        case RTCVPSocketIOTransportAuto: {
             [self log:@"Using Auto transport" level:RTCLogLevelInfo];
             // 自动协商传输方式，默认使用轮询握手
             NSMutableURLRequest *autoRequest = [NSMutableURLRequest requestWithURL:self.urlPolling];
@@ -444,6 +458,35 @@ NSURLSessionDelegate>
         }
             break;
     }
+}
+
+/// 延迟重连
+- (void)delayReconnect {
+    // 计算指数退避延迟
+    NSTimeInterval delay = [self calculateReconnectDelay];
+    
+    [self log:[NSString stringWithFormat:@"计划在 %.1f 秒后重连...", delay] level:RTCLogLevelInfo];
+    
+    // 使用定时器延迟重连
+    __weak typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
+                  self.engineQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf && !strongSelf.closed && !strongSelf.connected) {
+            strongSelf.reconnectAttempts ++;
+            [strongSelf log:@"执行重连..." level:RTCLogLevelInfo];
+            [strongSelf connect];
+        }
+    });
+}
+
+- (NSTimeInterval)calculateReconnectDelay {
+    // 指数退避算法：base * 2^(attempt-1)，最大60秒
+    NSTimeInterval baseDelay = 2.0;
+    NSTimeInterval maxDelay = 60.0;
+    
+    NSTimeInterval delay = baseDelay * pow(2, self.reconnectAttempts - 1);
+    return MIN(delay, maxDelay);
 }
 
 - (void)disconnect:(NSString *)reason {
@@ -640,8 +683,10 @@ NSURLSessionDelegate>
         self.websocket = YES;
         self.polling = NO;
         
-        // 创建WebSocket连接
-        [self createWebSocketAndConnect];
+        // 如果还没有WebSocket连接，创建并连接
+        if (!self.ws || ![self.ws isConnected]) {
+            [self createWebSocketAndConnect];
+        }
         
         // 开始心跳
         [self startPingTimer];
@@ -695,22 +740,18 @@ NSURLSessionDelegate>
     }
 }
 
-/// 处理 Pong 消息
-/// 处理 Pong 消息
+// 修改 handlePong 方法，处理两种心跳响应
 - (void)handlePong:(NSString *)message {
-    [self log:@"Received Pong message" level:RTCLogLevelDebug];
+    [self log:[NSString stringWithFormat:@"收到心跳响应: %@", message]
+         level:RTCLogLevelDebug];
     
     // 重置心跳计数器
     self.pongsMissed = 0;
     
     // 检查是否为探测响应
-    // Engine.IO 3.x和4.x中，探测响应都是"probe"
     if ([message isEqualToString:@"probe"]) {
-        [self log:@"Received WebSocket probe response, upgrading transport" level:RTCLogLevelInfo];
+        [self log:@"收到WebSocket探测响应，升级传输" level:RTCLogLevelInfo];
         [self upgradeTransport];
-    } else {
-        // 普通心跳响应
-        [self log:@"Received normal pong, resetting missed count" level:RTCLogLevelDebug];
     }
 }
 

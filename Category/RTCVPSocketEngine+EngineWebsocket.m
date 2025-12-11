@@ -12,6 +12,7 @@
 #import "RTCVPSocketEngine+EnginePollable.h"
 #import "NSString+RTCVPSocketIO.h"
 #import "RTCVPProbe.h"
+#import "RTCVPWebSocketProtocolFixer.h"
 
 @implementation RTCVPSocketEngine (EngineWebsocket)
 
@@ -34,12 +35,10 @@
     self.ws = [[RTCJFRWebSocket alloc] initWithURL:url protocols:@[]];
     self.ws.queue = self.engineQueue;
     self.ws.delegate = self;
-    
     // 配置 WebSocket
     self.ws.voipEnabled = YES;
     self.ws.selfSignedSSL = self.config.allowSelfSignedCertificates;
     self.ws.security = self.config.security;
-    
     // 添加 headers
     if (self.config.cookies.count > 0) {
         NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies:self.config.cookies];
@@ -233,14 +232,16 @@
         [self closeOutEngine:@"WebSocket closed"];
     } else {
         if (self.websocket) {
-            // 如果配置了只使用WebSocket传输，尝试重新连接WebSocket，而不是回退到轮询
+            // WebSocket连接断开
+            self.websocket = NO;
+            
+            // 如果配置了只使用WebSocket传输，使用延迟重连
             if (self.config.transport == RTCVPSocketIOTransportWebSocket) {
-                [self log:@"WebSocket transport configured, attempting to reconnect WebSocket..." level:RTCLogLevelInfo];
-                // 保持WebSocket模式，尝试重新连接
-                [self createWebSocketAndConnect];
+                [self log:@"WebSocket transport configured, scheduling delayed reconnect..." level:RTCLogLevelInfo];
+                // 使用延迟重连，避免频繁连接尝试
+                [self delayReconnect];
             } else {
                 // WebSocket 断开，尝试回退到轮询
-                self.websocket = NO;
                 self.polling = YES;
                 
                 [self log:@"Falling back to polling" level:RTCLogLevelInfo];
@@ -257,6 +258,8 @@
             [self log:@"WebSocket connection failed" level:RTCLogLevelError];
             if (!self.closed) {
                 [self didError:errorDescription];
+                // 尝试延迟重连
+                [self delayReconnect];
             }
         }
     }
@@ -268,27 +271,226 @@
     [self parseEngineMessage:string];
 }
 
+// 在 websocket:didReceiveData: 方法中，添加协议修复
 - (void)websocket:(RTCJFRWebSocket *)socket didReceiveData:(NSData *)data {
     if (data.length == 0) {
         [self log:@"WebSocket received empty binary data" level:RTCLogLevelWarning];
         return;
     }
     
-    // 打印二进制数据的十六进制表示
-    NSMutableString *hexString = [NSMutableString stringWithCapacity:data.length * 2];
-    for (int i = 0; i < data.length; i++) {
-        [hexString appendFormat:@"%02x", ((uint8_t *)data.bytes)[i]];
-    }
-    [self log:[NSString stringWithFormat:@"📩 Socket层收到二进制数据，长度: %lu，十六进制: %@", (unsigned long)data.length, hexString] level:RTCLogLevelInfo];
+    // 分析WebSocket帧
+    NSDictionary *frameInfo = [RTCVPWebSocketProtocolFixer analyzeWebSocketFrame:data];
+    [self log:[NSString stringWithFormat:@"WebSocket帧分析: %@", frameInfo] level:RTCLogLevelDebug];
     
-    // 尝试转换为字符串打印（如果是文本数据）
-    NSString *stringData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    if (stringData) {
-        [self log:[NSString stringWithFormat:@"📩 Socket层二进制数据转换为字符串: %@", stringData] level:RTCLogLevelInfo];
+    // 检查是否为有效帧
+    if (![RTCVPWebSocketProtocolFixer isValidWebSocketFrame:data]) {
+        [self log:@"收到无效WebSocket帧，尝试修复..." level:RTCLogLevelWarning];
+        
+        // 尝试修复帧
+        NSData *fixedData = [RTCVPWebSocketProtocolFixer fixWebSocketFrame:data];
+        
+        // 重新分析修复后的帧
+        frameInfo = [RTCVPWebSocketProtocolFixer analyzeWebSocketFrame:fixedData];
+        [self log:[NSString stringWithFormat:@"修复后帧分析: %@", frameInfo] level:RTCLogLevelDebug];
+        
+        data = fixedData;
     }
     
-    // 解析二进制数据
-    [self parseEngineData:data];
+    // 解析操作码
+    const uint8_t *bytes = (const uint8_t *)data.bytes;
+    uint8_t opcode = bytes[0] & 0x0F;
+    
+    // 处理不同类型的帧
+    switch (opcode) {
+        case 0x1: // 文本帧
+            [self handleWebSocketTextFrame:data];
+            break;
+            
+        case 0x2: // 二进制帧
+            [self log:@"收到WebSocket二进制帧" level:RTCLogLevelDebug];
+            [self parseEngineData:data];
+            break;
+            
+        case 0x9: // Ping
+            [self log:@"收到WebSocket Ping帧" level:RTCLogLevelDebug];
+            [self handleWebSocketPing:data];
+            break;
+            
+        case 0xA: // Pong
+            [self log:@"收到WebSocket Pong帧" level:RTCLogLevelDebug];
+            [self handleWebSocketPong:data];
+            break;
+            
+        case 0x8: // 关闭连接
+            [self log:@"收到WebSocket关闭帧" level:RTCLogLevelDebug];
+            [self handleWebSocketClose:data];
+            break;
+            
+        default:
+            [self log:[NSString stringWithFormat:@"收到操作码为0x%02X的帧，尝试作为文本处理", opcode]
+                level:RTCLogLevelWarning];
+            [self handleWebSocketTextFrame:data];
+            break;
+    }
+}
+
+// 添加处理WebSocket文本帧的方法
+- (void)handleWebSocketTextFrame:(NSData *)data {
+    // 解析WebSocket帧，提取有效负载
+    NSData *payload = [self extractWebSocketPayload:data];
+    
+    if (payload) {
+        NSString *message = [[NSString alloc] initWithData:payload encoding:NSUTF8StringEncoding];
+        if (message) {
+            [self log:[NSString stringWithFormat:@"WebSocket文本消息: %@", message] level:RTCLogLevelDebug];
+            [self parseEngineMessage:message];
+        } else {
+            [self log:@"无法将WebSocket负载解析为文本" level:RTCLogLevelWarning];
+        }
+    }
+}
+
+// 提取WebSocket帧中的有效负载
+- (NSData *)extractWebSocketPayload:(NSData *)frame {
+    if (frame.length < 2) return nil;
+    
+    const uint8_t *bytes = (const uint8_t *)frame.bytes;
+    
+    // 跳过帧头
+    NSUInteger headerLength = 2;
+    uint8_t payloadLenByte = bytes[1] & 0x7F;
+    
+    // 处理扩展长度
+    if (payloadLenByte == 126) {
+        headerLength += 2;
+    } else if (payloadLenByte == 127) {
+        headerLength += 8;
+    }
+    
+    // 处理掩码
+    BOOL masked = (bytes[1] & 0x80) != 0;
+    if (masked) {
+        headerLength += 4;
+    }
+    
+    // 检查帧长度
+    if (frame.length <= headerLength) {
+        return nil;
+    }
+    
+    // 提取负载
+    NSData *payload = [frame subdataWithRange:NSMakeRange(headerLength, frame.length - headerLength)];
+    
+    // 如果被掩码，解码
+    if (masked && payload.length > 0) {
+        const uint8_t *maskKey = bytes + (headerLength - 4);
+        NSMutableData *decodedData = [NSMutableData dataWithData:payload];
+        uint8_t *decodedBytes = (uint8_t *)decodedData.mutableBytes;
+        
+        for (NSUInteger i = 0; i < payload.length; i++) {
+            decodedBytes[i] = decodedBytes[i] ^ maskKey[i % 4];
+        }
+        
+        return decodedData;
+    }
+    
+    return payload;
+}
+
+// 处理WebSocket Ping
+- (void)handleWebSocketPing:(NSData *)pingFrame {
+    // 发送Pong响应
+    [self sendWebSocketPong:pingFrame];
+    
+    
+    // 同时重置Engine.IO心跳计数器
+    [self handlePong:@"WebSocket Ping"];
+}
+
+// 发送WebSocket Pong
+- (void)sendWebSocketPong:(NSData *)pingFrame {
+    if (!self.ws || ![self.ws isConnected]) {
+        return;
+    }
+    
+    // 构建Pong帧：操作码0xA，负载与Ping相同
+    NSData *payload = [self extractWebSocketPayload:pingFrame];
+    
+    // 创建Pong帧
+    NSMutableData *pongFrame = [NSMutableData data];
+    
+    // 第一个字节：FIN=1，RSV=0，操作码=0xA
+    uint8_t firstByte = 0x80 | 0xA; // FIN=1, Opcode=0xA
+    [pongFrame appendBytes:&firstByte length:1];
+    
+    // 第二个字节：掩码=0，负载长度
+    uint64_t payloadLength = payload ? payload.length : 0;
+    
+    if (payloadLength <= 125) {
+        uint8_t secondByte = (uint8_t)payloadLength;
+        [pongFrame appendBytes:&secondByte length:1];
+    } else if (payloadLength <= 65535) {
+        uint8_t secondByte = 126;
+        [pongFrame appendBytes:&secondByte length:1];
+        
+        uint16_t len16 = CFSwapInt16HostToBig((uint16_t)payloadLength);
+        [pongFrame appendBytes:&len16 length:2];
+    } else {
+        uint8_t secondByte = 127;
+        [pongFrame appendBytes:&secondByte length:1];
+        
+        uint64_t len64 = CFSwapInt64HostToBig(payloadLength);
+        [pongFrame appendBytes:&len64 length:8];
+    }
+    
+    // 添加负载
+    if (payload) {
+        [pongFrame appendData:payload];
+    }
+    
+    [self.ws writeData:pongFrame];
+    [self log:@"发送WebSocket Pong响应" level:RTCLogLevelDebug];
+}
+
+// 处理WebSocket Pong
+- (void)handleWebSocketPong:(NSData *)pongFrame {
+    // 重置心跳计数器
+    [self handlePong:@"WebSocket Pong"];
+}
+
+// 处理WebSocket关闭帧
+- (void)handleWebSocketClose:(NSData *)closeFrame {
+    uint16_t closeCode = 1000; // 默认正常关闭
+    
+    if (closeFrame.length >= 4) {
+        const uint8_t *bytes = (const uint8_t *)closeFrame.bytes;
+        
+        // 跳过帧头，提取关闭代码
+        NSUInteger offset = 2; // 基本头
+        uint8_t payloadLenByte = bytes[1] & 0x7F;
+        
+        if (payloadLenByte == 126) {
+            offset += 2;
+        } else if (payloadLenByte == 127) {
+            offset += 8;
+        }
+        
+        if ((bytes[1] & 0x80) != 0) { // 如果有掩码
+            offset += 4;
+        }
+        
+        if (closeFrame.length >= offset + 2) {
+            closeCode = (bytes[offset] << 8) | bytes[offset + 1];
+        }
+    }
+    
+    NSString *reason = [NSString stringWithFormat:@"WebSocket关闭 (代码: %d)", closeCode];
+    [self log:reason level:RTCLogLevelInfo];
+    
+    // 如果未主动关闭，尝试重连
+    if (!self.closed) {
+//        [self handleConnectionError:reason];
+    }
 }
 
 

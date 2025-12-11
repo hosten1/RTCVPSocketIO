@@ -141,7 +141,7 @@
     </div>
     
     <!-- Socket.IO Client Library -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.js"></script>
     
     <script>
         // DOM Elements
@@ -192,6 +192,23 @@
             }
         }
         
+        // 检查Socket.IO是否正确加载
+        function checkSocketIO() {
+            if (typeof io === 'undefined') {
+                addMessage('❌ Socket.IO library not loaded correctly!', 'system');
+                connectBtn.disabled = true;
+                return false;
+            } else {
+                addMessage('✅ Socket.IO library loaded successfully', 'system');
+                return true;
+            }
+        }
+        
+        // 页面加载完成后检查Socket.IO
+        window.addEventListener('load', () => {
+            checkSocketIO();
+        });
+        
         // Connect to server
         connectBtn.addEventListener('click', () => {
             const serverUrl = serverUrlInput.value;
@@ -199,6 +216,10 @@
             addMessage(`Connecting to ${serverUrl}...`);
             
             try {
+                if (typeof io === 'undefined') {
+                    throw new Error('Socket.IO library not loaded');
+                }
+                
                 socket = io(serverUrl, {
                     transports: ['websocket', 'polling'],
                     timeout: 5000
@@ -217,30 +238,30 @@
                 });
                 
                 // Welcome message
-        socket.on('welcome', (data) => {
-            addMessage(`Welcome message: ${JSON.stringify(data)}`, 'received');
-        });
-        
-        // User connected event
-        socket.on('userConnected', (data) => {
-            addMessage(`User joined: ${data.socketId}`, 'system');
-        });
-        
-        // User disconnected event
-        socket.on('userDisconnected', (data) => {
-            addMessage(`User left: ${data.socketId}`, 'system');
-        });
-        
-        // Chat message event
-        socket.on('chatMessage', (data) => {
-            const message = `${data.sender}: ${data.message}`;
-            addMessage(message, 'received');
-        });
-        
-        // Heartbeat event
-        socket.on('heartbeat', (data) => {
-            addMessage(`Heartbeat: ${data.timestamp}`, 'system');
-        });
+                socket.on('welcome', (data) => {
+                    addMessage(`Welcome message: ${JSON.stringify(data)}`, 'received');
+                });
+                
+                // User connected event
+                socket.on('userConnected', (data) => {
+                    addMessage(`User joined: ${data.socketId}`, 'system');
+                });
+                
+                // User disconnected event
+                socket.on('userDisconnected', (data) => {
+                    addMessage(`User left: ${data.socketId}`, 'system');
+                });
+                
+                // Chat message event
+                socket.on('chatMessage', (data) => {
+                    const message = `${data.sender}: ${data.message}`;
+                    addMessage(message, 'received');
+                });
+                
+                // Heartbeat event
+                socket.on('heartbeat', (data) => {
+                    addMessage(`Heartbeat: ${data.timestamp}`, 'system');
+                });
                 
                 // Error event
                 socket.on('error', (error) => {
@@ -249,6 +270,7 @@
                 
             } catch (error) {
                 addMessage(`Connection error: ${error.message}`, 'system');
+                addMessage(`Socket.IO status: ${typeof io}`, 'system');
             }
         });
         

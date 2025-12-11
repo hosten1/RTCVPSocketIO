@@ -1,5 +1,5 @@
 const http = require('http');
-const { Server } = require('socket.io');
+const socketIo = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 
@@ -26,8 +26,7 @@ const httpServer = http.createServer((req, res) => {
     '.woff': 'application/font-woff',
     '.ttf': 'application/font-ttf',
     '.eot': 'application/vnd.ms-fontobject',
-    '.otf': 'application/font-otf',
-    '.wasm': 'application/wasm'
+    '.otf': 'application/font-otf'
   }[extname] || 'application/octet-stream';
 
   fs.readFile(filePath, (error, content) => {
@@ -47,38 +46,13 @@ const httpServer = http.createServer((req, res) => {
 });
 
 // 创建Socket.IO服务器，支持跨域和所有传输方式
-const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-    credentials: true
-  },
+const io = socketIo(httpServer, {
+  origins: '*:*',
   transports: ['websocket', 'polling'],
   allowEIO3: true
 });
 
-// 添加底层连接事件监听
-io.engine.on('connection', (conn) => {
-    console.log('=== 底层连接建立 ===');
-    console.log('连接ID:', conn.id);
-    console.log('传输方式:', conn.transport.name);
-    console.log('连接时间:', new Date().toISOString());
-    console.log('远程地址:', conn.remoteAddress);
-    console.log('=== 连接信息结束 ===');
-});
-
-// 添加连接错误处理
-io.engine.on('connection_error', (error) => {
-    console.error('=== 连接错误 ===');
-    console.error('错误类型:', error.type);
-    console.error('错误消息:', error.message);
-    if (error.context) {
-        console.error('错误上下文:', error.context);
-    }
-    console.error('=== 错误信息结束 ===');
-});
-
-// 监听连接事件
+// 添加连接事件监听
 io.on('connection', (socket) => {
     console.log('=== 新客户端连接 ===');
     console.log('客户端ID:', socket.id);
@@ -122,7 +96,7 @@ io.on('connection', (socket) => {
     
     // 检查callback是否为函数
     if (typeof callback === 'function') {
-      callback({ success: true, response: `Processed: ${JSON.stringify(data)}` });
+      callback({ success: true, response: 'Processed: ' + JSON.stringify(data) });
     } else {
       console.log('No callback provided for customEvent');
     }

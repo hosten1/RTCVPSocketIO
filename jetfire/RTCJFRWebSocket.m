@@ -3,7 +3,7 @@
 //  JFRWebSocket.m
 //
 //  Created by Austin and Dalton Cherry on on 5/13/14.
-//  Copyright (c) 2014-2025 Austin Cherry.
+//  Copyright (c) 2014-2017 Austin Cherry.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -20,13 +20,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #import "RTCJFRWebSocket.h"
-
-// Logging macro
-#ifdef DEBUG
-#define RTCJFR_LOG(fmt, ...) NSLog((@"[RTCJFRWebSocket] %s:%d " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
-#else
-#define RTCJFR_LOG(fmt, ...)
-#endif
 
 //get the opCode from the packet
 typedef NS_ENUM(NSUInteger, RTCJFROpCode) {
@@ -55,9 +48,7 @@ typedef NS_ENUM(NSUInteger, RTCJFRCloseCode) {
 
 typedef NS_ENUM(NSUInteger, RTCJFRInternalErrorCode) {
     // 0-999 WebSocket status codes not used
-    RTCJFROutputStreamWriteError  = 1,
-    RTCJFRInvalidHTTPResponse     = 2,
-    RTCJFRInvalidSSLCertificate   = 3
+    RTCJFROutputStreamWriteError  = 1
 };
 
 #define kRTCJFRInternalHTTPStatusWebSocket 101
@@ -65,34 +56,34 @@ typedef NS_ENUM(NSUInteger, RTCJFRInternalErrorCode) {
 //holds the responses in our read stack to properly process messages
 @interface RTCJFRResponse : NSObject
 
-@property(nonatomic, assign) BOOL isFin;
-@property(nonatomic, assign) RTCJFROpCode code;
-@property(nonatomic, assign) NSInteger bytesLeft;
-@property(nonatomic, assign) NSInteger frameCount;
-@property(nonatomic, strong) NSMutableData *buffer;
+@property(nonatomic, assign)BOOL isFin;
+@property(nonatomic, assign)RTCJFROpCode code;
+@property(nonatomic, assign)NSInteger bytesLeft;
+@property(nonatomic, assign)NSInteger frameCount;
+@property(nonatomic, strong)NSMutableData *buffer;
 
 @end
 
-@interface RTCJFRWebSocket () <NSStreamDelegate>
+@interface RTCJFRWebSocket ()<NSStreamDelegate>
 
-@property(nonatomic, strong) NSURL *url;
-@property(nonatomic, strong, nullable) NSInputStream *inputStream;
-@property(nonatomic, strong, nullable) NSOutputStream *outputStream;
-@property(nonatomic, strong, nullable) NSOperationQueue *writeQueue;
-@property(nonatomic, assign) BOOL isRunLoop;
-@property(nonatomic, strong) NSMutableArray<RTCJFRResponse*> *readStack;
-@property(nonatomic, strong) NSMutableArray<NSData*> *inputQueue;
-@property(nonatomic, strong, nullable) NSData *fragBuffer;
-@property(nonatomic, strong, nullable) NSMutableDictionary<NSString*, NSString*> *headers;
-@property(nonatomic, strong, nullable) NSArray<NSString*> *optProtocols;
-@property(nonatomic, assign) BOOL isCreated;
-@property(nonatomic, assign) BOOL didDisconnect;
-@property(nonatomic, assign) BOOL certValidated;
-@property(nonatomic, strong) NSMutableDictionary<NSString*, NSString*> *customHeaders;
+@property(nonatomic, strong, nonnull)NSURL *url;
+@property(nonatomic, strong, null_unspecified)NSInputStream *inputStream;
+@property(nonatomic, strong, null_unspecified)NSOutputStream *outputStream;
+@property(nonatomic, strong, null_unspecified)NSOperationQueue *writeQueue;
+@property(nonatomic, assign)BOOL isRunLoop;
+@property(nonatomic, strong, nonnull)NSMutableArray *readStack;
+@property(nonatomic, strong, nonnull)NSMutableArray *inputQueue;
+@property(nonatomic, strong, nullable)NSData *fragBuffer;
+@property(nonatomic, strong, nullable)NSMutableDictionary *headers;
+@property(nonatomic, strong, nullable)NSArray *optProtocols;
+@property(nonatomic, assign)BOOL isCreated;
+@property(nonatomic, assign)BOOL didDisconnect;
+@property(nonatomic, assign)BOOL certValidated;
 
 @end
 
 //Constant Header Values.
+NS_ASSUME_NONNULL_BEGIN
 static NSString *const headerWSUpgradeName     = @"Upgrade";
 static NSString *const headerWSUpgradeValue    = @"websocket";
 static NSString *const headerWSHostName        = @"Host";
@@ -104,6 +95,7 @@ static NSString *const headerWSVersionValue    = @"13";
 static NSString *const headerWSKeyName         = @"Sec-WebSocket-Key";
 static NSString *const headerOriginName        = @"Origin";
 static NSString *const headerWSAcceptName      = @"Sec-WebSocket-Accept";
+NS_ASSUME_NONNULL_END
 
 //Class Constants
 static char CRLFBytes[] = {'\r', '\n', '\r', '\n'};
@@ -117,13 +109,12 @@ static const uint8_t RTCJFRMaskMask            = 0x80;
 static const uint8_t RTCJFRPayloadLenMask      = 0x7F;
 static const size_t  RTCJFRMaxFrameSize        = 32;
 
-@implementation RTCJFRWebSocket {
-    BOOL _isConnected;
-}
+@implementation RTCJFRWebSocket
 
 /////////////////////////////////////////////////////////////////////////////
 //Default initializer
-- (instancetype)initWithURL:(NSURL *)url protocols:(nullable NSArray<NSString*>*)protocols {
+- (instancetype)initWithURL:(NSURL *)url protocols:(NSArray*)protocols
+{
     if(self = [super init]) {
         self.certValidated = NO;
         self.voipEnabled = NO;
@@ -133,7 +124,6 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
         self.readStack = [NSMutableArray new];
         self.inputQueue = [NSMutableArray new];
         self.optProtocols = protocols;
-        self.customHeaders = [NSMutableDictionary dictionary];
     }
     
     return self;
@@ -142,7 +132,6 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 //Exposed method for connecting to URL provided in init method.
 - (void)connect {
     if(self.isCreated) {
-        RTCJFR_LOG(@"Already connecting or connected");
         return;
     }
     
@@ -170,8 +159,8 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     }
 }
 /////////////////////////////////////////////////////////////////////////////
-- (void)writePing:(nullable NSData*)data {
-    [self dequeueWrite:data ?: [NSData data] withCode:RTCJFROpCodePing];
+- (void)writePing:(NSData*)data {
+    [self dequeueWrite:data withCode:RTCJFROpCodePing];
 }
 /////////////////////////////////////////////////////////////////////////////
 - (void)writeData:(NSData*)data {
@@ -179,21 +168,20 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 }
 /////////////////////////////////////////////////////////////////////////////
 - (void)addHeader:(NSString*)value forKey:(NSString*)key {
-    if(value && key) {
-        [self.customHeaders setObject:value forKey:key];
+    if(!self.headers) {
+        self.headers = [[NSMutableDictionary alloc] init];
     }
-}
-/////////////////////////////////////////////////////////////////////////////
-- (BOOL)isConnected {
-    return _isConnected;
+    [self.headers setObject:value forKey:key];
 }
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma mark - connect's internal supporting methods
 
 /////////////////////////////////////////////////////////////////////////////
-- (NSString *)origin {
-    NSString *scheme = [self.url.scheme lowercaseString];
+
+- (NSString *)origin;
+{
+    NSString *scheme = [_url.scheme lowercaseString];
     
     if ([scheme isEqualToString:@"wss"]) {
         scheme = @"https";
@@ -201,40 +189,27 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
         scheme = @"http";
     }
     
-    if (self.url.port) {
-        return [NSString stringWithFormat:@"%@://%@:%@/", scheme, self.url.host, self.url.port];
+    if (_url.port) {
+        return [NSString stringWithFormat:@"%@://%@:%@/", scheme, _url.host, _url.port];
     } else {
-        return [NSString stringWithFormat:@"%@://%@/", scheme, self.url.host];
+        return [NSString stringWithFormat:@"%@://%@/", scheme, _url.host];
     }
 }
 
+
 //Uses CoreFoundation to build a HTTP request to send over TCP stream.
 - (void)createHTTPRequest {
-    CFStringRef cfAbsoluteString = CFBridgingRetain(self.url.absoluteString);
+    CFStringRef cfAbsoluteString = (__bridge_retained  CFStringRef)self.url.absoluteString;
     CFURLRef url = CFURLCreateWithString(kCFAllocatorDefault, cfAbsoluteString, NULL);
-    CFRelease(cfAbsoluteString);
-    
-    if (!url) {
-        NSError *error = [self errorWithDetail:@"Invalid URL" code:RTCJFRInvalidHTTPResponse];
-        [self doDisconnect:error];
-        return;
-    }
-    
     CFStringRef requestMethod = CFSTR("GET");
     CFHTTPMessageRef urlRequest = CFHTTPMessageCreateRequest(kCFAllocatorDefault,
                                                              requestMethod,
                                                              url,
                                                              kCFHTTPVersion1_1);
     CFRelease(url);
+    CFRelease(cfAbsoluteString);
     
-    if (!urlRequest) {
-        CFRelease(requestMethod);
-        NSError *error = [self errorWithDetail:@"Failed to create HTTP request" code:RTCJFRInvalidHTTPResponse];
-        [self doDisconnect:error];
-        return;
-    }
-    
-    NSNumber *port = self.url.port;
+    NSNumber *port = _url.port;
     if (!port) {
         if([self.url.scheme isEqualToString:@"wss"] || [self.url.scheme isEqualToString:@"https"]){
             port = @(443);
@@ -242,15 +217,13 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
             port = @(80);
         }
     }
-    
     NSString *protocols = nil;
     if([self.optProtocols count] > 0) {
         protocols = [self.optProtocols componentsJoinedByString:@","];
     }
-    
     CFHTTPMessageSetHeaderFieldValue(urlRequest,
                                      (__bridge CFStringRef)headerWSHostName,
-                                     (__bridge CFStringRef)[NSString stringWithFormat:@"%@:%@", self.url.host, port]);
+                                     (__bridge CFStringRef)[NSString stringWithFormat:@"%@:%@",self.url.host,port]);
     CFHTTPMessageSetHeaderFieldValue(urlRequest,
                                      (__bridge CFStringRef)headerWSVersionName,
                                      (__bridge CFStringRef)headerWSVersionValue);
@@ -273,23 +246,19 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
                                      (__bridge CFStringRef)headerOriginName,
                                      (__bridge CFStringRef)[self origin]);
     
-    for(NSString *key in self.customHeaders) {
+    for(NSString *key in self.headers) {
         CFHTTPMessageSetHeaderFieldValue(urlRequest,
                                          (__bridge CFStringRef)key,
-                                         (__bridge CFStringRef)self.customHeaders[key]);
+                                         (__bridge CFStringRef)self.headers[key]);
     }
     
+#if defined(DEBUG)
+    NSLog(@"urlRequest = \"%@\"", urlRequest);
+#endif
     NSData *serializedRequest = (__bridge_transfer NSData *)(CFHTTPMessageCopySerializedMessage(urlRequest));
+    [self initStreamsWithData:serializedRequest port:port];
     CFRelease(urlRequest);
     CFRelease(requestMethod);
-    
-    if (!serializedRequest) {
-        NSError *error = [self errorWithDetail:@"Failed to serialize HTTP request" code:RTCJFRInvalidHTTPResponse];
-        [self doDisconnect:error];
-        return;
-    }
-    
-    [self initStreamsWithData:serializedRequest port:port];
 }
 /////////////////////////////////////////////////////////////////////////////
 //Random String of 16 lowercase chars, SHA1 and base64 encoded.
@@ -306,40 +275,19 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 - (void)initStreamsWithData:(NSData*)data port:(NSNumber*)port {
     CFReadStreamRef readStream = NULL;
     CFWriteStreamRef writeStream = NULL;
-    CFStringRef host = (__bridge_retained CFStringRef)self.url.host;
-    CFStreamCreatePairWithSocketToHost(NULL, host, [port intValue], &readStream, &writeStream);
-    CFRelease(host);
-    
-    if (!readStream || !writeStream) {
-        if (readStream) CFRelease(readStream);
-        if (writeStream) CFRelease(writeStream);
-        NSError *error = [self errorWithDetail:@"Failed to create streams" code:RTCJFRInvalidHTTPResponse];
-        [self doDisconnect:error];
-        return;
-    }
-    
+    CFStringRef cfStr = (__bridge_retained  CFStringRef)self.url.host;
+    CFStreamCreatePairWithSocketToHost(NULL, cfStr, [port intValue], &readStream, &writeStream);
+    CFRelease(cfStr);
     self.inputStream = (__bridge_transfer NSInputStream *)readStream;
-    self.outputStream = (__bridge_transfer NSOutputStream *)writeStream;
-    
     self.inputStream.delegate = self;
+    self.outputStream = (__bridge_transfer NSOutputStream *)writeStream;
     self.outputStream.delegate = self;
-    
     if([self.url.scheme isEqualToString:@"wss"] || [self.url.scheme isEqualToString:@"https"]) {
         [self.inputStream setProperty:NSStreamSocketSecurityLevelNegotiatedSSL forKey:NSStreamSocketSecurityLevelKey];
         [self.outputStream setProperty:NSStreamSocketSecurityLevelNegotiatedSSL forKey:NSStreamSocketSecurityLevelKey];
-        
-        if (self.selfSignedSSL) {
-            NSDictionary *sslSettings = @{
-                (__bridge NSString *)kCFStreamSSLValidatesCertificateChain: @NO,
-                (__bridge NSString *)kCFStreamSSLPeerName: [NSNull null]
-            };
-            [self.inputStream setProperty:sslSettings forKey:(__bridge NSString *)kCFStreamPropertySSLSettings];
-            [self.outputStream setProperty:sslSettings forKey:(__bridge NSString *)kCFStreamPropertySSLSettings];
-        }
     } else {
         self.certValidated = YES; //not a https session, so no need to check SSL pinning
     }
-    
     if(self.voipEnabled) {
         if (@available(iOS 16.0, *)) {
             [self.inputStream setProperty:NSStreamNetworkServiceTypeBackground forKey:NSStreamNetworkServiceType];
@@ -349,25 +297,27 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
             [self.outputStream setProperty:NSStreamNetworkServiceTypeVoIP forKey:NSStreamNetworkServiceType];
         }
     }
-    
+    if(self.selfSignedSSL) {
+        NSString *chain = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;
+        NSString *peerName = (__bridge_transfer NSString *)kCFStreamSSLValidatesCertificateChain;
+        NSString *key = (__bridge_transfer NSString *)kCFStreamPropertySSLSettings;
+        NSDictionary *settings = @{chain: [[NSNumber alloc] initWithBool:NO],
+                                   peerName: [NSNull null]};
+        [self.inputStream setProperty:settings forKey:key];
+        [self.outputStream setProperty:settings forKey:key];
+    }
     self.isRunLoop = YES;
     [self.inputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     [self.outputStream scheduleInRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-    
     [self.inputStream open];
     [self.outputStream open];
-    
     size_t dataLen = [data length];
-    NSInteger written = [self.outputStream write:[data bytes] maxLength:dataLen];
-    if (written != dataLen) {
-        RTCJFR_LOG(@"Failed to write all request data: %ld of %zu bytes", (long)written, dataLen);
-    }
-    
+    [self.outputStream write:[data bytes] maxLength:dataLen];
     while (self.isRunLoop) {
-        @autoreleasepool {
-            [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
-        }
+        [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
     }
+//    CFRelease(readStream);
+//    CFRelease(writeStream);
 }
 /////////////////////////////////////////////////////////////////////////////
 
@@ -375,26 +325,25 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 
 /////////////////////////////////////////////////////////////////////////////
 - (void)stream:(NSStream *)aStream handleEvent:(NSStreamEvent)eventCode {
+    if(self.security && !self.certValidated && (eventCode == NSStreamEventHasBytesAvailable || eventCode == NSStreamEventHasSpaceAvailable)) {
+        SecTrustRef trust = (__bridge SecTrustRef)([aStream propertyForKey:(__bridge_transfer NSString *)kCFStreamPropertySSLPeerTrust]);
+        NSString *domain = [aStream propertyForKey:(__bridge_transfer NSString *)kCFStreamSSLPeerName];
+        if([self.security isValid:trust domain:domain]) {
+            self.certValidated = YES;
+        } else {
+            [self disconnectStream:[self errorWithDetail:@"Invalid SSL certificate" code:1]];
+            return;
+        }
+    }
     switch (eventCode) {
+        case NSStreamEventNone:
+            break;
+            
         case NSStreamEventOpenCompleted:
             break;
             
         case NSStreamEventHasBytesAvailable:
             if(aStream == self.inputStream) {
-                if (!self.certValidated && self.security) {
-                    SecTrustRef trust = (__bridge SecTrustRef)([aStream propertyForKey:(__bridge NSString *)kCFStreamPropertySSLPeerTrust]);
-                    NSString *domain = [aStream propertyForKey:(__bridge NSString *)kCFStreamSSLPeerName];
-                    if(!domain) {
-                        domain = self.url.host;
-                    }
-                    
-                    if(trust && [self.security isValid:trust domain:domain]) {
-                        self.certValidated = YES;
-                    } else {
-                        [self disconnectStream:[self errorWithDetail:@"Invalid SSL certificate" code:RTCJFRInvalidSSLCertificate]];
-                        return;
-                    }
-                }
                 [self processInputStream];
             }
             break;
@@ -415,24 +364,17 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     }
 }
 /////////////////////////////////////////////////////////////////////////////
-- (void)disconnectStream:(nullable NSError*)error {
-    [self.writeQueue cancelAllOperations];
+- (void)disconnectStream:(NSError*)error {
     [self.writeQueue waitUntilAllOperationsAreFinished];
-    
-    if (self.isRunLoop) {
-        [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-        [self.outputStream removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-        self.isRunLoop = NO;
-    }
-    
+    [self.inputStream removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+    [self.outputStream removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     [self.outputStream close];
     [self.inputStream close];
-    
     self.outputStream = nil;
     self.inputStream = nil;
+    self.isRunLoop = NO;
     _isConnected = NO;
     self.certValidated = NO;
-    
     [self doDisconnect:error];
 }
 /////////////////////////////////////////////////////////////////////////////
@@ -444,52 +386,48 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     @autoreleasepool {
         uint8_t buffer[BUFFER_MAX];
         NSInteger length = [self.inputStream read:buffer maxLength:BUFFER_MAX];
-        
         if(length > 0) {
             if(!self.isConnected) {
-                CFIndex responseStatusCode = 0;
+                CFIndex responseStatusCode;
                 BOOL status = [self processHTTP:buffer length:length responseStatusCode:&responseStatusCode];
-                
-                if (!status) {
-                    NSDictionary *userInfo = @{@"HTTPResponseStatusCode": @(responseStatusCode)};
-                    NSError *error = [self errorWithDetail:@"Invalid HTTP upgrade" code:RTCJFRInvalidHTTPResponse userInfo:userInfo];
-                    [self doDisconnect:error];
+#if defined(DEBUG)
+                if (length < BUFFER_MAX) {
+                    buffer[length] = 0x00;
+                } else {
+                    buffer[BUFFER_MAX - 1] = 0x00;
+                }
+                NSLog(@"response (%ld) = \"%s\"", responseStatusCode, buffer);
+#endif
+                if(status == NO) {
+                    [self doDisconnect:[self errorWithDetail:@"Invalid HTTP upgrade" code:1 userInfo:@{@"HTTPResponseStatusCode" : @(responseStatusCode)}]];
                 }
             } else {
-                BOOL process = (self.inputQueue.count == 0);
+                BOOL process = NO;
+                if(self.inputQueue.count == 0) {
+                    process = YES;
+                }
                 [self.inputQueue addObject:[NSData dataWithBytes:buffer length:length]];
                 if(process) {
                     [self dequeueInput];
                 }
             }
-        } else if (length < 0) {
-            NSError *error = self.inputStream.streamError;
-            if (!error) {
-                error = [self errorWithDetail:@"Input stream read error" code:RTCJFROutputStreamWriteError];
-            }
-            [self disconnectStream:error];
         }
     }
 }
 /////////////////////////////////////////////////////////////////////////////
 - (void)dequeueInput {
     if(self.inputQueue.count > 0) {
-        NSData *data = self.inputQueue[0];
+        NSData *data = [self.inputQueue objectAtIndex:0];
         NSData *work = data;
-        
         if(self.fragBuffer) {
             NSMutableData *combine = [NSMutableData dataWithData:self.fragBuffer];
             [combine appendData:data];
             work = combine;
             self.fragBuffer = nil;
         }
-        
         [self processRawMessage:(uint8_t*)work.bytes length:work.length];
-        [self.inputQueue removeObjectAtIndex:0];
-        
-        if(self.inputQueue.count > 0) {
-            [self dequeueInput];
-        }
+        [self.inputQueue removeObject:data];
+        [self dequeueInput];
     }
 }
 /////////////////////////////////////////////////////////////////////////////
@@ -497,8 +435,7 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 - (BOOL)processHTTP:(uint8_t*)buffer length:(NSInteger)bufferLen responseStatusCode:(CFIndex*)responseStatusCode {
     int k = 0;
     NSInteger totalSize = 0;
-    
-    for(NSInteger i = 0; i < bufferLen; i++) {
+    for(int i = 0; i < bufferLen; i++) {
         if(buffer[i] == CRLFBytes[k]) {
             k++;
             if(k == 3) {
@@ -509,291 +446,255 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
             k = 0;
         }
     }
-    
     if(totalSize > 0) {
         BOOL status = [self validateResponse:buffer length:totalSize responseStatusCode:responseStatusCode];
-        if (status) {
+        if (status == YES) {
             _isConnected = YES;
             __weak typeof(self) weakSelf = self;
-            dispatch_async(self.queue, ^{
-                if([weakSelf.delegate respondsToSelector:@selector(websocketDidConnect:)]) {
-                    [weakSelf.delegate websocketDidConnect:weakSelf];
+            dispatch_async(self.queue,^{
+                if([self.delegate respondsToSelector:@selector(websocketDidConnect:)]) {
+                    [weakSelf.delegate websocketDidConnect:self];
                 }
                 if(weakSelf.onConnect) {
                     weakSelf.onConnect();
                 }
             });
-            
-            NSInteger restSize = bufferLen - totalSize;
+            totalSize += 1; //skip the last \n
+            NSInteger  restSize = bufferLen-totalSize;
             if(restSize > 0) {
-                [self processRawMessage:(buffer + totalSize) length:restSize];
+                [self processRawMessage:(buffer+totalSize) length:restSize];
             }
         }
         return status;
     }
-    
     return NO;
 }
 /////////////////////////////////////////////////////////////////////////////
 //Validate the HTTP is a 101, as per the RFC spec.
 - (BOOL)validateResponse:(uint8_t *)buffer length:(NSInteger)bufferLen responseStatusCode:(CFIndex*)responseStatusCode {
     CFHTTPMessageRef response = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, NO);
-    if (!response) {
-        return NO;
-    }
-    
     CFHTTPMessageAppendBytes(response, buffer, bufferLen);
     *responseStatusCode = CFHTTPMessageGetResponseStatusCode(response);
-    BOOL status = (*responseStatusCode == kRTCJFRInternalHTTPStatusWebSocket);
-    
-    if(status) {
-        NSDictionary *headers = (__bridge_transfer NSDictionary *)(CFHTTPMessageCopyAllHeaderFields(response));
-        NSString *acceptKey = headers[headerWSAcceptName];
-        if(acceptKey.length == 0) {
-            status = NO;
-        }
+    BOOL status = ((*responseStatusCode) == kRTCJFRInternalHTTPStatusWebSocket)?(YES):(NO);
+    if(status == NO) {
+        CFRelease(response);
+        return NO;
     }
-    
+    NSDictionary *headers = (__bridge_transfer NSDictionary *)(CFHTTPMessageCopyAllHeaderFields(response));
+    NSString *acceptKey = headers[headerWSAcceptName];
     CFRelease(response);
-    return status;
+    if(acceptKey.length > 0) {
+        return YES;
+    }
+    return NO;
 }
 /////////////////////////////////////////////////////////////////////////////
-- (void)processRawMessage:(uint8_t*)buffer length:(NSInteger)bufferLen {
+-(void)processRawMessage:(uint8_t*)buffer length:(NSInteger)bufferLen {
     RTCJFRResponse *response = [self.readStack lastObject];
-    
     if(response && bufferLen < 2) {
         self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
         return;
     }
-    
-    if(response && response.bytesLeft > 0) {
-        NSInteger len = MIN(response.bytesLeft, bufferLen);
+    if(response.bytesLeft > 0) {
+        NSInteger len = response.bytesLeft;
+        NSInteger extra =  bufferLen - response.bytesLeft;
+        if(response.bytesLeft > bufferLen) {
+            len = bufferLen;
+            extra = 0;
+        }
         response.bytesLeft -= len;
         [response.buffer appendData:[NSData dataWithBytes:buffer length:len]];
         [self processResponse:response];
-        
-        NSInteger extra = bufferLen - len;
+        NSInteger offset = bufferLen - extra;
         if(extra > 0) {
-            [self processExtra:(buffer + len) length:extra];
+            [self processExtra:(buffer+offset) length:extra];
         }
         return;
-    }
-    
-    if(bufferLen < 2) {
-        self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
-        return;
-    }
-    
-    BOOL isFin = (RTCJFRFinMask & buffer[0]);
-    uint8_t receivedOpcode = (RTCJFROpCodeMask & buffer[0]);
-    BOOL isMasked = (RTCJFRMaskMask & buffer[1]);
-    uint8_t payloadLen = (RTCJFRPayloadLenMask & buffer[1]);
-    NSInteger offset = 2;
-    
-    // 检查保留位
-    if((RTCJFRRSVMask & buffer[0]) && receivedOpcode != RTCJFROpCodePong) {
-        // 只记录警告，不断开连接，兼容某些不符合标准的服务器
-        NSLog(@"⚠️ 收到带有非零RSV位的WebSocket帧，违反协议，但继续处理");
-        // 不调用doDisconnect，继续处理该帧
-    }
-    
-    // 检查操作码
-    BOOL isControlFrame = (receivedOpcode == RTCJFROpCodeConnectionClose ||
-                          receivedOpcode == RTCJFROpCodePing ||
-                          receivedOpcode == RTCJFROpCodePong);
-    
-    // 检查是否为已知数据帧操作码
-    BOOL isKnownDataFrame = (receivedOpcode == RTCJFROpCodeBinaryFrame ||
-                            receivedOpcode == RTCJFROpCodeContinueFrame ||
-                            receivedOpcode == RTCJFROpCodeTextFrame);
-    
-    if(!isControlFrame && !isKnownDataFrame) {
-        // 只记录警告，不断开连接，兼容某些不符合标准的服务器
-        NSLog(@"⚠️ 收到未知操作码: 0x%x，违反协议，但继续处理", receivedOpcode);
-        // 不调用doDisconnect，也不跳过处理，而是尝试继续解析
-        // 对于未知操作码，我们将其视为普通数据帧处理，或者直接跳过
-        // 这里选择直接跳过该帧的处理，继续处理后续数据
-        NSInteger dataLength = payloadLen;
-        if(payloadLen == 127) {
-            dataLength = (NSInteger)CFSwapInt64BigToHost(*(uint64_t *)(buffer + offset));
-            offset += 8;
-        } else if(payloadLen == 126) {
-            dataLength = CFSwapInt16BigToHost(*(uint16_t *)(buffer + offset));
-            offset += 2;
+    } else {
+        if(bufferLen < 2) { // we need at least 2 bytes for the header
+            self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
+            return;
+        }
+        BOOL isFin = (RTCJFRFinMask & buffer[0]);
+        uint8_t receivedOpcode = (RTCJFROpCodeMask & buffer[0]);
+        BOOL isMasked = (RTCJFRMaskMask & buffer[1]);
+        uint8_t payloadLen = (RTCJFRPayloadLenMask & buffer[1]);
+        NSInteger offset = 2; //how many bytes do we need to skip for the header
+        // 宽容处理masked和RSV数据，不再断开连接
+        if((isMasked || (RTCJFRRSVMask & buffer[0])) && receivedOpcode != RTCJFROpCodePong) {
+            NSLog(@"⚠️ 收到带有masked或RSV位的WebSocket帧，违反协议，但继续处理");
         }
         
-        if(isMasked) {
-            offset += 4;
-        }
+        // 正确定义控制帧类型，包含Pong帧
+        BOOL isControlFrame = (receivedOpcode == RTCJFROpCodeConnectionClose || 
+                              receivedOpcode == RTCJFROpCodePing || 
+                              receivedOpcode == RTCJFROpCodePong);
         
-        NSInteger totalProcessed = offset + dataLength;
-        if(bufferLen > totalProcessed) {
-            // 有剩余数据，继续处理
-            [self processExtra:(buffer + totalProcessed) length:bufferLen - totalProcessed];
-        }
-        return;
-    }
-    
-    // 忽略控制帧分片检查，允许接收分片的控制帧
-    // 这是为了兼容某些不符合WebSocket协议的服务器
-    if(isControlFrame && !isFin) {
-        // 只记录警告，不断开连接
-        NSLog(@"⚠️ 收到分片的控制帧，违反WebSocket协议，但继续处理");
-        // 不调用doDisconnect，继续处理该帧
-    }
-    
-    if(receivedOpcode == RTCJFROpCodeConnectionClose) {
-        uint16_t code = RTCJFRCloseCodeNormal;
-        
-        if(payloadLen == 1) {
-            code = RTCJFRCloseCodeProtocolError;
-        } else if(payloadLen >= 2) {
-            code = CFSwapInt16BigToHost(*(uint16_t *)(buffer + offset));
+        // 宽容处理未知操作码，不再断开连接
+        if(!isControlFrame && (receivedOpcode != RTCJFROpCodeBinaryFrame && 
+                              receivedOpcode != RTCJFROpCodeContinueFrame && 
+                              receivedOpcode != RTCJFROpCodeTextFrame)) {
+            NSLog(@"⚠️ 收到未知操作码，跳过处理: 0x%x", receivedOpcode);
             
-            // 验证关闭代码
-            if(code < 1000 ||
-               (code > 1003 && code < 1007) ||
-               (code > 1011 && code < 3000) ||
-               (code >= 1000 && code <= 1011 &&
-                code != RTCJFRCloseCodeNormal &&
-                code != RTCJFRCloseCodeGoingAway &&
-                code != RTCJFRCloseCodeProtocolError &&
-                code != RTCJFRCloseCodeProtocolUnhandledType &&
-                code != RTCJFRCloseCodeEncoding &&
-                code != RTCJFRCloseCodePolicyViolated &&
-                code != RTCJFRCloseCodeMessageTooBig)) {
+            // 跳过该帧，继续处理后续数据
+            NSInteger dataLength = payloadLen;
+            if(payloadLen == 127) {
+                dataLength = (NSInteger)CFSwapInt64BigToHost(*(uint64_t *)(buffer+offset));
+                offset += sizeof(uint64_t);
+            } else if(payloadLen == 126) {
+                dataLength = CFSwapInt16BigToHost(*(uint16_t *)(buffer+offset));
+                offset += sizeof(uint16_t);
+            }
+            
+            // 跳过mask key
+            if(isMasked) {
+                offset += 4;
+            }
+            
+            // 跳过payload
+            NSInteger totalProcessed = offset + dataLength;
+            if(bufferLen > totalProcessed) {
+                [self processExtra:(buffer+totalProcessed) length:bufferLen - totalProcessed];
+            }
+            return;
+        }
+        
+        // 宽容处理控制帧分片，不再断开连接
+        if(isControlFrame && !isFin) {
+            NSLog(@"⚠️ 收到分片的控制帧，违反WebSocket协议，但继续处理");
+        }
+        if(receivedOpcode == RTCJFROpCodeConnectionClose) {
+            //the server disconnected us
+            uint16_t code = RTCJFRCloseCodeNormal;
+            if(payloadLen == 1) {
                 code = RTCJFRCloseCodeProtocolError;
+            }
+            else if(payloadLen > 1) {
+                code = CFSwapInt16BigToHost(*(uint16_t *)(buffer+offset) );
+                if(code < 1000 || (code > 1003 && code < 1007) || (code > 1011 && code < 3000)) {
+                    code = RTCJFRCloseCodeProtocolError;
+                }
+                offset += 2;
             }
             
             if(payloadLen > 2) {
-                offset += 2;
-            }
-        }
-        
-        [self writeError:code];
-        [self doDisconnect:[self errorWithDetail:@"Connection closed by server" code:code]];
-        return;
-    }
-    
-    if(isControlFrame && payloadLen > 125) {
-        [self writeError:RTCJFRCloseCodeProtocolError];
-        return;
-    }
-    
-    NSInteger dataLength = payloadLen;
-    if(payloadLen == 127) {
-        if(bufferLen < 10) {
-            self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
-            return;
-        }
-        dataLength = (NSInteger)CFSwapInt64BigToHost(*(uint64_t *)(buffer + offset));
-        offset += 8;
-    } else if(payloadLen == 126) {
-        if(bufferLen < 4) {
-            self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
-            return;
-        }
-        dataLength = CFSwapInt16BigToHost(*(uint16_t *)(buffer + offset));
-        offset += 2;
-    }
-    
-    if(isMasked) {
-        offset += 4;
-    }
-    
-    if(bufferLen < offset) {
-        self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
-        return;
-    }
-    
-    NSInteger len = MIN(dataLength, bufferLen - offset);
-    if(len < 0) {
-        len = 0;
-    }
-    
-    NSData *data = nil;
-    if(len > 0) {
-        if(isMasked) {
-            uint8_t *maskKey = (uint8_t *)(buffer + offset - 4);
-            uint8_t *unmasked = malloc(len);
-            if (unmasked) {
-                for(NSInteger i = 0; i < len; i++) {
-                    unmasked[i] = buffer[offset + i] ^ maskKey[i % 4];
+                NSInteger len = payloadLen-2;
+                if(len > 0) {
+                    NSData *data = [NSData dataWithBytes:(buffer+offset) length:len];
+                    NSString *str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                    if(!str) {
+                        code = RTCJFRCloseCodeProtocolError;
+                    }
                 }
-                data = [NSData dataWithBytes:unmasked length:len];
-                free(unmasked);
-            } else {
-                data = [NSData data];
             }
+            [self writeError:code];
+            [self doDisconnect:[self errorWithDetail:@"continue frame before a binary or text frame" code:code]];
+            return;
+        }
+        if(isControlFrame && payloadLen > 125) {
+            [self writeError:RTCJFRCloseCodeProtocolError];
+            return;
+        }
+        NSInteger dataLength = payloadLen;
+        if(payloadLen == 127) {
+            dataLength = (NSInteger)CFSwapInt64BigToHost(*(uint64_t *)(buffer+offset));
+            offset += sizeof(uint64_t);
+        } else if(payloadLen == 126) {
+            dataLength = CFSwapInt16BigToHost(*(uint16_t *)(buffer+offset) );
+            offset += sizeof(uint16_t);
+        }
+        if(bufferLen < offset) { // we cannot process this yet, nead more header data
+            self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
+            return;
+        }
+        NSInteger len = dataLength;
+        if(dataLength > (bufferLen-offset) || (bufferLen - offset) < dataLength) {
+            len = bufferLen-offset;
+        }
+        NSData *data = nil;
+        if(len < 0) {
+            len = 0;
+            data = [NSData data];
         } else {
-            data = [NSData dataWithBytes:(buffer + offset) length:len];
+            data = [NSData dataWithBytes:(buffer+offset) length:len];
         }
-    } else {
-        data = [NSData data];
-    }
-    
-    if(receivedOpcode == RTCJFROpCodePong) {
-        // 忽略pong帧中的数据
-        return;
-    }
-    
-    if(receivedOpcode == RTCJFROpCodePing) {
-        [self dequeueWrite:data withCode:RTCJFROpCodePong];
-        return;
-    }
-    
-    RTCJFRResponse *currentResponse = [self.readStack lastObject];
-    if(!currentResponse) {
-        if(receivedOpcode == RTCJFROpCodeContinueFrame) {
-            [self doDisconnect:[self errorWithDetail:@"First frame can't be a continue frame" code:RTCJFRCloseCodeProtocolError]];
+        if(receivedOpcode == RTCJFROpCodePong) {
+            NSInteger step = (offset+len);
+            NSInteger extra = bufferLen-step;
+            if(extra > 0) {
+                [self processRawMessage:(buffer+step) length:extra];
+            }
+            return;
+        }
+        RTCJFRResponse *response = [self.readStack lastObject];
+        if(isControlFrame) {
+            response = nil; //don't append pings
+        }
+        if(!isFin && receivedOpcode == RTCJFROpCodeContinueFrame && !response) {
+            [self doDisconnect:[self errorWithDetail:@"continue frame before a binary or text frame" code:RTCJFRCloseCodeProtocolError]];
             [self writeError:RTCJFRCloseCodeProtocolError];
             return;
         }
-        
-        currentResponse = [RTCJFRResponse new];
-        currentResponse.code = receivedOpcode;
-        currentResponse.bytesLeft = dataLength;
-        currentResponse.buffer = [NSMutableData dataWithData:data];
-        currentResponse.isFin = isFin;
-        currentResponse.frameCount = 1;
-        [self.readStack addObject:currentResponse];
-    } else {
-        if(receivedOpcode != RTCJFROpCodeContinueFrame) {
-            [self doDisconnect:[self errorWithDetail:@"Second and beyond of fragment message must be a continue frame" code:RTCJFRCloseCodeProtocolError]];
-            [self writeError:RTCJFRCloseCodeProtocolError];
-            return;
+        BOOL isNew = NO;
+        if(!response) {
+            if(receivedOpcode == RTCJFROpCodeContinueFrame) {
+                [self doDisconnect:[self errorWithDetail:@"first frame can't be a continue frame" code:RTCJFRCloseCodeProtocolError]];
+                [self writeError:RTCJFRCloseCodeProtocolError];
+                return;
+            }
+            isNew = YES;
+            response = [RTCJFRResponse new];
+            response.code = receivedOpcode;
+            response.bytesLeft = dataLength;
+            response.buffer = [NSMutableData dataWithData:data];
+        } else {
+            if(receivedOpcode == RTCJFROpCodeContinueFrame) {
+                response.bytesLeft = dataLength;
+            } else {
+                [self doDisconnect:[self errorWithDetail:@"second and beyond of fragment message must be a continue frame" code:RTCJFRCloseCodeProtocolError]];
+                [self writeError:RTCJFRCloseCodeProtocolError];
+                return;
+            }
+            [response.buffer appendData:data];
         }
+        response.bytesLeft -= len;
+        response.frameCount++;
+        response.isFin = isFin;
+        if(isNew) {
+            [self.readStack addObject:response];
+        }
+        [self processResponse:response];
         
-        [currentResponse.buffer appendData:data];
-        currentResponse.bytesLeft = dataLength - len;
-        currentResponse.frameCount++;
-        currentResponse.isFin = isFin;
+        NSInteger step = (offset+len);
+        NSInteger extra = bufferLen-step;
+        if(extra > 0) {
+            [self processExtra:(buffer+step) length:extra];
+        }
     }
     
-    [self processResponse:currentResponse];
-    
-    NSInteger totalProcessed = offset + len;
-    NSInteger extra = bufferLen - totalProcessed;
-    if(extra > 0) {
-        [self processExtra:(buffer + totalProcessed) length:extra];
-    }
 }
 /////////////////////////////////////////////////////////////////////////////
 - (void)processExtra:(uint8_t*)buffer length:(NSInteger)bufferLen {
-    [self processRawMessage:buffer length:bufferLen];
+    if(bufferLen < 2) {
+        self.fragBuffer = [NSData dataWithBytes:buffer length:bufferLen];
+    } else {
+        [self processRawMessage:buffer length:bufferLen];
+    }
 }
 /////////////////////////////////////////////////////////////////////////////
 - (BOOL)processResponse:(RTCJFRResponse*)response {
     if(response.isFin && response.bytesLeft <= 0) {
-        if(response.code == RTCJFROpCodeTextFrame) {
+        NSData *data = response.buffer;
+        if(response.code == RTCJFROpCodePing) {
+            [self dequeueWrite:response.buffer withCode:RTCJFROpCodePong];
+        } else if(response.code == RTCJFROpCodeTextFrame) {
             NSString *str = [[NSString alloc] initWithData:response.buffer encoding:NSUTF8StringEncoding];
             if(!str) {
                 [self writeError:RTCJFRCloseCodeEncoding];
                 return NO;
             }
-            
             __weak typeof(self) weakSelf = self;
-            dispatch_async(self.queue, ^{
+            dispatch_async(self.queue,^{
                 if([weakSelf.delegate respondsToSelector:@selector(websocket:didReceiveMessage:)]) {
                     [weakSelf.delegate websocket:weakSelf didReceiveMessage:str];
                 }
@@ -802,9 +703,8 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
                 }
             });
         } else if(response.code == RTCJFROpCodeBinaryFrame) {
-            NSData *data = [response.buffer copy];
             __weak typeof(self) weakSelf = self;
-            dispatch_async(self.queue, ^{
+            dispatch_async(self.queue,^{
                 if([weakSelf.delegate respondsToSelector:@selector(websocket:didReceiveData:)]) {
                     [weakSelf.delegate websocket:weakSelf didReceiveData:data];
                 }
@@ -813,121 +713,90 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
                 }
             });
         }
-        
         [self.readStack removeLastObject];
         return YES;
     }
     return NO;
 }
 /////////////////////////////////////////////////////////////////////////////
-- (void)dequeueWrite:(NSData*)data withCode:(RTCJFROpCode)code {
+-(void)dequeueWrite:(NSData*)data withCode:(RTCJFROpCode)code {
     if(!self.isConnected) {
         return;
     }
-    
     if(!self.writeQueue) {
         self.writeQueue = [[NSOperationQueue alloc] init];
         self.writeQueue.maxConcurrentOperationCount = 1;
-        self.writeQueue.qualityOfService = NSQualityOfServiceUtility;
     }
     
     __weak typeof(self) weakSelf = self;
     [self.writeQueue addOperationWithBlock:^{
-        if(!weakSelf.isConnected || !weakSelf.outputStream) {
+        if(!weakSelf || !weakSelf.isConnected) {
             return;
         }
-        
-        NSUInteger dataLength = data.length;
-        
-        // 计算帧头大小
-        NSUInteger headerSize = 2; // 基本头
-        if(dataLength < 126) {
-            // 已经包含在基本头中
-        } else if(dataLength <= UINT16_MAX) {
-            headerSize += 2;
-        } else {
-            headerSize += 8;
-        }
-        
-        // 添加掩码
-        BOOL useMask = YES;
-        if(useMask) {
-            headerSize += 4;
-        }
-        
-        // 分配内存
-        NSMutableData *frame = [NSMutableData dataWithLength:headerSize + dataLength];
-        uint8_t *buffer = (uint8_t*)frame.mutableBytes;
-        
-        // 设置Fin和操作码
+        typeof(weakSelf) strongSelf = weakSelf;
+        uint64_t offset = 2; //how many bytes do we need to skip for the header
+        uint8_t *bytes = (uint8_t*)[data bytes];
+        uint64_t dataLength = data.length;
+        NSMutableData *frame = [[NSMutableData alloc] initWithLength:(NSInteger)(dataLength + RTCJFRMaxFrameSize)];
+        uint8_t *buffer = (uint8_t*)[frame mutableBytes];
         buffer[0] = RTCJFRFinMask | code;
-        
-        // 设置负载长度
         if(dataLength < 126) {
-            buffer[1] = dataLength;
+            buffer[1] |= dataLength;
         } else if(dataLength <= UINT16_MAX) {
-            buffer[1] = 126;
-            uint16_t len = CFSwapInt16HostToBig((uint16_t)dataLength);
-            memcpy(buffer + 2, &len, sizeof(len));
+            buffer[1] |= 126;
+            *((uint16_t *)(buffer + offset)) = CFSwapInt16BigToHost((uint16_t)dataLength);
+            offset += sizeof(uint16_t);
         } else {
-            buffer[1] = 127;
-            uint64_t len = CFSwapInt64HostToBig((uint64_t)dataLength);
-            memcpy(buffer + 2, &len, sizeof(len));
+            buffer[1] |= 127;
+            *((uint64_t *)(buffer + offset)) = CFSwapInt64BigToHost((uint64_t)dataLength);
+            offset += sizeof(uint64_t);
         }
-        
-        // 添加掩码
-        if(useMask) {
+        BOOL isMask = YES;
+        if(isMask) {
             buffer[1] |= RTCJFRMaskMask;
-            uint8_t *maskKey = buffer + headerSize - 4;
-            int result = SecRandomCopyBytes(kSecRandomDefault, 4, maskKey);
-            if (result != errSecSuccess) {
-                // 如果随机数生成失败，使用伪随机数
-                arc4random_buf(maskKey, 4);
-            }
+            uint8_t *mask_key = (buffer + offset);
+            (void)SecRandomCopyBytes(kSecRandomDefault, sizeof(uint32_t), (uint8_t *)mask_key);
+            offset += sizeof(uint32_t);
             
-            const uint8_t *bytes = data.bytes;
-            uint8_t *payload = buffer + headerSize;
-            for(NSUInteger i = 0; i < dataLength; i++) {
-                payload[i] = bytes[i] ^ maskKey[i % 4];
+            for (size_t i = 0; i < dataLength; i++) {
+                buffer[offset] = bytes[i] ^ mask_key[i % sizeof(uint32_t)];
+                offset += 1;
             }
         } else {
-            memcpy(buffer + headerSize, data.bytes, dataLength);
+            for(size_t i = 0; i < dataLength; i++) {
+                buffer[offset] = bytes[i];
+                offset += 1;
+            }
         }
-        
-        // 写入数据
-        NSUInteger totalWritten = 0;
-        NSUInteger totalLength = frame.length;
-        
-        while (totalWritten < totalLength) {
-            if(!weakSelf.isConnected || !weakSelf.outputStream) {
+        uint64_t total = 0;
+        while (true) {
+            if(!strongSelf.isConnected || !strongSelf.outputStream) {
                 break;
             }
-            
-            NSInteger written = [weakSelf.outputStream write:(buffer + totalWritten)
-                                                   maxLength:(totalLength - totalWritten)];
-            if(written <= 0) {
-                NSError *error = weakSelf.outputStream.streamError;
+            NSInteger len = [strongSelf.outputStream write:([frame bytes]+total) maxLength:(NSInteger)(offset-total)];
+            if(len < 0 || len == NSNotFound) {
+                NSError *error = strongSelf.outputStream.streamError;
                 if(!error) {
-                    error = [weakSelf errorWithDetail:@"Output stream error during write"
-                                                 code:RTCJFROutputStreamWriteError];
+                    error = [strongSelf errorWithDetail:@"output stream error during write" code:RTCJFROutputStreamWriteError];
                 }
-                [weakSelf doDisconnect:error];
+                [strongSelf doDisconnect:error];
+                break;
+            } else {
+                total += len;
+            }
+            if(total >= offset) {
                 break;
             }
-            
-            totalWritten += written;
         }
     }];
 }
 /////////////////////////////////////////////////////////////////////////////
-- (void)doDisconnect:(nullable NSError*)error {
+- (void)doDisconnect:(NSError*)error {
     if(!self.didDisconnect) {
-        self.didDisconnect = YES;
-        
         __weak typeof(self) weakSelf = self;
         dispatch_async(self.queue, ^{
-            [weakSelf disconnectStream:nil];
-            
+            weakSelf.didDisconnect = YES;
+            [weakSelf disconnect];
             if([weakSelf.delegate respondsToSelector:@selector(websocketDidDisconnect:error:)]) {
                 [weakSelf.delegate websocketDidDisconnect:weakSelf error:error];
             }
@@ -938,29 +807,28 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     }
 }
 /////////////////////////////////////////////////////////////////////////////
-- (NSError*)errorWithDetail:(NSString*)detail code:(NSInteger)code {
+- (NSError*)errorWithDetail:(NSString*)detail code:(NSInteger)code
+{
     return [self errorWithDetail:detail code:code userInfo:nil];
 }
-
-- (NSError*)errorWithDetail:(NSString*)detail code:(NSInteger)code userInfo:(nullable NSDictionary *)userInfo {
+- (NSError*)errorWithDetail:(NSString*)detail code:(NSInteger)code userInfo:(NSDictionary *)userInfo
+{
     NSMutableDictionary* details = [NSMutableDictionary dictionary];
-    details[NSLocalizedDescriptionKey] = detail ?: @"Unknown error";
-    
+    details[detail] = NSLocalizedDescriptionKey;
     if (userInfo) {
         [details addEntriesFromDictionary:userInfo];
     }
-    
     return [[NSError alloc] initWithDomain:@"RTCJFRWebSocket" code:code userInfo:details];
 }
 /////////////////////////////////////////////////////////////////////////////
 - (void)writeError:(uint16_t)code {
-    uint16_t buffer = CFSwapInt16HostToBig(code);
-    [self dequeueWrite:[NSData dataWithBytes:&buffer length:sizeof(buffer)]
-              withCode:RTCJFROpCodeConnectionClose];
+    uint16_t buffer[1];
+    buffer[0] = CFSwapInt16BigToHost(code);
+    [self dequeueWrite:[NSData dataWithBytes:buffer length:sizeof(uint16_t)] withCode:RTCJFROpCodeConnectionClose];
 }
 /////////////////////////////////////////////////////////////////////////////
 - (void)dealloc {
-    if(_isConnected) {
+    if(self.isConnected) {
         [self disconnect];
     }
 }
@@ -970,4 +838,6 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
 /////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 @implementation RTCJFRResponse
+
 @end
+/////////////////////////////////////////////////////////////////////////////

@@ -16,8 +16,8 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
     RTCVPSocketIOProtocolVersion4 = 4   // Engine.IO 5.x
 };
 
-// 默认使用 Engine.IO 4.x (Socket.IO v3)
-static const RTCVPSocketIOProtocolVersion kRTCVPSocketIOProtocolVersionDefault = RTCVPSocketIOProtocolVersion3;
+// 默认使用 Engine.IO 3.x (Socket.IO v2)
+static const RTCVPSocketIOProtocolVersion kRTCVPSocketIOProtocolVersionDefault = RTCVPSocketIOProtocolVersion2;
 
 // 配置键常量
 extern NSString *const kRTCVPSocketIOConfigKeyForcePolling;

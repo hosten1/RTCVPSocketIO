@@ -91,6 +91,8 @@ typedef enum : NSUInteger{
 - (void)parseEngineMessage:(NSString *)message;
 - (void)parseEngineData:(NSData *)data;
 
+- (void)handlePong:(NSString *)message;
+
 
 // 错误处理
 - (void)didError:(NSString *)reason;
@@ -115,4 +117,7 @@ typedef enum : NSUInteger{
 - (void)log:(NSString *)message level:(RTCLogLevel)level;
 
 - (void)log:(NSString *)message type:(NSString *)type level:(RTCLogLevel)level;
+
+/// 延迟重连
+- (void)delayReconnect;
 @end
