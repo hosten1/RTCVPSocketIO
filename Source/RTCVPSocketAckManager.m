@@ -7,7 +7,6 @@
 //
 
 #import "RTCVPSocketAckManager.h"
-#import "RTCVPSocketAck.h"
 
 @interface RTCVPSocketAckManager()
 {
@@ -75,6 +74,12 @@
     }
     dispatch_semaphore_signal(ackSemaphore);
     return socketAck;
+}
+
+-(void)removeAllAcks{
+    dispatch_semaphore_wait(ackSemaphore,DISPATCH_TIME_FOREVER);
+    [acks removeAllObjects];
+    dispatch_semaphore_signal(ackSemaphore);
 }
 
 @end

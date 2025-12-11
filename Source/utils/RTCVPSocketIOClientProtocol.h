@@ -20,7 +20,6 @@ typedef void (^RTCVPSocketOnEventCallback)(NSArray*array, RTCVPSocketAckEmitter*
 
 @required
 
-@property (nonatomic, strong) RTCVPSocketAckManager *ackHandlers;
 @property (nonatomic, strong, readonly) dispatch_queue_t handleQueue;
 
 -(void)emit:(NSString*)event items:(NSArray*)items;

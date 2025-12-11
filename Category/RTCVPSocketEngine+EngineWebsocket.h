@@ -26,8 +26,6 @@
 - (void)flushWaitingForPostToWebSocket;
 
 
-- (void)startPingTimer;
-
 - (void)doFastUpgrade;
 
 @end

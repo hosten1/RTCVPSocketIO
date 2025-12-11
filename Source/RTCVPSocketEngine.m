@@ -18,6 +18,7 @@
 #import "RTCVPTimeoutManager.h"
 #import "RTCVPTimer.h"
 
+
 @interface RTCVPSocketEngine()<RTCJFRWebSocketDelegate,
 NSURLSessionDelegate>
 
@@ -130,6 +131,9 @@ NSURLSessionDelegate>
     _session = [NSURLSession sessionWithConfiguration:sessionConfig
                                              delegate:self.config.sessionDelegate ?: self
                                         delegateQueue:queue];
+    // 初始化ACK管理器
+    _ackManager = [[RTCVPACKManager alloc] init];
+    _ackIdCounter = 0;
 }
 
 #pragma mark - URL 创建
@@ -238,27 +242,175 @@ NSURLSessionDelegate>
     return [queryItems componentsJoinedByString:@"&"];
 }
 
+#pragma mark - 日志方法
+
+- (void)log:(NSString *)message level:(RTCLogLevel)level {
+    [self log:message type:self.logType level:level];
+}
+
+- (void)log:(NSString *)message type:(NSString *)type level:(RTCLogLevel)level {
+    if (self.config.loggingEnabled && level <= self.config.logLevel) {
+        if (self.config.logger) {
+            [self.config.logger logMessage:message type:type level:level];
+        } else {
+            [RTCDefaultSocketLogger.logger logMessage:message type:type level:level];
+        }
+    }
+}
+
+- (NSString *)logType {
+    return @"SocketEngine";
+}
+
+#pragma mark - 心跳管理
+
+- (void)startPingTimer {
+    if (self.pingInterval <= 0 || !self.connected || self.closed) {
+        return;
+    }
+    
+    // 停止现有的心跳定时器
+    [self stopPingTimer];
+    
+    // 创建新的心跳定时器
+    __weak typeof(self) weakSelf = self;
+    self.pingTimer = [RTCVPTimer timerWithTimeInterval:self.pingInterval / 1000.0
+                                               repeats:YES
+                                                 queue:self.engineQueue
+                                                 block:^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        [strongSelf sendPing];
+    }];
+    
+    [self.pingTimer start];
+    
+    [self log:@"Ping timer started" level:RTCLogLevelDebug];
+}
+
+- (void)stopPingTimer {
+    if (self.pingTimer) {
+        [self.pingTimer cancel];
+        self.pingTimer = nil;
+        [self log:@"Ping timer stopped" level:RTCLogLevelDebug];
+    }
+}
+
+- (void)sendPing {
+    if (self.pongsMissed >= self.pongsMissedMax) {
+        [self log:@"Ping timeout, closing connection" level:RTCLogLevelError];
+        [self disconnect:@"ping timeout"];
+        return;
+    }
+    
+    self.pongsMissed++;
+    
+    NSString *pingMessage = @"";
+    if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
+        // Engine.IO 4.x+ 使用 "2" 作为 ping
+        pingMessage = @"2";
+    }
+    
+    [self log:[NSString stringWithFormat:@"Sending ping, missed pongs: %ld/%ld",
+               (long)self.pongsMissed, (long)self.pongsMissedMax] level:RTCLogLevelDebug];
+    
+    [self write:pingMessage withType:RTCVPSocketEnginePacketTypePing withData:@[]];
+}
+
+#pragma mark - WebSocket 探测超时
+
+- (void)startProbeTimeout {
+    // 取消现有的探测超时
+    [self cancelProbeTimeout];
+    
+    __weak typeof(self) weakSelf = self;
+    self.probeTimeoutTaskId = [[RTCVPTimeoutManager sharedManager]
+                              scheduleTimeout:5.0
+                              identifier:@"WebSocketProbe"
+                              timeoutBlock:^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        [strongSelf handleProbeTimeout];
+    }];
+    
+    [self log:@"WebSocket probe timeout scheduled" level:RTCLogLevelDebug];
+}
+
+- (void)cancelProbeTimeout {
+    if (self.probeTimeoutTaskId) {
+        [[RTCVPTimeoutManager sharedManager] cancelTask:self.probeTimeoutTaskId];
+        self.probeTimeoutTaskId = nil;
+        [self log:@"WebSocket probe timeout cancelled" level:RTCLogLevelDebug];
+    }
+}
+
+- (void)handleProbeTimeout {
+    dispatch_async(self.engineQueue, ^{
+        if (self.probing && !self.websocket) {
+            [self log:@"WebSocket probe timeout" level:RTCLogLevelWarning];
+            self.probing = NO;
+            // 清理探测等待队列
+            [self.probeWait removeAllObjects];
+        }
+    });
+}
+
+#pragma mark - 连接超时
+
+- (void)startConnectionTimeout {
+    // 取消现有的连接超时
+    [self cancelConnectionTimeout];
+    
+    __weak typeof(self) weakSelf = self;
+    self.connectionTimeoutTaskId = [[RTCVPTimeoutManager sharedManager]
+                                   scheduleTimeout:self.config.connectTimeout
+                                   identifier:@"Connection"
+                                   timeoutBlock:^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        [strongSelf handleConnectionTimeout];
+    }];
+    
+    [self log:@"Connection timeout scheduled" level:RTCLogLevelDebug];
+}
+
+- (void)cancelConnectionTimeout {
+    if (self.connectionTimeoutTaskId) {
+        [[RTCVPTimeoutManager sharedManager] cancelTask:self.connectionTimeoutTaskId];
+        self.connectionTimeoutTaskId = nil;
+        [self log:@"Connection timeout cancelled" level:RTCLogLevelDebug];
+    }
+}
+
+- (void)handleConnectionTimeout {
+    dispatch_async(self.engineQueue, ^{
+        if (!self.connected && !self.closed) {
+            [self log:@"Connection timeout" level:RTCLogLevelError];
+            [self didError:@"Connection timeout"];
+        }
+    });
+}
+
 #pragma mark - 连接管理
 
 - (void)connect {
-    dispatch_async(_engineQueue, ^{
+    dispatch_async(self.engineQueue, ^{
         [self _connect];
     });
 }
 
 - (void)_connect {
-    if (_connected && !_closed) {
+    if (self.connected && !self.closed) {
         [self log:@"Engine is already connected" level:RTCLogLevelWarning];
         return;
     }
     
-    if (_closed) {
+    if (self.closed) {
         [self log:@"Engine is closed, resetting..." level:RTCLogLevelDebug];
         [self resetEngine];
     }
     
-    [self log:[NSString stringWithFormat:@"Starting connection to: %@", _url.absoluteString] level:RTCLogLevelInfo];
-    [self log:@"Initiating handshake..." level:RTCLogLevelDebug];
+    [self log:[NSString stringWithFormat:@"Starting connection to: %@", self.url.absoluteString] level:RTCLogLevelInfo];
+    
+    // 开始连接超时计时
+    [self startConnectionTimeout];
     
     // 确定传输方式
     BOOL forceWebSocket = self.config.forceWebsockets;
@@ -270,12 +422,12 @@ NSURLSessionDelegate>
     }
     
     if (forceWebSocket) {
-        _polling = NO;
-        _websocket = YES;
+        self.polling = NO;
+        self.websocket = YES;
         [self createWebSocketAndConnect];
     } else {
         // 开始轮询握手
-        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:_urlPolling];
+        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:self.urlPolling];
         request.timeoutInterval = self.config.connectTimeout;
         [self addHeadersToRequest:request];
         
@@ -284,41 +436,21 @@ NSURLSessionDelegate>
 }
 
 - (void)disconnect:(NSString *)reason {
-    dispatch_async(_engineQueue, ^{
+    dispatch_async(self.engineQueue, ^{
         [self _disconnect:reason];
     });
 }
 
-- (void)send:(nonnull NSString *)msg ack:(RTCVPSocketAckCallback _Nullable)ack { 
-    <#code#>
-}
-
-
-- (void)send:(nonnull NSString *)msg withData:(nonnull NSArray<NSData *> *)data ack:(RTCVPSocketAckCallback _Nullable)ack { 
-    <#code#>
-}
-
-
-- (void)sendAck:(NSInteger)ackId withData:(nonnull NSArray *)data { 
-    <#code#>
-}
-
-
-- (void)syncResetClient { 
-    <#code#>
-}
-
-
 - (void)_disconnect:(NSString *)reason {
-    if (!_connected && _closed) {
+    if (!self.connected && self.closed) {
         return;
     }
     
     [self log:[NSString stringWithFormat:@"Disconnecting: %@", reason] level:RTCLogLevelInfo];
     
     // 发送关闭消息
-    if (_connected && !_closed) {
-        if (_websocket) {
+    if (self.connected && !self.closed) {
+        if (self.websocket) {
             [self sendWebSocketMessage:@"" withType:RTCVPSocketEnginePacketTypeClose withData:@[]];
         } else {
             [self disconnectPolling];
@@ -331,137 +463,102 @@ NSURLSessionDelegate>
 - (void)resetEngine {
     [self log:@"Resetting engine state" level:RTCLogLevelDebug];
     
-    _closed = NO;
-    _connected = NO;
-    _fastUpgrade = NO;
-    _polling = YES;
-    _websocket = NO;
-    _probing = NO;
-    _invalidated = NO;
-    _sid = @"";
-    _waitingForPoll = NO;
-    _waitingForPost = NO;
+    // 停止所有定时器
+    [self stopPingTimer];
+    [self cancelProbeTimeout];
+    [self cancelConnectionTimeout];
+    
+    self.closed = NO;
+    self.connected = NO;
+    self.fastUpgrade = NO;
+    self.polling = YES;
+    self.websocket = NO;
+    self.probing = NO;
+    self.invalidated = NO;
+    self.sid = @"";
+    self.waitingForPoll = NO;
+    self.waitingForPost = NO;
     
     // 清理现有连接
-    if (_ws) {
-        [_ws disconnect];
-        _ws.delegate = nil;
-        _ws = nil;
+    if (self.ws) {
+        [self.ws disconnect];
+        self.ws.delegate = nil;
+        self.ws = nil;
     }
     
-    if (_session) {
-        [_session invalidateAndCancel];
-        _session = nil;
+    if (self.session) {
+        [self.session invalidateAndCancel];
+        self.session = nil;
     }
     
-    [_postWait removeAllObjects];
-    [_probeWait removeAllObjects];
+    [self.postWait removeAllObjects];
+    [self.probeWait removeAllObjects];
     
     // 重新创建 URLSession
     [self setupEngine];
 }
 
-#pragma mark - 心跳管理
+#pragma mark - 数据解析
 
-- (void)startPingTimer {
-    if (_pingInterval <= 0 || !_connected || _closed) {
+/// 解析从引擎接收到的原始二进制数据
+- (void)parseEngineData:(NSData *)data {
+    if (!data || data.length == 0) {
+        [self log:@"Received empty binary data" level:RTCLogLevelWarning];
         return;
     }
     
-    __weak typeof(self) weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_pingInterval * NSEC_PER_MSEC)), _engineQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (strongSelf && strongSelf->_connected && !strongSelf->_closed) {
-            [strongSelf sendPing];
-        }
-    });
-}
-
-- (void)sendPing {
-    if (_pongsMissed >= _pongsMissedMax) {
-        [self log:@"Ping timeout, closing connection" level:RTCLogLevelError];
-        [self disconnect:@"ping timeout"];
-        return;
-    }
+    [self log:[NSString stringWithFormat:@"Got binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
     
-    _pongsMissed++;
-    
-    NSString *pingMessage = @"";
-    if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
-        // Engine.IO 4.x+ 使用 "2" 作为 ping
-        pingMessage = @"2";
-    }
-    
-    [self write:pingMessage withType:RTCVPSocketEnginePacketTypePing withData:@[]];
-    [self startPingTimer];
-}
-
-- (void)handlePong {
-    _pongsMissed = 0;
-}
-
-#pragma mark - 消息处理
-
-/// 解析原始引擎消息
-- (void)parseEngineMessage:(NSString *)message {
-    if (message.length == 0) {
-        [self log:@"Received empty message" level:RTCLogLevelWarning];
-        return;
-    }
-    
-    [self log:[NSString stringWithFormat:@"Got message: %@", message] level:RTCLogLevelDebug];
-    
-    // 检查是否为二进制消息前缀
-    if ([message hasPrefix:@"b4"]) {
-        [self handleBase64:message];
-        return;
-    }
-    
-    // 检查是否为错误消息
-    NSDictionary *errorDict = [message toDictionary];
-    if (errorDict && errorDict[@"message"]) {
-        [self didError:errorDict[@"message"]];
-        return;
-    }
-    
-    // 解析消息类型
-    if (message.length > 0) {
-        unichar firstChar = [message characterAtIndex:0];
-        if (firstChar >= '0' && firstChar <= '9') {
-            RTCVPSocketEnginePacketType type = firstChar - '0';
-            NSString *content = [message substringFromIndex:1];
+    // 根据协议版本处理二进制数据
+    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
+        // Engine.IO 3.x 协议：二进制数据前会有一个字节的标记
+        // 第一个字节是 0x04 表示二进制消息
+        if (data.length > 1) {
+            const Byte *bytes = (const Byte *)data.bytes;
+            Byte firstByte = bytes[0];
             
-            switch (type) {
-                case RTCVPSocketEnginePacketTypeOpen:
-                    [self handleOpen:content];
-                    break;
-                case RTCVPSocketEnginePacketTypeClose:
-                    [self handleClose:content];
-                    break;
-                case RTCVPSocketEnginePacketTypePing:
-                    // 服务器发送的 ping，需要回复 pong
-                    [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
-                    break;
-                case RTCVPSocketEnginePacketTypePong:
-                    [self handlePong:content];
-                    break;
-                case RTCVPSocketEnginePacketTypeMessage:
-                    [self handleMessage:content];
-                    break;
-                case RTCVPSocketEnginePacketTypeUpgrade:
-                    [self handleUpgrade];
-                    break;
-                case RTCVPSocketEnginePacketTypeNoop:
-                    [self handleNoop];
-                    break;
-                default:
-                    [self log:[NSString stringWithFormat:@"Unknown packet type: %c", firstChar] level:RTCLogLevelWarning];
-                    break;
+            if (firstByte == 0x04) {
+                // 提取实际的二进制数据
+                NSData *actualData = [data subdataWithRange:NSMakeRange(1, data.length - 1)];
+                [self log:[NSString stringWithFormat:@"Engine.IO 3.x binary data, length: %lu", (unsigned long)actualData.length] level:RTCLogLevelDebug];
+                
+                // 传递给客户端处理
+                if (self.client) {
+                    [self.client parseEngineBinaryData:actualData];
+                }
+            } else {
+                [self log:[NSString stringWithFormat:@"Unknown binary packet type: 0x%02X", firstByte] level:RTCLogLevelWarning];
             }
-        } else {
-            // 可能是字符串消息（没有类型前缀）
-            [self handleMessage:message];
         }
+    } else {
+        // Engine.IO 4.x+ 协议：直接是二进制数据
+        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+        
+        // 直接传递给客户端处理
+        if (self.client) {
+            [self.client parseEngineBinaryData:data];
+        }
+    }
+}
+
+/// 处理 Base64 编码的二进制数据
+- (void)handleBase64:(NSString *)message {
+    if (message.length <= 2) {
+        [self log:@"Invalid base64 message, too short" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    NSString *base64String = [message substringFromIndex:2];
+    NSData *data = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    
+    if (data) {
+        [self log:[NSString stringWithFormat:@"Decoded base64 data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+        
+        if (self.client) {
+            [self.client parseEngineBinaryData:data];
+        }
+    } else {
+        [self log:@"Failed to decode base64 data" level:RTCLogLevelWarning];
     }
 }
 
@@ -479,6 +576,9 @@ NSURLSessionDelegate>
         [self didError:@"Open packet missing sid"];
         return;
     }
+    
+    // 连接成功，取消连接超时
+    [self cancelConnectionTimeout];
     
     self.sid = sid;
     self.connected = YES;
@@ -562,87 +662,22 @@ NSURLSessionDelegate>
     }
 }
 
-/// 处理 Base64 编码的二进制数据
-- (void)handleBase64:(NSString *)message {
-    if (message.length <= 2) {
-        [self log:@"Invalid base64 message, too short" level:RTCLogLevelWarning];
-        return;
-    }
-    
-    NSString *base64String = [message substringFromIndex:2];
-    NSData *data = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
-    
-    if (data) {
-        [self log:[NSString stringWithFormat:@"Decoded base64 data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
-        
-        if (self.client) {
-            [self.client parseEngineBinaryData:data];
-        }
-    } else {
-        [self log:@"Failed to decode base64 data" level:RTCLogLevelWarning];
-    }
-}
-
-#pragma mark - 数据解析
-
-/// 解析从引擎接收到的原始二进制数据
-- (void)parseEngineData:(NSData *)data {
-    if (!data || data.length == 0) {
-        [self log:@"Received empty binary data" level:RTCLogLevelWarning];
-        return;
-    }
-    
-    [self log:[NSString stringWithFormat:@"Got binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
-    
-    // 根据协议版本处理二进制数据
-    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
-        // Engine.IO 3.x 协议：二进制数据前会有一个字节的标记
-        // 第一个字节是 0x04 表示二进制消息
-        if (data.length > 1) {
-            const Byte *bytes = (const Byte *)data.bytes;
-            Byte firstByte = bytes[0];
-            
-            if (firstByte == 0x04) {
-                // 提取实际的二进制数据
-                NSData *actualData = [data subdataWithRange:NSMakeRange(1, data.length - 1)];
-                [self log:[NSString stringWithFormat:@"Engine.IO 3.x binary data, length: %lu", (unsigned long)actualData.length] level:RTCLogLevelDebug];
-                
-                // 传递给客户端处理
-                if (self.client) {
-                    [self.client parseEngineBinaryData:actualData];
-                }
-            } else {
-                [self log:[NSString stringWithFormat:@"Unknown binary packet type: 0x%02X", firstByte] level:RTCLogLevelWarning];
-            }
-        }
-    } else {
-        // Engine.IO 4.x+ 协议：直接是二进制数据
-        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
-        
-        // 直接传递给客户端处理
-        if (self.client) {
-            [self.client parseEngineBinaryData:data];
-        }
-    }
-}
-
+/// 处理 Pong 消息
 /// 处理 Pong 消息
 - (void)handlePong:(NSString *)message {
     [self log:@"Received Pong message" level:RTCLogLevelDebug];
     
+    // 重置心跳计数器
     self.pongsMissed = 0;
     
     // 检查是否为探测响应
-    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion3) {
-        // Engine.IO 4.x 使用字符串格式
-        if ([message isEqualToString:@"probe"]) {
-            [self upgradeTransport];
-        }
+    // Engine.IO 3.x和4.x中，探测响应都是"probe"
+    if ([message isEqualToString:@"probe"]) {
+        [self log:@"Received WebSocket probe response, upgrading transport" level:RTCLogLevelInfo];
+        [self upgradeTransport];
     } else {
-        // Engine.IO 3.x 使用数字格式
-        if ([message isEqualToString:@"probe"]) {
-            [self upgradeTransport];
-        }
+        // 普通心跳响应
+        [self log:@"Received normal pong, resetting missed count" level:RTCLogLevelDebug];
     }
 }
 
@@ -652,13 +687,11 @@ NSURLSessionDelegate>
         [self log:@"Upgrading transport to WebSockets" level:RTCLogLevelInfo];
         self.fastUpgrade = YES;
         
-        if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion3) {
-            // Engine.IO 4.x 发送 "2probe" 作为探测包
-            [self.ws writeString:@"2probe"];
-        } else {
-            // Engine.IO 3.x 发送空字符串作为探测包
-            [self sendPollMessage:@"" withType:RTCVPSocketEnginePacketTypeNoop withData:@[]];
-        }
+        // 无论是Engine.IO 3.x还是4.x，都发送 "2probe" 作为探测包
+        [self.ws writeString:@"2probe"];
+        [self log:@"Sent WebSocket probe: 2probe" level:RTCLogLevelDebug];
+    } else {
+        [self log:@"Cannot upgrade, WebSocket not connected" level:RTCLogLevelWarning];
     }
 }
 
@@ -667,69 +700,421 @@ NSURLSessionDelegate>
 - (void)didError:(NSString *)reason {
     [self log:[NSString stringWithFormat:@"Engine error: %@", reason] level:RTCLogLevelError];
     
-    if (_client && !_closed) {
-        [_client engineDidError:reason];
+    if (self.client && !self.closed) {
+        [self.client engineDidError:reason];
     }
     
-    if (_connected) {
+    if (self.connected) {
         [self disconnect:reason];
     }
 }
 
+
+#pragma mark - ACK消息发送
+
+/// 生成唯一的ACK ID
+- (NSInteger)generateACKId {
+    NSInteger ackId = self.ackIdCounter;
+    self.ackIdCounter = (self.ackIdCounter + 1) % 1000; // 循环使用，避免溢出
+    return ackId;
+}
+
+/// 发送消息（带ACK回调）
+- (void)send:(NSString *)msg ack:(RTCVPSocketAckCallback)ack {
+    [self send:msg withData:@[] ack:ack];
+}
+
+/// 发送消息和数据（带ACK回调）
+- (void)send:(NSString *)msg withData:(NSArray<NSData *> *)data ack:(RTCVPSocketAckCallback)ack {
+    if (!msg || self.closed || !self.connected) {
+        if (ack) {
+            ack(@[]); // 连接已关闭，立即回调空数据
+        }
+        return;
+    }
+    
+    NSInteger ackId = [self generateACKId];
+    
+    // 如果有ACK回调，先存储起来
+    if (ack) {
+        [self.ackManager addCallback:ack forId:ackId];
+    }
+    
+    // 构建带有ACK ID的消息格式
+    // Socket.IO协议格式: [event_name, data, ack_id]
+    // 如果没有数据，格式为: [event_name, ack_id]
+    // 如果有数据，格式为: [event_name, data, ack_id]
+    
+    NSMutableArray *messageParts = [NSMutableArray array];
+    
+    // 解析原始消息（可能是JSON数组）
+    NSError *error = nil;
+    NSData *msgData = [msg dataUsingEncoding:NSUTF8StringEncoding];
+    id jsonObject = [NSJSONSerialization JSONObjectWithData:msgData options:0 error:&error];
+    
+    if (error) {
+        // 如果不是JSON，直接当作事件名处理
+        [messageParts addObject:msg];
+        if (data.count > 0) {
+            // 如果有二进制数据，添加占位符
+            [messageParts addObject:@"_placeholder"];
+            [messageParts addObject:@(ackId)];
+        } else {
+            // 没有二进制数据，直接添加ACK ID
+            [messageParts addObject:@(ackId)];
+        }
+    } else if ([jsonObject isKindOfClass:[NSArray class]]) {
+        // 已经是JSON数组，需要插入ACK ID
+        NSMutableArray *jsonArray = [jsonObject mutableCopy];
+        
+        // 查找二进制数据占位符
+        BOOL hasBinaryPlaceholder = NO;
+        for (id item in jsonArray) {
+            if ([item isKindOfClass:[NSDictionary class]]) {
+                id placeholder = ((NSDictionary *)item)[@"_placeholder"];
+                if (placeholder) {
+                    hasBinaryPlaceholder = YES;
+                    break;
+                }
+            }
+        }
+        
+        if (hasBinaryPlaceholder) {
+            // 有二进制数据占位符，ACK ID在占位符之后
+            [jsonArray addObject:@(ackId)];
+        } else {
+            // 没有二进制数据，ACK ID在最后一个位置
+            [jsonArray addObject:@(ackId)];
+        }
+        
+        // 转换为JSON字符串
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonArray options:0 error:&error];
+        if (!error) {
+            msg = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        }
+    }
+    
+    // 发送消息
+    [self write:msg withType:RTCVPSocketEnginePacketTypeMessage withData:data];
+    
+    [self log:[NSString stringWithFormat:@"Sent message with ACK ID: %ld", (long)ackId] level:RTCLogLevelDebug];
+}
+
+/// 发送ACK响应
+- (void)sendAck:(NSInteger)ackId withData:(NSArray *)data {
+    if (self.closed || !self.connected) {
+        return;
+    }
+    
+    // 构建ACK响应格式
+    // Socket.IO协议格式: [ack_id, data]
+    NSArray *ackArray = @[@(ackId)];
+    
+    // 如果有数据，添加到数组中
+    NSMutableArray *responseArray = [ackArray mutableCopy];
+    if (data && data.count > 0) {
+        // 检查数据中是否有二进制数据
+        BOOL hasBinaryData = NO;
+        for (id item in data) {
+            if ([item isKindOfClass:[NSData class]]) {
+                hasBinaryData = YES;
+                break;
+            }
+        }
+        
+        if (hasBinaryData) {
+            // 有二进制数据，添加占位符
+            NSMutableArray *processedData = [NSMutableArray array];
+            NSInteger placeholderIndex = 0;
+            NSMutableArray *binaryDataArray = [NSMutableArray array];
+            
+            for (id item in data) {
+                if ([item isKindOfClass:[NSData class]]) {
+                    // 二进制数据，添加占位符
+                    NSDictionary *placeholder = @{
+                        @"_placeholder": @YES,
+                        @"num": @(placeholderIndex)
+                    };
+                    [processedData addObject:placeholder];
+                    [binaryDataArray addObject:item];
+                    placeholderIndex++;
+                } else {
+                    [processedData addObject:item];
+                }
+            }
+            
+            [responseArray addObject:processedData];
+            
+            // 发送消息
+            NSError *error = nil;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
+            if (!error) {
+                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:binaryDataArray];
+            }
+        } else {
+            // 没有二进制数据，直接添加数据
+            [responseArray addObjectsFromArray:data];
+            
+            // 发送消息
+            NSError *error = nil;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
+            if (!error) {
+                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
+            }
+        }
+    } else {
+        // 没有数据，直接发送ACK ID
+        NSError *error = nil;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
+        if (!error) {
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
+        }
+    }
+    
+    [self log:[NSString stringWithFormat:@"Sent ACK response for ID: %ld", (long)ackId] level:RTCLogLevelDebug];
+}
+
+#pragma mark - 消息解析（增强版）
+
+/// 解析原始引擎消息（增强版，支持ACK）
+- (void)parseEngineMessage:(NSString *)message {
+    if (message.length == 0) {
+        [self log:@"Received empty message" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    [self log:[NSString stringWithFormat:@"Got message: %@", message] level:RTCLogLevelDebug];
+    
+    // 检查是否为二进制消息前缀
+    if ([message hasPrefix:@"b4"]) {
+        [self handleBase64:message];
+        return;
+    }
+    
+    // 检查是否为错误消息
+    NSDictionary *errorDict = [message toDictionary];
+    if (errorDict && errorDict[@"message"]) {
+        [self didError:errorDict[@"message"]];
+        return;
+    }
+    
+    // 解析消息类型
+    if (message.length > 0) {
+        unichar firstChar = [message characterAtIndex:0];
+        if (firstChar >= '0' && firstChar <= '9') {
+            RTCVPSocketEnginePacketType type = firstChar - '0';
+            NSString *content = [message substringFromIndex:1];
+            
+            switch (type) {
+                case RTCVPSocketEnginePacketTypeOpen:
+                    [self handleOpen:content];
+                    break;
+                case RTCVPSocketEnginePacketTypeClose:
+                    [self handleClose:content];
+                    break;
+                case RTCVPSocketEnginePacketTypePing:
+                    // 服务器发送的 ping，需要回复 pong
+                    [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
+                    break;
+                case RTCVPSocketEnginePacketTypePong:
+                    [self handlePong:content];
+                    break;
+                case RTCVPSocketEnginePacketTypeMessage:
+                    [self handleSocketIOMessage:content];
+                    break;
+                case RTCVPSocketEnginePacketTypeUpgrade:
+                    [self handleUpgrade];
+                    break;
+                case RTCVPSocketEnginePacketTypeNoop:
+                    [self handleNoop];
+                    break;
+                default:
+                    [self log:[NSString stringWithFormat:@"Unknown packet type: %c", firstChar] level:RTCLogLevelWarning];
+                    break;
+            }
+        } else {
+            // 可能是字符串消息（没有类型前缀）
+            [self handleSocketIOMessage:message];
+        }
+    }
+}
+
+/// 处理Socket.IO消息（支持ACK）
+- (void)handleSocketIOMessage:(NSString *)message {
+    // 尝试解析为JSON数组
+    NSError *error = nil;
+    NSData *data = [message dataUsingEncoding:NSUTF8StringEncoding];
+    id jsonObject = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+    
+    if (error) {
+        // 不是JSON，当作普通消息处理
+        [self log:[NSString stringWithFormat:@"Non-JSON message: %@", message] level:RTCLogLevelDebug];
+        [self.client parseEngineMessage:message];
+        return;
+    }
+    
+    if (![jsonObject isKindOfClass:[NSArray class]]) {
+        // 不是数组，当作普通消息处理
+        [self.client parseEngineMessage:message];
+        return;
+    }
+    
+    NSArray *messageArray = (NSArray *)jsonObject;
+    if (messageArray.count == 0) {
+        [self log:@"Empty message array" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    // 检查是否是ACK响应
+    if (messageArray.count >= 2) {
+        id firstItem = messageArray[0];
+        id secondItem = messageArray[1];
+        
+        // 检查是否是ACK响应格式: [ackId, data...]
+        if ([firstItem isKindOfClass:[NSNumber class]]) {
+            NSInteger ackId = [firstItem integerValue];
+            
+            // 提取响应数据
+            NSArray *responseData = nil;
+            if (messageArray.count > 1) {
+                NSMutableArray *tempData = [NSMutableArray array];
+                for (NSUInteger i = 1; i < messageArray.count; i++) {
+                    [tempData addObject:messageArray[i]];
+                }
+                responseData = [tempData copy];
+            } else {
+                responseData = @[];
+            }
+            
+            // 执行ACK回调
+            [self.ackManager executeCallbackForId:ackId withData:responseData];
+            [self log:[NSString stringWithFormat:@"Executed ACK callback for ID: %ld", (long)ackId] level:RTCLogLevelDebug];
+            return;
+        }
+        
+        // 检查是否是带有ACK请求的事件: [event, data..., ackId]
+        if (messageArray.count >= 3) {
+            id lastItem = [messageArray lastObject];
+            if ([lastItem isKindOfClass:[NSNumber class]]) {
+                NSInteger ackId = [lastItem integerValue];
+                
+                // 提取事件和数据
+                NSString *event = nil;
+                if ([firstItem isKindOfClass:[NSString class]]) {
+                    event = firstItem;
+                }
+                
+                NSArray *eventData = nil;
+                if (messageArray.count > 2) {
+                    NSMutableArray *tempData = [NSMutableArray array];
+                    for (NSUInteger i = 1; i < messageArray.count - 1; i++) {
+                        id item = messageArray[i];
+                        // 检查是否有二进制数据占位符
+                        if ([item isKindOfClass:[NSDictionary class]]) {
+                            NSDictionary *dict = (NSDictionary *)item;
+                            if ([dict[@"_placeholder"] boolValue]) {
+                                // 二进制数据占位符，客户端需要处理
+                                [tempData addObject:item];
+                            } else {
+                                [tempData addObject:item];
+                            }
+                        } else {
+                            [tempData addObject:item];
+                        }
+                    }
+                    eventData = [tempData copy];
+                }
+                
+                // 构建ACK请求消息格式
+                NSMutableDictionary *ackMessage = [NSMutableDictionary dictionary];
+                if (event) {
+                    ackMessage[@"event"] = event;
+                }
+                if (eventData) {
+                    ackMessage[@"data"] = eventData;
+                }
+                ackMessage[@"ackId"] = @(ackId);
+                
+                // 转换为JSON字符串
+                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:ackMessage options:0 error:nil];
+                if (jsonData) {
+                    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                    [self log:[NSString stringWithFormat:@"Forwarding ACK request to client: %@", jsonString] level:RTCLogLevelDebug];
+                    [self.client parseEngineMessage:jsonString];
+                }
+                return;
+            }
+        }
+    }
+    
+    // 普通消息，直接转发给客户端
+    [self.client parseEngineMessage:message];
+}
+
+
+
 - (void)closeOutEngine:(NSString *)reason {
-    if (_closed) {
+    if (self.closed) {
         return;
     }
     
     [self log:[NSString stringWithFormat:@"Closing engine: %@", reason] level:RTCLogLevelInfo];
     
-    _closed = YES;
-    _connected = NO;
-    _invalidated = YES;
+    // 停止所有定时器
+    [self stopPingTimer];
+    [self cancelProbeTimeout];
+    [self cancelConnectionTimeout];
+    
+    self.closed = YES;
+    self.connected = NO;
+    self.invalidated = YES;
     
     // 清理资源
-    if (_ws) {
-        [_ws disconnect];
-        _ws.delegate = nil;
-        _ws = nil;
+    if (self.ws) {
+        [self.ws disconnect];
+        self.ws.delegate = nil;
+        self.ws = nil;
     }
     
-    if (_session) {
-        [_session invalidateAndCancel];
-        _session = nil;
+    if (self.session) {
+        [self.session invalidateAndCancel];
+        self.session = nil;
     }
     
     // 停止心跳
-    _pongsMissed = 0;
+    self.pongsMissed = 0;
     
     // 清理缓冲区
-    [_postWait removeAllObjects];
-    [_probeWait removeAllObjects];
+    [self.postWait removeAllObjects];
+    [self.probeWait removeAllObjects];
     
     // 通知客户端
-    if (_client) {
-        [_client engineDidClose:reason];
+    if (self.client) {
+        [self.client engineDidClose:reason];
     }
 }
 
 #pragma mark - 发送消息
 
 - (void)write:(NSString *)msg withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
-    dispatch_async(_engineQueue, ^{
-        if (!self->_connected || self->_closed) {
+    dispatch_async(self.engineQueue, ^{
+        if (!self.connected || self.closed) {
             [self log:@"Cannot write, engine not connected" level:RTCLogLevelWarning];
             return;
         }
         
-        if (self->_websocket) {
+        if (self.websocket) {
             [self sendWebSocketMessage:msg withType:type withData:data];
-        } else if (self->_probing) {
+        } else if (self.probing) {
             // 在探测期间，缓存消息
             RTCVPProbe *probe = [[RTCVPProbe alloc] init];
             probe.message = msg;
             probe.type = type;
             probe.data = data;
-            [self->_probeWait addObject:probe];
+            [self.probeWait addObject:probe];
         } else {
             [self sendPollMessage:msg withType:type withData:data];
         }
@@ -741,9 +1126,9 @@ NSURLSessionDelegate>
 }
 
 - (void)sendRawData:(NSData *)data {
-    dispatch_async(_engineQueue, ^{
-        if (self->_websocket && self->_ws) {
-            [self->_ws writeData:data];
+    dispatch_async(self.engineQueue, ^{
+        if (self.websocket && self.ws) {
+            [self.ws writeData:data];
         } else {
             [self log:@"Cannot send raw data, WebSocket not available" level:RTCLogLevelWarning];
         }
@@ -774,45 +1159,34 @@ NSURLSessionDelegate>
     [request setValue:userAgent forHTTPHeaderField:@"User-Agent"];
 }
 
-
 - (NSString *)currentTransport {
-    if (_websocket) {
+    if (self.websocket) {
         return @"websocket";
-    } else if (_polling) {
+    } else if (self.polling) {
         return @"polling";
     } else {
         return @"none";
     }
 }
 
-#pragma mark - 日志方法
-
-- (void)log:(NSString *)message level:(RTCLogLevel)level {
-    [self log:message type:self.logType level:level];
-}
-
-- (void)log:(NSString *)message type:(NSString *)type level:(RTCLogLevel)level {
-    if (self.config.loggingEnabled && level <= self.config.logLevel) {
-        if (self.config.logger) {
-            [self.config.logger logMessage:message type:type level:level];
-        } else {
-            [RTCDefaultSocketLogger.logger logMessage:message type:type level:level];
-        }
-    }
-}
-
-- (NSString *)logType {
-    return @"SocketEngine";
-}
-
 #pragma mark - NSURLSessionDelegate
 
 - (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error {
-    if (session == _session) {
+    if (session == self.session) {
         [self log:@"URLSession became invalid" level:RTCLogLevelError];
         [self didError:error.localizedDescription ?: @"URLSession invalid"];
     }
 }
+
+#pragma mark - RTCVPSocketEngineProtocol
+
+- (void)syncResetClient {
+    dispatch_sync(self.engineQueue, ^{
+        self.client = nil;
+    });
+}
+
+
 
 
 

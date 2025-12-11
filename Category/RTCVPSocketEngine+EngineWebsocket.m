@@ -14,6 +14,7 @@
 #import "RTCVPProbe.h"
 
 @implementation RTCVPSocketEngine (EngineWebsocket)
+
 #pragma mark - WebSocket 管理
 
 - (void)createWebSocketAndConnect {
@@ -27,7 +28,8 @@
         return;
     }
     
-    [self log:[NSString stringWithFormat:@"Creating WebSocket to: %@", url.absoluteString] level:RTCLogLevelDebug];
+    [self log:@"Creating WebSocket connection..." level:RTCLogLevelDebug];
+    [self log:[NSString stringWithFormat:@"WebSocket URL: %@", url.absoluteString] level:RTCLogLevelDebug];
     
     self.ws = [[RTCJFRWebSocket alloc] initWithURL:url protocols:@[]];
     self.ws.queue = self.engineQueue;
@@ -125,17 +127,8 @@
     NSString *probeMessage = @"probe";
     [self sendWebSocketMessage:probeMessage withType:RTCVPSocketEnginePacketTypePing withData:@[]];
     
-    // 设置探测超时
-    __weak typeof(self) weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), self.engineQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (strongSelf && strongSelf.probing && !strongSelf.websocket) {
-            [strongSelf log:@"WebSocket probe timeout" level:RTCLogLevelWarning];
-            strongSelf.probing = NO;
-            // 清理探测等待队列
-            [strongSelf.probeWait removeAllObjects];
-        }
-    });
+    // 设置探测超时 - 使用超时管理器
+    [self startProbeTimeout];
 }
 
 - (void)doFastUpgrade {
@@ -153,6 +146,9 @@
     self.polling = NO;
     self.fastUpgrade = NO;
     self.probing = NO;
+    
+    // 取消探测超时
+    [self cancelProbeTimeout];
     
     // 开始心跳
     [self startPingTimer];
@@ -200,6 +196,9 @@
         self.polling = NO;
         self.connected = YES;
         
+        // 取消连接超时（如果存在）
+        [self cancelConnectionTimeout];
+        
         // 开始心跳
         [self startPingTimer];
         
@@ -207,6 +206,11 @@
         if (self.sid.length > 0) {
             // 发送升级消息
             [self sendWebSocketMessage:@"" withType:RTCVPSocketEnginePacketTypeUpgrade withData:@[]];
+        } else {
+            // 通知客户端连接成功
+            if (self.client) {
+                [self.client engineDidOpen:@"WebSocket connected"];
+            }
         }
     } else {
         // 需要探测 WebSocket
@@ -218,7 +222,8 @@
     NSString *errorDescription = error ? error.localizedDescription : @"Disconnected";
     [self log:[NSString stringWithFormat:@"WebSocket disconnected: %@", errorDescription] level:RTCLogLevelWarning];
     
-    self.probing = NO;
+    // 取消探测超时
+    [self cancelProbeTimeout];
     
     if (self.closed) {
         [self closeOutEngine:@"WebSocket closed"];
@@ -236,6 +241,12 @@
         } else if (self.connected) {
             // 在探测期间断开，关闭连接
             [self closeOutEngine:errorDescription];
+        } else {
+            // 连接尚未建立，处理为连接失败
+            [self log:@"WebSocket connection failed" level:RTCLogLevelError];
+            if (!self.closed) {
+                [self didError:errorDescription];
+            }
         }
     }
 }
@@ -246,36 +257,15 @@
 
 - (void)websocket:(RTCJFRWebSocket *)socket didReceiveData:(NSData *)data {
     if (data.length == 0) {
+        [self log:@"WebSocket received empty binary data" level:RTCLogLevelWarning];
         return;
     }
     
-    // 处理二进制数据
-    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
-        // Engine.IO 3.x：第一个字节是二进制标记
-        if (data.length > 1) {
-            NSData *actualData = [data subdataWithRange:NSMakeRange(1, data.length - 1)];
-            [self.client parseEngineBinaryData:actualData];
-        }
-    } else {
-        // Engine.IO 4.x+：直接是二进制数据
-        [self.client parseEngineBinaryData:data];
-    }
-}
-
-#pragma mark - 心跳管理
-
-- (void)startPingTimer {
-    if (self.pingInterval <= 0 || !self.connected || self.closed) {
-        return;
-    }
+    [self log:[NSString stringWithFormat:@"WebSocket received binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
     
-    __weak typeof(self) weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(self.pingInterval * NSEC_PER_MSEC)), self.engineQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (strongSelf && strongSelf.connected && !strongSelf.closed) {
-            [strongSelf sendPing];
-        }
-    });
+    // 解析二进制数据
+    [self parseEngineData:data];
 }
+
 
 @end

@@ -114,6 +114,11 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
 /// 日志级别（0:错误，1:警告，2:信息，3:调试）
 @property (nonatomic, assign) NSInteger logLevel;
 
+
+@property(nonatomic, strong) dispatch_queue_t handleQueue;
+
+@property(nonatomic, assign) BOOL enableNetworkMonitoring;
+
 #pragma mark - 初始化方法
 
 /// 默认配置

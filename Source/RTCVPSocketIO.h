@@ -17,7 +17,6 @@ FOUNDATION_EXPORT const unsigned char RTCVPSocketIOVersionString[];
 // In this header, you should import all the public headers of your framework using statements like #import <RTCVPSocketIO_iOS/PublicHeader.h>
 
 #import "RTCVPSocketIOClient.h"
-#import "RTCVPSocketOnAckCallback.h"
 #import "RTCVPSocketIOClientProtocol.h"
 #import "RTCVPSocketLogger.h"
 

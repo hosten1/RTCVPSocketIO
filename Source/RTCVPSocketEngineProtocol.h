@@ -57,16 +57,13 @@ typedef void (^RTCVPSocketAckCallback)(NSArray * _Nullable response);
 /// 重置客户端
 - (void)syncResetClient;
 
-/// 发送消息（支持ACK）
-- (void)send:(NSString*)msg
-          ack:(RTCVPSocketAckCallback _Nullable)ack;
-
-/// 发送消息带二进制数据（支持ACK）
-- (void)send:(NSString*)msg
-    withData:(NSArray<NSData*>*)data
-         ack:(RTCVPSocketAckCallback _Nullable)ack;
-
-/// 发送ACK回复
+/// 发送消息和数据
+- (void)send:(NSString*)msg withData:(NSArray<NSData*>*) data;
+/// 发送消息（可选ACK）
+- (void)send:(NSString *)msg ack:(RTCVPSocketAckCallback)ack;
+/// 发送消息和数据（可选ACK）
+- (void)send:(NSString *)msg withData:(NSArray<NSData *> *)data ack:(RTCVPSocketAckCallback)ack;
+/// 发送ACK响应
 - (void)sendAck:(NSInteger)ackId withData:(NSArray *)data;
 
 @end

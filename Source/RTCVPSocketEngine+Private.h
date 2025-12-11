@@ -9,6 +9,7 @@
 #import "RTCVPSocketEngine.h"
 #import "RTCJFRWebSocket.h"
 #import "RTCDefaultSocketLogger.h"
+#import "RTCVPACKManager.h"
 
 typedef enum : NSUInteger{
     RTCVPSocketEnginePacketTypeOpen = 0x0,
@@ -72,6 +73,15 @@ typedef enum : NSUInteger{
 @property (nonatomic, copy) NSString *probeTimeoutTaskId;
 @property (nonatomic, copy) NSString *connectionTimeoutTaskId;
 
+// ACK管理
+@property (nonatomic, strong) RTCVPACKManager *ackManager;
+@property (nonatomic, assign) NSInteger ackIdCounter;
+
+/// 生成唯一的ACK ID
+- (NSInteger)generateACKId;
+
+/// 处理Socket.IO消息（支持ACK）
+- (void)handleSocketIOMessage:(NSString *)message;
 
 // 内部连接方法
 - (void)_connect;
@@ -82,8 +92,6 @@ typedef enum : NSUInteger{
 - (void)parseEngineMessage:(NSString *)message;
 - (void)parseEngineData:(NSData *)data;
 
-// 心跳管理
-- (void)sendPing;
 
 // 错误处理
 - (void)didError:(NSString *)reason;
@@ -91,6 +99,19 @@ typedef enum : NSUInteger{
 
 - (void)addHeadersToRequest:(NSMutableURLRequest *)request;
 
+// 心跳管理
+- (void)sendPing;
+- (void)startPingTimer;
+- (void)stopPingTimer;
+
+// 超时管理
+- (void)startProbeTimeout;
+- (void)cancelProbeTimeout;
+- (void)handleProbeTimeout;
+
+- (void)startConnectionTimeout;
+- (void)cancelConnectionTimeout;
+- (void)handleConnectionTimeout;
 
 - (void)log:(NSString *)message level:(RTCLogLevel)level;
 
