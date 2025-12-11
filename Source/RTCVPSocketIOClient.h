@@ -37,49 +37,6 @@ typedef void (^RTCVPSocketConnectHandler)(BOOL connected, NSError * _Nullable er
 
 
 
-
-// Socket.IO配置类
-@interface RTCVPSocketIOConfig : NSObject
-
-// 连接配置
-@property (nonatomic, assign) BOOL forceNew;                  ///< 是否强制创建新连接
-@property (nonatomic, assign) BOOL reconnects;               ///< 是否自动重连
-@property (nonatomic, assign) int reconnectAttempts;         ///< 重连尝试次数
-@property (nonatomic, assign) int reconnectWait;             ///< 重连等待时间（秒）
-@property (nonatomic, copy) NSString *nsp;                  ///< 命名空间，默认为@"/"
-@property (nonatomic, copy) NSString *path;                  ///< Socket.IO路径，默认为@"/socket.io/"
-@property (nonatomic, assign) BOOL secure;                  ///< 是否使用安全连接（HTTPS/WSS）
-@property (nonatomic, assign) BOOL selfSigned;              ///< 是否允许自签名证书
-@property (nonatomic, assign) BOOL ignoreSSLErrors;         ///< 是否忽略SSL错误
-@property (nonatomic, assign) BOOL compress;                ///< 是否启用压缩
-@property (nonatomic, assign) BOOL forcePolling;            ///< 是否强制使用轮询
-@property (nonatomic, assign) BOOL forceWebsockets;         ///< 是否强制使用WebSocket
-@property (nonatomic, assign) int protocolVersion;          ///< 协议版本，默认为3.0
-@property (nonatomic, assign) double timeout;               ///< 超时时间（秒）
-
-// 日志配置
-@property (nonatomic, assign) BOOL log;                     ///< 是否启用日志
-@property (nonatomic, strong) id logger;                   ///< 自定义日志器
-
-// 队列和委托
-@property (nonatomic, strong) dispatch_queue_t handleQueue; ///< 处理队列
-@property (nonatomic, weak) id<NSURLSessionDelegate> sessionDelegate; ///< 会话委托
-
-// 连接参数
-@property (nonatomic, strong) NSMutableDictionary *connectParams; ///< 连接参数
-@property (nonatomic, strong) NSMutableArray<NSHTTPCookie *> *cookies; ///< Cookie数组
-@property (nonatomic, strong) NSMutableDictionary *extraHeaders; ///< 额外头信息
-@property (nonatomic, strong) id security;                  ///< 安全配置
-
-// 便捷初始化方法
-+ (instancetype)defaultConfig;                     ///< 默认配置
-+ (instancetype)configWithBlock:(void(^)(RTCVPSocketIOConfig *config))block; ///< 块配置
-
-// 转换为字典
-- (NSDictionary *)toDictionary;                    ///< 转换为字典格式，用于旧版API兼容
-
-@end
-
 @interface RTCVPSocketIOClient : NSObject<RTCVPSocketIOClientProtocol>
 
 @property (nonatomic, readonly) RTCVPSocketIOClientStatus status;

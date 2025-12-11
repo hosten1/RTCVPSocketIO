@@ -6,33 +6,18 @@
 //  Copyright © 2025 Vasily Popov. All rights reserved.
 //
 
+// RTCVPSocketIOConfig.h
 #import <Foundation/Foundation.h>
+#import "RTCVPSocketIOProtocolVersion.h"
 
-#import "RTCVPSocketLogger.h"
 NS_ASSUME_NONNULL_BEGIN
-// Socket.IO 3.0协议支持常量
-extern const int kRTCVPSocketIOProtocolVersion2;
-extern const int kRTCVPSocketIOProtocolVersion3;
 
-// 配置键常量
-extern NSString *const kRTCVPSocketIOConfigKeyForceNew;
-extern NSString *const kRTCVPSocketIOConfigKeyReconnects;
-extern NSString *const kRTCVPSocketIOConfigKeyReconnectWait;
-extern NSString *const kRTCVPSocketIOConfigKeyTimeout;
-extern NSString *const kRTCVPSocketIOConfigKeyQuery;
-extern NSString *const kRTCVPSocketIOConfigKeyNsp;
-extern NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors;
-extern NSString *const kRTCVPSocketIOConfigKeyProtocolVersion;
+@class RTCVPSocketLogger;
 
 typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
     RTCVPSocketIOTransportAuto,      // 自动选择
     RTCVPSocketIOTransportWebSocket, // 强制WebSocket
     RTCVPSocketIOTransportPolling    // 强制轮询
-};
-
-typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
-    RTCVPSocketIOProtocolVersion3 = 3,
-    RTCVPSocketIOProtocolVersion4 = 4
 };
 
 @interface RTCVPSocketIOConfig : NSObject
@@ -43,41 +28,42 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
 @property (nonatomic, copy) NSString *path;
 
 /// 命名空间（默认：@"/"）
-@property (nonatomic, copy) NSString *namespace;
+@property (nonatomic, copy, nullable) NSString *namespace;
 
 /// 是否使用安全连接（根据URL自动检测，可覆盖）
 @property (nonatomic, assign) BOOL secure;
 
 /// 连接超时时间（秒，默认：10）
-@property (nonatomic, assign) NSTimeInterval timeout;
+@property (nonatomic, assign) NSTimeInterval connectTimeout;
 
 /// 传输方式（默认：自动选择）
 @property (nonatomic, assign) RTCVPSocketIOTransport transport;
 
-/// 协议版本（默认：4）
+/// 协议版本（默认：RTCVPSocketIOProtocolVersion3）
 @property (nonatomic, assign) RTCVPSocketIOProtocolVersion protocolVersion;
 
 /// 是否强制轮训协议
-@property(nonatomic, assign) BOOL forcePolling;
+@property (nonatomic, assign) BOOL forcePolling;
 
 /// 是否强制使用WebSocket
-@property(nonatomic, assign) BOOL forceWebsockets;
+@property (nonatomic, assign) BOOL forceWebsockets;
 
-/// 配置心跳时间 s
-@property(nonatomic, assign) NSInteger pingInterval;
+/// 心跳间隔（秒，默认：25）
+@property (nonatomic, assign) NSInteger pingInterval;
 
-/// 配置超时时间 s
-@property(nonatomic, assign) NSInteger pingTimeout;
+/// 心跳超时时间（秒，默认：20）
+@property (nonatomic, assign) NSInteger pingTimeout;
 
-#pragma mark - 重连配置
+/// 是否启用二进制传输
+@property (nonatomic, assign) BOOL enableBinary;
 
-/// 是否启用自动重连（默认：YES）
+/// 是否启用重连
 @property (nonatomic, assign) BOOL reconnectionEnabled;
 
 /// 重连尝试次数（默认：无限重连）
 @property (nonatomic, assign) NSInteger reconnectionAttempts;
 
-/// 重连延迟基数（秒，默认：1）
+/// 重连延迟（秒，默认：1）
 @property (nonatomic, assign) NSTimeInterval reconnectionDelay;
 
 /// 最大重连延迟（秒，默认：5）
@@ -88,40 +74,41 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
 
 #pragma mark - 安全配置
 
-/// 是否允许自签名证书（默认：NO）
+/// 是否允许自签名证书
 @property (nonatomic, assign) BOOL allowSelfSignedCertificates;
 
-/// 是否忽略SSL错误（默认：NO）
+/// 是否忽略SSL错误
 @property (nonatomic, assign) BOOL ignoreSSLErrors;
 
-/// 证书绑定配置（可选）
+/// 安全配置对象
 @property (nonatomic, strong, nullable) id security;
 
 #pragma mark - 高级配置
 
-/// 是否启用压缩（默认：NO）
+/// 是否启用压缩
 @property (nonatomic, assign) BOOL compressionEnabled;
 
-/// 是否强制创建新连接（默认：NO）
+/// 是否强制创建新连接
 @property (nonatomic, assign) BOOL forceNewConnection;
 
 /// 额外请求头
-@property (nonatomic, strong) NSDictionary<NSString *, NSString *> *extraHeaders;
+@property (nonatomic, strong, nullable) NSDictionary<NSString *, NSString *> *extraHeaders;
 
-/// 查询参数
-@property (nonatomic, strong) NSDictionary<NSString *, id> *queryParameters;
+/// 连接参数
+@property (nonatomic, strong, nullable) NSDictionary<NSString *, id> *connectParams;
 
 /// Cookies
-@property (nonatomic, strong) NSArray<NSHTTPCookie *> *cookies;
+@property (nonatomic, strong, nullable) NSArray<NSHTTPCookie *> *cookies;
 
-/// 认证令牌
-@property (nonatomic, copy, nullable) NSString *authToken;
+/// Session委托
+@property (nonatomic, weak, nullable) id<NSURLSessionDelegate> sessionDelegate;
 
 #pragma mark - 日志配置
 
-@property(nonatomic, strong) RTCVPSocketLogger* logger;
+/// 日志记录器
+@property (nonatomic, strong, nullable) RTCVPSocketLogger *logger;
 
-/// 是否启用日志（默认：NO）
+/// 是否启用日志
 @property (nonatomic, assign) BOOL loggingEnabled;
 
 /// 日志级别（0:错误，1:警告，2:信息，3:调试）
@@ -137,6 +124,9 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
 
 /// 开发环境配置
 + (instancetype)developmentConfig;
+
+/// 从字典初始化（向后兼容）
+- (instancetype)initWithDictionary:(NSDictionary *)dict;
 
 /// 使用构建器模式初始化
 - (instancetype)initWithBuilder:(void(^)(RTCVPSocketIOConfig *config))builder;

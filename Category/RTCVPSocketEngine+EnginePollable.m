@@ -8,221 +8,249 @@
 
 #import "RTCVPSocketEngine+EnginePollable.h"
 #import "RTCVPSocketEngine+Private.h"
-#import "RTCDefaultSocketLogger.h"
 #import "RTCVPStringReader.h"
 #import "NSString+RTCVPSocketIO.h"
 #import "RTCVPSocketEngine+EngineWebsocket.h"
 
-typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse*response, NSError*error);
+typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* response, NSError* error);
 
 @implementation RTCVPSocketEngine (EnginePollable)
 
+#pragma mark - 轮询传输
+
 - (void)doLongPoll:(NSURLRequest *)request {
+    if (!self.polling || self.closed || self.invalidated) {
+        return;
+    }
+    
     self.waitingForPoll = YES;
     
     __weak typeof(self) weakSelf = self;
     
-    [self doRequest:request withCallback:^(NSData *data, NSURLResponse *response, NSError *error)
-     {
-         __strong typeof(weakSelf) strongSelf = weakSelf;
-         if(strongSelf)
-         {
-             if(strongSelf.polling)
-             {
-                 NSInteger status = 200;
-                 if([response isKindOfClass:[NSHTTPURLResponse class]]) {
-                     status = ((NSHTTPURLResponse*)response).statusCode;
-                     if(status/100 != 2 && error == nil) {
-                         NSString *errorString = [NSHTTPURLResponse localizedStringForStatusCode:status];
-                         if(errorString.length > 0)
-                         {
-                             error = [NSError errorWithDomain:@"RTCVPSocketEngine"
-                                                         code:status
-                                                     userInfo:@{NSLocalizedDescriptionKey:errorString}];
-                         }
-                     }
-                 }
-                 
-                 if(error != nil || data == nil || (status/100 != 2))
-                 {
-                     NSString *errorString = error.localizedDescription.length > 0?error.localizedDescription:@"Error";
-                     [strongSelf didError:errorString];
-                 }
-                 else
-                 {
-                     [RTCDefaultSocketLogger.logger log:@"Got polling response" type:@"SocketEnginePolling"];
-                     NSString *str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                     if(str)
-                     {
-                         [strongSelf parsePollingMessage:str];
-                     }
-                     strongSelf.waitingForPoll = NO;
-                     if(strongSelf.fastUpgrade)
-                     {
-                         [strongSelf doFastUpgrade];
-                     }
-                     else if (!strongSelf.closed && strongSelf.polling)
-                     {
-                         [strongSelf doPoll];
-                     }
-                 }
-             }
-         }
-     }];
+    NSURLSessionDataTask *task = [self.session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
+        dispatch_async(strongSelf.engineQueue, ^{
+            @autoreleasepool {
+                if (!strongSelf.polling || strongSelf.closed) {
+                    return;
+                }
+                
+                // 检查 HTTP 状态码
+                NSInteger statusCode = 200;
+                if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+                    statusCode = ((NSHTTPURLResponse *)response).statusCode;
+                }
+                
+                if (error) {
+                    [strongSelf log:[NSString stringWithFormat:@"Polling error: %@", error.localizedDescription] level:RTCLogLevelError];
+                    [strongSelf didError:error.localizedDescription];
+                } else if (statusCode != 200) {
+                    NSString *errorMsg = [NSString stringWithFormat:@"HTTP %ld", (long)statusCode];
+                    [strongSelf log:[NSString stringWithFormat:@"Polling HTTP error: %@", errorMsg] level:RTCLogLevelError];
+                    [strongSelf didError:errorMsg];
+                } else if (!data) {
+                    [strongSelf log:@"Polling received empty data" level:RTCLogLevelError];
+                    [strongSelf didError:@"Empty response"];
+                } else {
+                    NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                    if (responseString) {
+                        [strongSelf log:[NSString stringWithFormat:@"Polling response: %@", responseString] level:RTCLogLevelDebug];
+                        [strongSelf parsePollingMessage:responseString];
+                    } else {
+                        [strongSelf log:@"Polling response not UTF-8" level:RTCLogLevelWarning];
+                        // 尝试处理二进制数据
+                        [strongSelf parseEngineData:data];
+                    }
+                }
+                
+                strongSelf.waitingForPoll = NO;
+                
+                // 如果快速升级标记已设置，执行升级
+                if (strongSelf.fastUpgrade) {
+                    [strongSelf doFastUpgrade];
+                }
+                // 否则继续轮询
+                else if (strongSelf.polling && !strongSelf.closed) {
+                    [strongSelf doPoll];
+                }
+            }
+        });
+    }];
+    
+    [task resume];
 }
 
 - (void)doPoll {
-    
-    if( !self.websocket && !self.waitingForPoll && self.connected && !self.closed)
-    {
-        NSMutableURLRequest*request =  [[NSMutableURLRequest alloc] initWithURL:[self urlPollingWithSid]];
-        [self addHeaders:request];
-        [self doLongPoll:request];
+    if (self.waitingForPoll || !self.polling || self.closed || !self.connected) {
+        return;
     }
-}
-
-// We need to take special care when we're polling that we send it ASAP
-// Also make sure we're on the engineQueue since we're touching postWait
--(void) disconnectPolling
-{
-    [self.postWait addObject: [NSString stringWithFormat:@"%lu", (unsigned long)RTCVPSocketEnginePacketTypeClose]];
-    [self doRequest:[self createRequestForPostWithPostWait] withCallback:nil];
+    
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[self urlPollingWithSid]];
+    request.timeoutInterval = 30;
+    [self addHeadersToRequest:request];
+    
+    [self doLongPoll:request];
 }
 
 - (void)parsePollingMessage:(NSString *)string {
+    if (string.length == 0) {
+        return;
+    }
     
-    if(string.length > 0) {
+    // 轮询响应可能是多个消息拼接在一起的
+    RTCVPStringReader *reader = [[RTCVPStringReader alloc] init:string];
+    
+    while (reader.hasNext) {
+        NSString *lengthStr = [reader readUntilOccurence:@":"];
         
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got poll message:%@", string] type:@"SocketEnginePolling"];
-        
-        NSCharacterSet* digits = [NSCharacterSet decimalDigitCharacterSet];
-        RTCVPStringReader *reader = [[RTCVPStringReader alloc] init:string];
-        
-        while ([reader hasNext]) {
-            
-            NSString *count = [reader readUntilOccurence:@":"];
-            if ([count rangeOfCharacterFromSet:digits].location != NSNotFound) {
-                [self parseEngineMessage:[reader read:(int)count.integerValue]];
+        if ([lengthStr rangeOfCharacterFromSet:[NSCharacterSet decimalDigitCharacterSet]].location != NSNotFound) {
+            NSInteger length = [lengthStr integerValue];
+            if (length > 0) {
+                NSString *message = [reader read:(int)length];
+                [self parseEngineMessage:message];
             }
-            else {
-                [self parseEngineMessage:string];
-                break;
-            }
+        } else {
+            // 没有长度前缀，可能是单个消息
+            [self parseEngineMessage:string];
+            break;
         }
     }
 }
 
-- (void)sendPollMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)array {
+- (void)sendPollMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
+    // 构建消息字符串：类型 + 消息内容
+    NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
     
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Sending poll: %@ as type:%@", message, self.stringEnginePacketType[@(type)]] type:@"SocketEnginePolling"];
+    [self log:[NSString stringWithFormat:@"Sending poll message: %@", fullMessage] level:RTCLogLevelDebug];
     
-    [self.postWait addObject:[NSString stringWithFormat:@"%lu%@", (unsigned long)type,message]];
+    // 添加到待发送队列
+    [self.postWait addObject:fullMessage];
     
-    if(!self.websocket) {
-        for (NSData *data in array) {
-            NSString *stringToSend = [self createBinaryStringDataForSend:data];
-            if(stringToSend) {
-                [self.postWait addObject:stringToSend];
-            }
+    // 添加二进制数据（如果需要）
+    if (self.config.enableBinary && data.count > 0) {
+        for (NSData *binaryData in data) {
+            NSString *base64String = [binaryData base64EncodedStringWithOptions:0];
+            NSString *binaryMessage = [NSString stringWithFormat:@"b4%@", base64String];
+            [self.postWait addObject:binaryMessage];
         }
     }
-    if(!self.waitingForPost) {
+    
+    // 如果不在等待发送状态，立即发送
+    if (!self.waitingForPost) {
         [self flushWaitingForPost];
     }
 }
 
-- (void)stopPolling {
-    self.waitingForPoll = NO;
-    self.waitingForPost = NO;
-    [self.session finishTasksAndInvalidate];
+- (void)disconnectPolling {
+    if (self.polling && !self.closed) {
+        // 添加关闭消息到队列
+        NSString *closeMessage = [NSString stringWithFormat:@"%ld", (long)RTCVPSocketEnginePacketTypeClose];
+        [self.postWait addObject:closeMessage];
+        
+        // 发送最后的请求
+        if (self.postWait.count > 0) {
+            NSURLRequest *request = [self createRequestForPostWithPostWait];
+            [[self.session dataTaskWithRequest:request] resume];
+        }
+    }
 }
 
-- (NSURL *)urlPollingWithSid
-{
+- (void)flushWaitingForPost {
+    if (self.postWait.count == 0 || self.closed || !self.connected) {
+        return;
+    }
+    
+    if (self.websocket) {
+        [self flushWaitingForPostToWebSocket];
+        return;
+    }
+    
+    self.waitingForPost = YES;
+    
+    NSURLRequest *request = [self createRequestForPostWithPostWait];
+    
+    __weak typeof(self) weakSelf = self;
+    NSURLSessionDataTask *task = [self.session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
+        dispatch_async(strongSelf.engineQueue, ^{
+            strongSelf.waitingForPost = NO;
+            
+            if (error) {
+                [strongSelf log:[NSString stringWithFormat:@"POST error: %@", error.localizedDescription] level:RTCLogLevelError];
+                if (strongSelf.polling) {
+                    [strongSelf didError:error.localizedDescription];
+                }
+            } else {
+                [strongSelf log:@"POST successful" level:RTCLogLevelDebug];
+                
+                // 如果有更多消息等待发送，继续发送
+                if (!strongSelf.fastUpgrade) {
+                    [strongSelf flushWaitingForPost];
+                    [strongSelf doPoll];
+                }
+            }
+        });
+    }];
+    
+    [task resume];
+}
+
+#pragma mark - URL 构建
+
+- (NSURL *)urlPollingWithSid {
+    if (!self.urlPolling) {
+        return nil;
+    }
+    
     NSURLComponents *components = [NSURLComponents componentsWithURL:self.urlPolling resolvingAgainstBaseURL:NO];
-    NSString *sidComponent = [NSString stringWithFormat:@"&sid=%@", self.sid!= nil?[self.sid urlEncode]:@""];
-    components.percentEncodedQuery = [NSString stringWithFormat:@"%@%@", components.percentEncodedQuery,sidComponent];
+    NSMutableString *query = [components.percentEncodedQuery mutableCopy] ?: [NSMutableString string];
+    
+    if (self.sid.length > 0) {
+        NSString *sidParam = [NSString stringWithFormat:@"&sid=%@", [self.sid urlEncode]];
+        if (query.length > 0) {
+            [query appendString:sidParam];
+        } else {
+            [query appendString:[sidParam substringFromIndex:1]]; // 移除开头的 &
+        }
+    }
+    
+    components.percentEncodedQuery = query;
     return components.URL;
 }
-- (void)flushWaitingForPost
-{
-    if(self.postWait.count > 0 && self.connected)
-    {
-        if(self.websocket)
-        {
-            [self flushWaitingForPostToWebSocket];
-        }
-        else
-        {
-            NSURLRequest *request =  [self createRequestForPostWithPostWait];
-            self.waitingForPost = YES;
-            
-            [RTCDefaultSocketLogger.logger log:@"POSTing" type:@"SocketEnginePolling"];
-            
-            __weak typeof(self) weakSelf = self;
-            [self doRequest:request withCallback:^(NSData *data, NSURLResponse *response, NSError *error)
-             {
-                 __strong typeof(weakSelf) strongSelf = weakSelf;
-                 if(strongSelf)
-                 {
-                     if(error != nil)
-                     {
-                         NSString *errorString = error.localizedDescription.length > 0?error.localizedDescription:@"Error";
-                         if (strongSelf.polling)
-                         {
-                             [strongSelf didError:errorString];
-                         }
-                     }
-                     else
-                     {
-                         strongSelf.waitingForPost = NO;
-                         if(!strongSelf.fastUpgrade)
-                         {
-                             [strongSelf flushWaitingForPost];
-                             [strongSelf doPoll];
-                         }
-                     }
-                 }
-             }];
-        }
-    }
-}
 
-- (void)doRequest:(NSURLRequest *)request withCallback:(EngineURLSessionDataTaskCallBack)callback
-{
-    if(self.polling && !self.closed && !self.invalidated && !self.fastUpgrade) {
-        
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Doing polling %@ %@", request.HTTPMethod?:@"", request.URL.absoluteString] type:@"SocketEnginePolling"];
-        [[self.session dataTaskWithRequest:request completionHandler:callback] resume];
-    }
-}
-
-- (NSURLRequest *)createRequestForPostWithPostWait
-{
-    NSMutableString* postStr = [NSMutableString string];;
+- (NSURLRequest *)createRequestForPostWithPostWait {
+    // 构建 POST 数据
+    NSMutableString *postData = [NSMutableString string];
     for (NSString *packet in self.postWait) {
-        [postStr appendFormat:@"%ld:%@",(unsigned long)packet.length, packet];
+        [postData appendFormat:@"%ld:%@", (unsigned long)packet.length, packet];
     }
     
     [self.postWait removeAllObjects];
     
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Created POST string:%@", postStr] type:@"SocketEnginePolling"];
+    NSURL *url = [self urlPollingWithSid];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     
+    [self addHeadersToRequest:request];
     
-    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[self urlPollingWithSid]];
-    NSData *postData =[postStr dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:NO];
+    request.HTTPMethod = @"POST";
+    request.HTTPBody = [postData dataUsingEncoding:NSUTF8StringEncoding];
+    [request setValue:@"text/plain; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)request.HTTPBody.length] forHTTPHeaderField:@"Content-Length"];
     
-    [self addHeaders:req];
+    [self log:[NSString stringWithFormat:@"POST request to: %@", url.absoluteString] level:RTCLogLevelDebug];
+    [self log:[NSString stringWithFormat:@"POST data: %@", postData] level:RTCLogLevelDebug];
     
-    req.HTTPMethod = @"POST";
-    [req setValue:@"text/plain; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
-    req.HTTPBody = postData;
-    [req setValue:[NSString stringWithFormat:@"%lu", (unsigned long)postData.length] forHTTPHeaderField:@"Content-Length"];
-    return req;
+    return request;
 }
 
--(NSString*)createBinaryStringDataForSend:(NSData *)data  {
-    return [NSString stringWithFormat:@"b4%@", [data base64EncodedStringWithOptions:0]];
+- (void)stopPolling {
+      self.waitingForPoll = NO;
+      self.waitingForPost = NO;
+      [self.session finishTasksAndInvalidate];
 }
 
 @end

@@ -15,6 +15,8 @@
 #import "RTCVPSocketEngine+EngineWebsocket.h"
 #import "RTCVPSocketIOConfig.h"
 #import "RTCVPProbe.h"
+#import "RTCVPTimeoutManager.h"
+#import "RTCVPTimer.h"
 
 @interface RTCVPSocketEngine()<RTCJFRWebSocketDelegate,
 NSURLSessionDelegate>
@@ -22,620 +24,637 @@ NSURLSessionDelegate>
 
 @property (nonatomic, strong) NSString *socketPath;
 @property (nonatomic, weak) id<NSURLSessionDelegate> sessionDelegate;
-@property (nonatomic, strong) NSURL *url;
 
-@property (nonatomic) int pingInterval;
-@property (nonatomic) int pingTimeout;
-
-@property (nonatomic) int pongsMissed;
-@property (nonatomic) int pongsMissedMax;
 
 @property (nonatomic, assign) int protocolVersion;
 
 @end
 
 
+
 @implementation RTCVPSocketEngine
 
-@synthesize client;
+@synthesize config = _config;
+@synthesize client = _client;
 
--(instancetype)initWithClient:(id<RTCVPSocketEngineClient>)client url:(NSURL*)url options:(NSDictionary*)config
-{
+
+@synthesize onDisconnect;
+
+@synthesize onError;
+
+
+
+@synthesize onConnect;
+
+#pragma mark - 生命周期
+
++ (instancetype)engineWithClient:(id<RTCVPSocketEngineClient>)client
+                             url:(NSURL *)url
+                          config:(RTCVPSocketIOConfig *)config {
+    return [[self alloc] initWithClient:client url:url config:config];
+}
+
+- (instancetype)initWithClient:(id<RTCVPSocketEngineClient>)client
+                           url:(NSURL *)url
+                          config:(RTCVPSocketIOConfig *)config {
     self = [super init];
-    if(self){
-        [self setup];
-        self.client = client;
-        self.url = url;
+    if (self) {
+        _client = client;
+        _url = url;
+        _config = config ?: [RTCVPSocketIOConfig defaultConfig];
         
-        for (NSString*key in config.allKeys)
-        {
-            id value = [config valueForKey:key];
-            if([key isEqualToString:@"connectParams"])
-            {
-                _connectParams = value;
-            }
-            if([key isEqualToString:@"cookies"])
-            {
-                _cookies = value;
-            }
-            
-            if([key isEqualToString:@"extraHeaders"])
-            {
-                _extraHeaders = value;
-            }
-            
-            if([key isEqualToString:@"sessionDelegate"])
-            {
-                _sessionDelegate = value;
-            }
-            
-            if([key isEqualToString:@"forcePolling"])
-            {
-                _forcePolling = [value boolValue];
-            }
-            
-            if([key isEqualToString:@"forceWebsockets"])
-            {
-                _forceWebsockets = [value boolValue];
-            }
-            
-            if([key isEqualToString:@"path"])
-            {
-                _socketPath = value;
-                
-                if (![_socketPath hasSuffix:@"/"]) {
-                    _socketPath = [_socketPath stringByAppendingString:@"/"];
-                }
-            }
-            
-            if([key isEqualToString:@"secure"])
-            {
-                _secure = [value boolValue];
-            }
-            
-            if([key isEqualToString:@"selfSigned"])
-            {
-                _selfSigned = [value boolValue];
-            }
-            
-            if([key isEqualToString:@"security"])
-            {
-                _security = value;
-            }
-            
-            if([key isEqualToString:@"compress"]) {
-                _compress = YES;
-            }
-            
-            // 从配置中读取协议版本
-            if([key isEqualToString:kRTCVPSocketIOConfigKeyProtocolVersion]) {
-                _protocolVersion = [value intValue];
-            }
+        // 设置日志
+        if (self.config.logger) {
+            [RTCDefaultSocketLogger setCoustomLogger:self.config.logger];
         }
+        [RTCDefaultSocketLogger setEnabled:self.config.loggingEnabled];
+        [RTCDefaultSocketLogger setLogLevel:self.config.logLevel];
         
-        if(_sessionDelegate == nil)
-        {
-            _sessionDelegate = self;
-        }
+        [self setupEngine];
         [self createURLs];
     }
     return self;
 }
 
--(void)setup {
-    _engineQueue = dispatch_queue_create("com.socketio.engineHandleQueue", NULL);
-    _postWait = [[NSMutableArray alloc] init];
+- (instancetype)initWithClient:(id<RTCVPSocketEngineClient>)client
+                           url:(NSURL *)url
+                       options:(NSDictionary *)options {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] initWithDictionary:options];
+    return [self initWithClient:client url:url config:config];
+}
+
+- (void)dealloc {
+    [self log:@"Engine is being deallocated" level:RTCLogLevelDebug];
+    [self disconnect:@"dealloc"];
+}
+
+#pragma mark - 初始化
+
+- (void)setupEngine {
+    // 创建串行队列处理引擎事件
+    _engineQueue = dispatch_queue_create("com.socketio.engine.queue", DISPATCH_QUEUE_SERIAL);
+    dispatch_set_target_queue(_engineQueue, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
+    
+    // 初始化状态
+    _closed = NO;
+    _connected = NO;
+    _polling = YES;
+    _websocket = NO;
+    _probing = NO;
+    _invalidated = NO;
+    _fastUpgrade = NO;
     _waitingForPoll = NO;
     _waitingForPost = NO;
-    _invalidated = NO;
-    _closed = NO;
-    _compress = NO;
-    _connected = NO;
-    _fastUpgrade = NO;
-    _polling = YES;
-    _forcePolling = NO;
-    _forceWebsockets = NO;
-    _probing = NO;
+    
+    // 初始化数据
     _sid = @"";
-    _socketPath = @"/engine.io/";
-    _urlPolling = [NSURL URLWithString:@"http://localhost/"];
-    _urlWebSocket = [NSURL URLWithString:@"http://localhost/"];
-    _websocket = NO;
-    _pingTimeout = 0;
-    _pongsMissed = 0;
-    _pongsMissedMax = 0;
+    _postWait = [NSMutableArray array];
     _probeWait = [NSMutableArray array];
-    _secure = NO;
-    _selfSigned = NO;
     
-    // 设置默认协议版本为3.0
-    _protocolVersion = kRTCVPSocketIOProtocolVersion3;
+    // 设置心跳参数
+    _pingInterval = self.config.pingInterval * 1000; // 转换为毫秒
+    _pingTimeout = self.config.pingTimeout * 1000;
+    _pongsMissed = 0;
+    _pongsMissedMax = MAX(1, _pingTimeout / _pingInterval);
     
-    // 根据协议版本设置默认心跳超时
-    if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
-        _pingTimeout = 20; // Engine.IO 4.x 默认心跳超时20s
+    // 创建 URLSession
+    NSOperationQueue *queue = [[NSOperationQueue alloc] init];
+    queue.underlyingQueue = _engineQueue;
+    queue.maxConcurrentOperationCount = 1;
+    
+    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+    sessionConfig.HTTPMaximumConnectionsPerHost = 1;
+    sessionConfig.timeoutIntervalForRequest = 30;
+    sessionConfig.timeoutIntervalForResource = 300;
+    
+    _session = [NSURLSession sessionWithConfiguration:sessionConfig
+                                             delegate:self.config.sessionDelegate ?: self
+                                        delegateQueue:queue];
+}
+
+#pragma mark - URL 创建
+
+- (void)createURLs {
+    if (!_url || !_client) {
+        [self log:@"Invalid URL or client" level:RTCLogLevelError];
+        return;
+    }
+    
+    NSURLComponents *pollingComponents = [NSURLComponents componentsWithURL:_url resolvingAgainstBaseURL:NO];
+    NSURLComponents *websocketComponents = [NSURLComponents componentsWithURL:_url resolvingAgainstBaseURL:NO];
+    
+    // 设置路径
+    NSString *path = self.config.path;
+    if (![path hasSuffix:@"/"]) {
+        path = [path stringByAppendingString:@"/"];
+    }
+    
+    pollingComponents.path = path;
+    websocketComponents.path = path;
+    
+    // 设置协议
+    BOOL secure = self.config.secure;
+    if ([_url.scheme hasPrefix:@"https"] || [_url.scheme hasPrefix:@"wss"]) {
+        secure = YES;
+    }
+    
+    if (secure) {
+        websocketComponents.scheme = @"wss";
+        pollingComponents.scheme = @"https";
     } else {
-        _pingTimeout = 60; // Engine.IO 3.x 默认心跳超时60s
+        websocketComponents.scheme = @"ws";
+        pollingComponents.scheme = @"http";
     }
     
-    _stringEnginePacketType = @{ @(RTCVPSocketEnginePacketTypeOpen) : @"open",
-                                 @(RTCVPSocketEnginePacketTypeClose) : @"close",
-                                 @(RTCVPSocketEnginePacketTypePing) : @"ping",
-                                 @(RTCVPSocketEnginePacketTypePong) : @"pong",
-                                 @(RTCVPSocketEnginePacketTypeMessage) : @"message",
-                                 @(RTCVPSocketEnginePacketTypeUpgrade) : @"upgrade",
-                                 @(RTCVPSocketEnginePacketTypeNoop) : @"noop"
-    };
-    
-    
-}
-
--(void)dealloc {
-    [RTCDefaultSocketLogger.logger log:@"Engine is being released" type:self.logType];
-    _closed = YES;
-    [self stopPolling];
-}
-
-#pragma mark - property
-
--(NSString*)logType {
-    return @"SocketEngine";
-}
-
--(void)setConnectParams:(NSMutableDictionary *)connectParams {
-    _connectParams = connectParams;
-    [self createURLs];
-}
-
--(void)setPingTimeout:(int)pingTimeout {
-    _pingTimeout = pingTimeout;
-    _pongsMissedMax = (int)(_pingTimeout/(_pingInterval> 0 ? _pingTimeout: 25000));
-}
-
--(void) createURLs
-{
-    if (client == nil) {
-        _urlPolling = [NSURL URLWithString:@"http://localhost/"];
-        _urlWebSocket = [NSURL URLWithString:@"http://localhost/"];
+    // 构建查询参数
+    NSMutableDictionary *params = [NSMutableDictionary dictionary];
+    if (self.config.connectParams) {
+        [params addEntriesFromDictionary:self.config.connectParams];
     }
-    else {
-        NSURLComponents *urlPollingComponent = [NSURLComponents componentsWithString:_url.absoluteString];
-        NSURLComponents *urlWebSocketComponent = [NSURLComponents componentsWithString:_url.absoluteString];
-        NSMutableString *queryString = [NSMutableString string];
+    
+    // 添加 EIO 参数
+    NSString *eioValue = nil;
+    switch (self.config.protocolVersion) {
+        case RTCVPSocketIOProtocolVersion2:
+            eioValue = @"3"; // Engine.IO 3.x
+            break;
+        case RTCVPSocketIOProtocolVersion3:
+            eioValue = @"4"; // Engine.IO 4.x
+            break;
+        case RTCVPSocketIOProtocolVersion4:
+            eioValue = @"5"; // Engine.IO 5.x (如果支持)
+            break;
+        default:
+            eioValue = @"4"; // 默认使用 Engine.IO 4.x
+            break;
+    }
+    
+    params[@"EIO"] = eioValue;
+    params[@"transport"] = @"polling";
+    
+    // 对于 WebSocket，需要额外的参数
+    NSMutableDictionary *wsParams = [params mutableCopy];
+    wsParams[@"transport"] = @"websocket";
+    
+    // 构建查询字符串
+    NSString *pollingQuery = [self buildQueryString:params];
+    NSString *websocketQuery = [self buildQueryString:wsParams];
+    
+    pollingComponents.percentEncodedQuery = pollingQuery;
+    websocketComponents.percentEncodedQuery = websocketQuery;
+    
+    _urlPolling = pollingComponents.URL;
+    _urlWebSocket = websocketComponents.URL;
+    
+    [self log:[NSString stringWithFormat:@"Polling URL: %@", _urlPolling] level:RTCLogLevelDebug];
+    [self log:[NSString stringWithFormat:@"WebSocket URL: %@", _urlWebSocket] level:RTCLogLevelDebug];
+}
+
+- (NSString *)buildQueryString:(NSDictionary *)params {
+    NSMutableArray *queryItems = [NSMutableArray array];
+    
+    for (NSString *key in params.allKeys) {
+        id value = params[key];
         
-        urlWebSocketComponent.path = _socketPath;
-        urlPollingComponent.path = _socketPath;
-        
-        if(_secure) {
-            urlWebSocketComponent.scheme = @"wss";
-            urlPollingComponent.scheme = @"https";
-        }
-        else {
-            urlWebSocketComponent.scheme = @"ws";
-            urlPollingComponent.scheme = @"http";
-        }
-        
-        // 根据协议版本设置EIO参数
-        if (!_connectParams[@"EIO"]) {
-            if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
-                _connectParams[@"EIO"] = @"4"; // Socket.IO 3.0 使用 EIO=4
-            } else {
-                _connectParams[@"EIO"] = @"3"; // 旧版本使用 EIO=3
-            }
-        }
-        
-        for (id key in _connectParams.allKeys) {
+        if ([value isKindOfClass:[NSString class]]) {
             NSString *encodedKey = [key urlEncode];
-            id value = _connectParams[key];
-            if([value isKindOfClass:[NSString class]]) {
-                NSString *encodedValue = [(NSString*)value urlEncode];
-                [queryString appendFormat:@"&%@=%@", encodedKey, encodedValue];
-            }
-            else if([value isKindOfClass:[NSArray class]]){
-                NSArray *array = value;
-                for (id item in array) {
-                    if([item isKindOfClass:[NSString class]]) {
-                        NSString *encodedValue = [item urlEncode];
-                        [queryString appendFormat:@"&%@=%@", encodedKey, encodedValue];
-                    }
+            NSString *encodedValue = [value urlEncode];
+            [queryItems addObject:[NSString stringWithFormat:@"%@=%@", encodedKey, encodedValue]];
+        } else if ([value isKindOfClass:[NSArray class]]) {
+            for (id item in value) {
+                if ([item isKindOfClass:[NSString class]]) {
+                    NSString *encodedKey = [key urlEncode];
+                    NSString *encodedValue = [item urlEncode];
+                    [queryItems addObject:[NSString stringWithFormat:@"%@=%@", encodedKey, encodedValue]];
                 }
             }
+        } else if ([value isKindOfClass:[NSNumber class]]) {
+            NSString *encodedKey = [key urlEncode];
+            NSString *encodedValue = [[value stringValue] urlEncode];
+            [queryItems addObject:[NSString stringWithFormat:@"%@=%@", encodedKey, encodedValue]];
         }
-        
-        urlWebSocketComponent.percentEncodedQuery = [NSString stringWithFormat:@"transport=websocket%@",queryString];
-        urlPollingComponent.percentEncodedQuery = [NSString stringWithFormat:@"transport=polling%@&b64=1",queryString];
-        _urlPolling = urlPollingComponent.URL;
-        _urlWebSocket = urlWebSocketComponent.URL;
-        
     }
+    
+    return [queryItems componentsJoinedByString:@"&"];
 }
 
-#pragma mark - create websocket
+#pragma mark - 连接管理
 
-
-
-#pragma mark - RTCVPSocketEngineProtocol
-
--(void)syncResetClient
-{
-    if(_engineQueue != NULL) {
-        dispatch_sync(_engineQueue, ^{
-            self.client = nil;
-        });
-    }
-}
-
-#pragma mark - connect
 - (void)connect {
-    dispatch_async(_engineQueue, ^
-                   {
-        @autoreleasepool
-        {
-            [self _connect];
-        }
+    dispatch_async(_engineQueue, ^{
+        [self _connect];
     });
 }
 
--(void) _connect
-{
-    if (_connected)
-    {
-        [RTCDefaultSocketLogger.logger error:@"Engine tried opening while connected. Assuming this was a reconnect" type:self.logType];
-        [self disconnect:@"reconnect"];
+- (void)_connect {
+    if (_connected && !_closed) {
+        [self log:@"Engine is already connected" level:RTCLogLevelWarning];
+        return;
     }
     
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Starting engine. Server: %@", _url.absoluteString] type:self.logType];
-    [RTCDefaultSocketLogger.logger log:@"Handshaking" type:self.logType];
+    if (_closed) {
+        [self log:@"Engine is closed, resetting..." level:RTCLogLevelDebug];
+        [self resetEngine];
+    }
     
-    [self resetEngine];
+    [self log:[NSString stringWithFormat:@"Starting connection to: %@", _url.absoluteString] level:RTCLogLevelInfo];
+    [self log:@"Initiating handshake..." level:RTCLogLevelDebug];
     
-    if (_forceWebsockets)
-    {
+    // 确定传输方式
+    BOOL forceWebSocket = self.config.forceWebsockets;
+    BOOL forcePolling = self.config.forcePolling;
+    
+    if (forceWebSocket && forcePolling) {
+        [self log:@"Both forceWebsockets and forcePolling are set, defaulting to WebSocket" level:RTCLogLevelWarning];
+        forcePolling = NO;
+    }
+    
+    if (forceWebSocket) {
         _polling = NO;
         _websocket = YES;
         [self createWebSocketAndConnect];
-    }
-    else
-    {
-        NSMutableURLRequest *reqPolling = [NSMutableURLRequest requestWithURL:_urlPolling
-                                                                  cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
-                                                              timeoutInterval:60.0];
+    } else {
+        // 开始轮询握手
+        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:_urlPolling];
+        request.timeoutInterval = self.config.connectTimeout;
+        [self addHeadersToRequest:request];
         
-        [self addHeaders:reqPolling];
-        [self doLongPoll:reqPolling];
+        [self doLongPoll:request];
     }
 }
 
-- (NSURL *)urlWebSocketWithSid {
-    
-    NSURLComponents *components = [NSURLComponents componentsWithURL:_urlWebSocket resolvingAgainstBaseURL:NO];
-    NSString *sidComponent = _sid.length > 0? [NSString stringWithFormat:@"&sid=%@", [_sid urlEncode]] : @"";
-    components.percentEncodedQuery = [NSString stringWithFormat:@"%@%@", components.percentEncodedQuery,sidComponent];
-    return components.URL;
+- (void)disconnect:(NSString *)reason {
+    dispatch_async(_engineQueue, ^{
+        [self _disconnect:reason];
+    });
 }
 
--(void)resetEngine {
+- (void)send:(nonnull NSString *)msg ack:(RTCVPSocketAckCallback _Nullable)ack { 
+    <#code#>
+}
+
+
+- (void)send:(nonnull NSString *)msg withData:(nonnull NSArray<NSData *> *)data ack:(RTCVPSocketAckCallback _Nullable)ack { 
+    <#code#>
+}
+
+
+- (void)sendAck:(NSInteger)ackId withData:(nonnull NSArray *)data { 
+    <#code#>
+}
+
+
+- (void)syncResetClient { 
+    <#code#>
+}
+
+
+- (void)_disconnect:(NSString *)reason {
+    if (!_connected && _closed) {
+        return;
+    }
     
-    NSOperationQueue *queue = [[NSOperationQueue alloc] init];
-    queue.underlyingQueue = _engineQueue;
+    [self log:[NSString stringWithFormat:@"Disconnecting: %@", reason] level:RTCLogLevelInfo];
+    
+    // 发送关闭消息
+    if (_connected && !_closed) {
+        if (_websocket) {
+            [self sendWebSocketMessage:@"" withType:RTCVPSocketEnginePacketTypeClose withData:@[]];
+        } else {
+            [self disconnectPolling];
+        }
+    }
+    
+    [self closeOutEngine:reason];
+}
+
+- (void)resetEngine {
+    [self log:@"Resetting engine state" level:RTCLogLevelDebug];
+    
     _closed = NO;
     _connected = NO;
     _fastUpgrade = NO;
     _polling = YES;
+    _websocket = NO;
     _probing = NO;
     _invalidated = NO;
-    _session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration] delegate:_sessionDelegate delegateQueue:queue];
     _sid = @"";
     _waitingForPoll = NO;
     _waitingForPost = NO;
-    _websocket = NO;
+    
+    // 清理现有连接
+    if (_ws) {
+        [_ws disconnect];
+        _ws.delegate = nil;
+        _ws = nil;
+    }
+    
+    if (_session) {
+        [_session invalidateAndCancel];
+        _session = nil;
+    }
+    
+    [_postWait removeAllObjects];
+    [_probeWait removeAllObjects];
+    
+    // 重新创建 URLSession
+    [self setupEngine];
 }
 
-#pragma mark - disconnect
+#pragma mark - 心跳管理
 
--(void) disconnect:(NSString*)reason
-{
-    dispatch_async(_engineQueue, ^
-                   {
-        @autoreleasepool
-        {
-            [self _disconnect:reason];
+- (void)startPingTimer {
+    if (_pingInterval <= 0 || !_connected || _closed) {
+        return;
+    }
+    
+    __weak typeof(self) weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_pingInterval * NSEC_PER_MSEC)), _engineQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf && strongSelf->_connected && !strongSelf->_closed) {
+            [strongSelf sendPing];
         }
     });
 }
 
--(void)_disconnect:(NSString*)reason
-{
-    if(_connected) {
-        [RTCDefaultSocketLogger.logger log:@"Engine is being closed." type:self.logType];
-        if(!_closed) {
-            if (_websocket) {
-                [self sendWebSocketMessage:@"" withType:RTCVPSocketEnginePacketTypeClose withData:@[]];
-            }
-            else {
-                [self disconnectPolling];
-            }
-        }
-    }
-    [self closeOutEngine:reason];
-}
-
-#pragma mark - private methods
-
--(void)didError:(NSString*)reason
-{
-    if(!self.closed) {
-        [client engineDidError:reason];
-        [self disconnect:reason];
-    }
-}
-
--(void) checkAndHandleEngineError:(NSString*) message
-{
-    NSDictionary *dict = [message toDictionary];
-    if (dict != nil) {
-        NSString *error = dict[@"message"];
-        if(error != nil) {
-            [self didError: error];
-        }
-    }
-    else {
-        [client engineDidError:[NSString stringWithFormat:@"Got unknown error from server %@", message]];
-    }
-}
-
--(void) handleBase64:(NSString*)message
-{
-    // binary in base64 string
-    NSString *noPrefix = [message substringFromIndex:2]; //remove prefix b4
-    NSData *data = [[NSData alloc] initWithBase64EncodedString:noPrefix options:NSDataBase64DecodingIgnoreUnknownCharacters];
-    
-    if(data != nil) {
-        [client parseEngineBinaryData:data];
-    }
-}
-
--(void) closeOutEngine:(NSString*)reason
-{
-    _sid = @"";
-    _closed = YES;
-    _invalidated = YES;
-    _connected = NO;
-    
-    [_ws disconnect];
-    [self stopPolling];
-    [client engineDidClose:reason];
-}
-
-
--(void) doFastUpgrade
-{
-    if (_waitingForPoll) {
-        [RTCDefaultSocketLogger.logger error:@"Outstanding poll when switched to WebSockets, we'll probably disconnect soon. You should report this." type:self.logType];
+- (void)sendPing {
+    if (_pongsMissed >= _pongsMissedMax) {
+        [self log:@"Ping timeout, closing connection" level:RTCLogLevelError];
+        [self disconnect:@"ping timeout"];
+        return;
     }
     
-    [self sendWebSocketMessage:@"" withType:RTCVPSocketEnginePacketTypeUpgrade withData: @[]];
-    _websocket = YES;
-    _polling = NO;
-    _fastUpgrade = NO;
-    _probing = NO;
-    [self flushProbeWait];
-}
-
--(void)flushProbeWait
-{
-    [RTCDefaultSocketLogger.logger log:@"Flushing probe wait" type:self.logType];
-    for (RTCVPProbe *waiter in _probeWait) {
-        [self write:waiter.message withType:waiter.type withData:waiter.data];
-    }
-    [_probeWait removeAllObjects];
-    if(_postWait.count > 0) {
-        [self flushWaitingForPostToWebSocket];
-    }
-}
-
--(void) flushWaitingForPostToWebSocket
-{
-    if(_ws != nil) {
-        for (NSString *packet in _postWait) {
-            [_ws writeString:packet];
-        }
+    _pongsMissed++;
+    
+    NSString *pingMessage = @"";
+    if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
+        // Engine.IO 4.x+ 使用 "2" 作为 ping
+        pingMessage = @"2";
     }
     
-    [_postWait removeAllObjects];
+    [self write:pingMessage withType:RTCVPSocketEnginePacketTypePing withData:@[]];
+    [self startPingTimer];
 }
 
-#pragma mark - parse engine
-
-/// Parses raw binary received from engine.io.
--(void) parseEngineData:(NSData*)data
-{
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got binary data:%@",data] type:self.logType];
-    
-    if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
-        // Engine.IO 4.x 使用原生二进制数据，直接处理
-        [client parseEngineBinaryData:data];
-    } else {
-        // Engine.IO 3.x 使用Base64编码，需要跳过第一个字节
-        [client parseEngineBinaryData:[data subdataWithRange:NSMakeRange(1, data.length-1)]];
-    }
-}
-
-/// Parses a raw engine.io packet.
--(void)parseEngineMessage:(NSString*)message
-{
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got message:%@",message] type:self.logType];
-    
-    if(message.length > 0)
-    {
-        RTCVPStringReader *reader = [[RTCVPStringReader alloc] init:message];
-        
-        if([message hasPrefix:@"b4"]) {
-            [self handleBase64:message];
-        }
-        else {
-            NSCharacterSet* digits = [NSCharacterSet decimalDigitCharacterSet];
-            NSString *currentType = [reader currentCharacter];
-            if ([currentType rangeOfCharacterFromSet:digits].location != NSNotFound) {
-                RTCVPSocketEnginePacketType type = [currentType intValue];
-                switch (type) {
-                    case RTCVPSocketEnginePacketTypeOpen:
-                        [self handleOpen:[message substringFromIndex:1]];
-                        break;
-                    case RTCVPSocketEnginePacketTypeClose:
-                        [self handleClose:message];
-                        break;
-                    case RTCVPSocketEnginePacketTypePong:
-                        [self handlePong:message];
-                        break;
-                    case RTCVPSocketEnginePacketTypeNoop:
-                        [self handleNOOP];
-                        break;
-                    case RTCVPSocketEnginePacketTypeMessage:
-                        [self handleMessage:[message substringFromIndex:1]];
-                        break;
-                    default:
-                        [RTCDefaultSocketLogger.logger log:@"Got unknown packet type" type:self.logType];
-                        break;
-                }
-            }
-            else {
-                [self checkAndHandleEngineError:message];
-            }
-        }
-    }
-}
-
-#pragma mark - handle messages
-
--(void) handleClose:(NSString*)reason
-{
-    [self closeOutEngine:reason];
-}
-
--(void) handleMessage:(NSString*)message
-{
-    [client parseEngineMessage:message];
-}
-
--(void) handleNOOP
-{
-    [self doPoll];
-}
-
-
--(void) handleOpen:(NSString*)openData
-{
-    NSDictionary *json = [openData toDictionary];
-    if(json != nil) {
-        NSString *sid = json[@"sid"];
-        if([sid isKindOfClass:[NSString class]]) {
-            BOOL upgradeWs = NO;
-            self.sid = sid;
-            _connected = YES;
-            _pongsMissed = 0;
-            
-            NSArray<NSString*> *upgrades = json[@"upgrades"];
-            if(upgrades != nil) {
-                upgradeWs = [upgrades containsObject:@"websocket"];
-            }
-            
-            NSNumber *interval = json[@"pingInterval"];
-            NSNumber *timeout = json[@"pingTimeout"];
-            //            NSNumber *timeout = json[@"pingInterval"];
-            //            NSNumber *interval = json[@"pingTimeout"];
-            if([interval isKindOfClass:[NSNumber class]] && interval.intValue > 0 &&
-               [timeout isKindOfClass:[NSNumber class]] && timeout.intValue > 0) {
-                self.pingInterval = interval.intValue;
-                self.pingTimeout = timeout.intValue;
-            }
-            
-            if( !_forcePolling && !_forceWebsockets && upgradeWs) {
-                [self createWebSocketAndConnect];
-            }
-            
-            [self sendPing];
-            
-            if(!_forceWebsockets) {
-                [self doPoll];
-            }
-            
-            [client engineDidOpen:@"Connect"];
-        }
-        else {
-            [self didError:@"Open packet contained no sid"];
-        }
-    }
-    else {
-        [self didError:@"Error parsing open packet"];
-    }
-}
-
-
--(void)handlePong:(NSString*)message
-{
+- (void)handlePong {
     _pongsMissed = 0;
+}
+
+#pragma mark - 消息处理
+
+/// 解析原始引擎消息
+- (void)parseEngineMessage:(NSString *)message {
+    if (message.length == 0) {
+        [self log:@"Received empty message" level:RTCLogLevelWarning];
+        return;
+    }
     
-    // 处理心跳包和探测包
-    if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+    [self log:[NSString stringWithFormat:@"Got message: %@", message] level:RTCLogLevelDebug];
+    
+    // 检查是否为二进制消息前缀
+    if ([message hasPrefix:@"b4"]) {
+        [self handleBase64:message];
+        return;
+    }
+    
+    // 检查是否为错误消息
+    NSDictionary *errorDict = [message toDictionary];
+    if (errorDict && errorDict[@"message"]) {
+        [self didError:errorDict[@"message"]];
+        return;
+    }
+    
+    // 解析消息类型
+    if (message.length > 0) {
+        unichar firstChar = [message characterAtIndex:0];
+        if (firstChar >= '0' && firstChar <= '9') {
+            RTCVPSocketEnginePacketType type = firstChar - '0';
+            NSString *content = [message substringFromIndex:1];
+            
+            switch (type) {
+                case RTCVPSocketEnginePacketTypeOpen:
+                    [self handleOpen:content];
+                    break;
+                case RTCVPSocketEnginePacketTypeClose:
+                    [self handleClose:content];
+                    break;
+                case RTCVPSocketEnginePacketTypePing:
+                    // 服务器发送的 ping，需要回复 pong
+                    [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
+                    break;
+                case RTCVPSocketEnginePacketTypePong:
+                    [self handlePong:content];
+                    break;
+                case RTCVPSocketEnginePacketTypeMessage:
+                    [self handleMessage:content];
+                    break;
+                case RTCVPSocketEnginePacketTypeUpgrade:
+                    [self handleUpgrade];
+                    break;
+                case RTCVPSocketEnginePacketTypeNoop:
+                    [self handleNoop];
+                    break;
+                default:
+                    [self log:[NSString stringWithFormat:@"Unknown packet type: %c", firstChar] level:RTCLogLevelWarning];
+                    break;
+            }
+        } else {
+            // 可能是字符串消息（没有类型前缀）
+            [self handleMessage:message];
+        }
+    }
+}
+
+/// 处理打开消息
+- (void)handleOpen:(NSString *)openData {
+    NSDictionary *json = [openData toDictionary];
+    if (!json) {
+        [self didError:@"Invalid open packet"];
+        return;
+    }
+    
+    // 解析 session ID
+    NSString *sid = json[@"sid"];
+    if (![sid isKindOfClass:[NSString class]] || sid.length == 0) {
+        [self didError:@"Open packet missing sid"];
+        return;
+    }
+    
+    self.sid = sid;
+    self.connected = YES;
+    self.pongsMissed = 0;
+    
+    // 解析升级选项
+    NSArray<NSString *> *upgrades = json[@"upgrades"];
+    BOOL canUpgradeToWebSocket = upgrades && [upgrades containsObject:@"websocket"];
+    
+    // 解析心跳参数
+    NSNumber *pingInterval = json[@"pingInterval"];
+    NSNumber *pingTimeout = json[@"pingTimeout"];
+    
+    if ([pingInterval isKindOfClass:[NSNumber class]] && pingInterval.integerValue > 0) {
+        self.pingInterval = pingInterval.integerValue;
+    }
+    
+    if ([pingTimeout isKindOfClass:[NSNumber class]] && pingTimeout.integerValue > 0) {
+        self.pingTimeout = pingTimeout.integerValue;
+        self.pongsMissedMax = MAX(1, self.pingTimeout / self.pingInterval);
+    }
+    
+    [self log:[NSString stringWithFormat:@"Connected with sid: %@", self.sid] level:RTCLogLevelInfo];
+    [self log:[NSString stringWithFormat:@"Ping interval: %ldms, timeout: %ldms", (long)self.pingInterval, (long)self.pingTimeout] level:RTCLogLevelDebug];
+    
+    // 决定是否升级到 WebSocket
+    BOOL shouldUpgrade = canUpgradeToWebSocket &&
+                       !self.config.forcePolling &&
+                       (self.config.forceWebsockets || self.config.transport == RTCVPSocketIOTransportWebSocket);
+    
+    if (shouldUpgrade) {
+        [self log:@"Upgrading to WebSocket..." level:RTCLogLevelDebug];
+        [self createWebSocketAndConnect];
+    } else {
+        [self log:@"Using polling transport" level:RTCLogLevelDebug];
+        // 开始心跳
+        [self startPingTimer];
+        // 继续轮询
+        if (self.polling) {
+            [self doPoll];
+        }
+    }
+    
+    // 通知客户端
+    if (self.client) {
+        [self.client engineDidOpen:@"Connected"];
+    }
+}
+
+/// 处理普通消息
+- (void)handleMessage:(NSString *)message {
+    [self log:[NSString stringWithFormat:@"Handling message: %@", message] level:RTCLogLevelDebug];
+    
+    if (self.client) {
+        [self.client parseEngineMessage:message];
+    }
+}
+
+/// 处理关闭消息
+- (void)handleClose:(NSString *)reason {
+    [self closeOutEngine:reason ?: @"Closed by server"];
+}
+
+/// 处理升级消息
+- (void)handleUpgrade {
+    if (self.probing) {
+        [self log:@"WebSocket probe successful, upgrading..." level:RTCLogLevelDebug];
+        self.probing = NO;
+        self.fastUpgrade = YES;
+        [self doFastUpgrade];
+    }
+}
+
+/// 处理 NOOP 消息
+- (void)handleNoop {
+    [self log:@"Received NOOP message" level:RTCLogLevelDebug];
+    
+    // NOOP 消息，继续轮询
+    if (self.polling && !self.waitingForPoll) {
+        [self doPoll];
+    }
+}
+
+/// 处理 Base64 编码的二进制数据
+- (void)handleBase64:(NSString *)message {
+    if (message.length <= 2) {
+        [self log:@"Invalid base64 message, too short" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    NSString *base64String = [message substringFromIndex:2];
+    NSData *data = [[NSData alloc] initWithBase64EncodedString:base64String options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    
+    if (data) {
+        [self log:[NSString stringWithFormat:@"Decoded base64 data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+        
+        if (self.client) {
+            [self.client parseEngineBinaryData:data];
+        }
+    } else {
+        [self log:@"Failed to decode base64 data" level:RTCLogLevelWarning];
+    }
+}
+
+#pragma mark - 数据解析
+
+/// 解析从引擎接收到的原始二进制数据
+- (void)parseEngineData:(NSData *)data {
+    if (!data || data.length == 0) {
+        [self log:@"Received empty binary data" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    [self log:[NSString stringWithFormat:@"Got binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+    
+    // 根据协议版本处理二进制数据
+    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
+        // Engine.IO 3.x 协议：二进制数据前会有一个字节的标记
+        // 第一个字节是 0x04 表示二进制消息
+        if (data.length > 1) {
+            const Byte *bytes = (const Byte *)data.bytes;
+            Byte firstByte = bytes[0];
+            
+            if (firstByte == 0x04) {
+                // 提取实际的二进制数据
+                NSData *actualData = [data subdataWithRange:NSMakeRange(1, data.length - 1)];
+                [self log:[NSString stringWithFormat:@"Engine.IO 3.x binary data, length: %lu", (unsigned long)actualData.length] level:RTCLogLevelDebug];
+                
+                // 传递给客户端处理
+                if (self.client) {
+                    [self.client parseEngineBinaryData:actualData];
+                }
+            } else {
+                [self log:[NSString stringWithFormat:@"Unknown binary packet type: 0x%02X", firstByte] level:RTCLogLevelWarning];
+            }
+        }
+    } else {
+        // Engine.IO 4.x+ 协议：直接是二进制数据
+        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+        
+        // 直接传递给客户端处理
+        if (self.client) {
+            [self.client parseEngineBinaryData:data];
+        }
+    }
+}
+
+/// 处理 Pong 消息
+- (void)handlePong:(NSString *)message {
+    [self log:@"Received Pong message" level:RTCLogLevelDebug];
+    
+    self.pongsMissed = 0;
+    
+    // 检查是否为探测响应
+    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion3) {
         // Engine.IO 4.x 使用字符串格式
-        if ([message isEqualToString:@"3probe"]) {
+        if ([message isEqualToString:@"probe"]) {
             [self upgradeTransport];
         }
-        // Engine.IO 4.x 的心跳包格式为 "2" 或 "3"
-        // 不需要额外处理，只需要重置pongsMissed即可
     } else {
         // Engine.IO 3.x 使用数字格式
-        if ([message isEqualToString:@"3probe"]) {
+        if ([message isEqualToString:@"probe"]) {
             [self upgradeTransport];
         }
-        // Engine.IO 3.x 的心跳包格式为 "2" 或 "3"
-        // 不需要额外处理，只需要重置pongsMissed即可
     }
 }
 
--(void) sendPing
-{
-    if(_connected && _pingInterval > 0) {
-        if(_pongsMissed >= _pongsMissedMax) {
-            [self closeOutEngine:@"Ping timeout"];
-        }
-        else {
-            _pongsMissed += 1;
-            
-            if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
-                // Engine.IO 4.x 使用字符串格式心跳包 "2"
-                [self write:@"2" withType:RTCVPSocketEnginePacketTypePing withData:@[]];
-            } else {
-                // Engine.IO 3.x 使用空字符串心跳包
-                [self write:@"" withType:RTCVPSocketEnginePacketTypePing withData:@[]];
-            }
-            
-            __weak typeof(self) weakSelf = self;
-            
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(_pingInterval/1000 * NSEC_PER_SEC)),_engineQueue, ^
-                           {
-                @autoreleasepool
-                {
-                    __strong typeof(weakSelf) strongSelf = weakSelf;
-                    if(strongSelf) {
-                        [strongSelf sendPing];
-                    }
-                }
-            });
-        }
-    }
-}
-
--(void) upgradeTransport {
-    if( [_ws isConnected]) {
+/// 升级传输方式
+- (void)upgradeTransport {
+    if ([self.ws isConnected]) {
+        [self log:@"Upgrading transport to WebSockets" level:RTCLogLevelInfo];
+        self.fastUpgrade = YES;
         
-        [RTCDefaultSocketLogger.logger log:@"Upgrading transport to WebSockets" type:self.logType];
-        _fastUpgrade = YES;
-        
-        if (_protocolVersion == kRTCVPSocketIOProtocolVersion3) {
+        if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion3) {
             // Engine.IO 4.x 发送 "2probe" 作为探测包
-            [_ws writeString:@"2probe"];
+            [self.ws writeString:@"2probe"];
         } else {
             // Engine.IO 3.x 发送空字符串作为探测包
             [self sendPollMessage:@"" withType:RTCVPSocketEnginePacketTypeNoop withData:@[]];
@@ -643,113 +662,158 @@ NSURLSessionDelegate>
     }
 }
 
-/// Writes a message to engine.io, independent of transport.
--(void) write:(NSString*)msg withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)data
-{
-    dispatch_async(_engineQueue, ^
-                   {
-        @autoreleasepool
-        {
-            if(self.connected)
-            {
-                if(self.websocket)
-                {
-                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Writing ws: %@ has data: %@", msg, data.count>0?@"true":@"false"] type:self.logType];
-                    [self sendWebSocketMessage:msg withType:type withData:data];
-                }
-                else if (!self.probing)
-                {
-                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Writing poll:%@ has data: %@", msg, data.count>0?@"true":@"false"] type:self.logType];
-                    [self sendPollMessage:msg withType:type withData:data];
-                }
-                else
-                {
-                    RTCVPProbe *probe = [[RTCVPProbe alloc] init];
-                    probe.message = msg;
-                    probe.type = type;
-                    probe.data = data;
-                    [self.probeWait addObject:probe];
-                }
-            }
-        }
-    });
+#pragma mark - 错误处理
+
+- (void)didError:(NSString *)reason {
+    [self log:[NSString stringWithFormat:@"Engine error: %@", reason] level:RTCLogLevelError];
+    
+    if (_client && !_closed) {
+        [_client engineDidError:reason];
+    }
+    
+    if (_connected) {
+        [self disconnect:reason];
+    }
 }
 
-- (void)addHeaders:(NSMutableURLRequest *)request {
-    
-    if(_cookies.count > 0) {
-        request.allHTTPHeaderFields = [NSHTTPCookie requestHeaderFieldsWithCookies:_cookies];
+- (void)closeOutEngine:(NSString *)reason {
+    if (_closed) {
+        return;
     }
     
-    if (_extraHeaders) {
-        for (NSString *key in _extraHeaders.allKeys) {
-            [request setValue:_extraHeaders[key] forHTTPHeaderField:key];
+    [self log:[NSString stringWithFormat:@"Closing engine: %@", reason] level:RTCLogLevelInfo];
+    
+    _closed = YES;
+    _connected = NO;
+    _invalidated = YES;
+    
+    // 清理资源
+    if (_ws) {
+        [_ws disconnect];
+        _ws.delegate = nil;
+        _ws = nil;
+    }
+    
+    if (_session) {
+        [_session invalidateAndCancel];
+        _session = nil;
+    }
+    
+    // 停止心跳
+    _pongsMissed = 0;
+    
+    // 清理缓冲区
+    [_postWait removeAllObjects];
+    [_probeWait removeAllObjects];
+    
+    // 通知客户端
+    if (_client) {
+        [_client engineDidClose:reason];
+    }
+}
+
+#pragma mark - 发送消息
+
+- (void)write:(NSString *)msg withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
+    dispatch_async(_engineQueue, ^{
+        if (!self->_connected || self->_closed) {
+            [self log:@"Cannot write, engine not connected" level:RTCLogLevelWarning];
+            return;
         }
-    }
+        
+        if (self->_websocket) {
+            [self sendWebSocketMessage:msg withType:type withData:data];
+        } else if (self->_probing) {
+            // 在探测期间，缓存消息
+            RTCVPProbe *probe = [[RTCVPProbe alloc] init];
+            probe.message = msg;
+            probe.type = type;
+            probe.data = data;
+            [self->_probeWait addObject:probe];
+        } else {
+            [self sendPollMessage:msg withType:type withData:data];
+        }
+    });
 }
 
 - (void)send:(NSString *)msg withData:(NSArray<NSData *> *)data {
     [self write:msg withType:RTCVPSocketEnginePacketTypeMessage withData:data];
 }
+
+- (void)sendRawData:(NSData *)data {
+    dispatch_async(_engineQueue, ^{
+        if (self->_websocket && self->_ws) {
+            [self->_ws writeData:data];
+        } else {
+            [self log:@"Cannot send raw data, WebSocket not available" level:RTCLogLevelWarning];
+        }
+    });
+}
+
+#pragma mark - 工具方法
+
+- (void)addHeadersToRequest:(NSMutableURLRequest *)request {
+    // 添加 cookies
+    if (self.config.cookies.count > 0) {
+        NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies:self.config.cookies];
+        [request setAllHTTPHeaderFields:headers];
+    }
+    
+    // 添加额外 headers
+    if (self.config.extraHeaders) {
+        for (NSString *key in self.config.extraHeaders.allKeys) {
+            NSString *value = self.config.extraHeaders[key];
+            if ([value isKindOfClass:[NSString class]]) {
+                [request setValue:value forHTTPHeaderField:key];
+            }
+        }
+    }
+    
+    // 设置 User-Agent
+    NSString *userAgent = [NSString stringWithFormat:@"RTCVPSocketIO/%@ (iOS)", @"1.0.0"];
+    [request setValue:userAgent forHTTPHeaderField:@"User-Agent"];
+}
+
+
+- (NSString *)currentTransport {
+    if (_websocket) {
+        return @"websocket";
+    } else if (_polling) {
+        return @"polling";
+    } else {
+        return @"none";
+    }
+}
+
+#pragma mark - 日志方法
+
+- (void)log:(NSString *)message level:(RTCLogLevel)level {
+    [self log:message type:self.logType level:level];
+}
+
+- (void)log:(NSString *)message type:(NSString *)type level:(RTCLogLevel)level {
+    if (self.config.loggingEnabled && level <= self.config.logLevel) {
+        if (self.config.logger) {
+            [self.config.logger logMessage:message type:type level:level];
+        } else {
+            [RTCDefaultSocketLogger.logger logMessage:message type:type level:level];
+        }
+    }
+}
+
+- (NSString *)logType {
+    return @"SocketEngine";
+}
+
 #pragma mark - NSURLSessionDelegate
 
-- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error
-{
-    [self didError:@"Engine URLSession became invalid"];
-}
-
-#pragma mark - RTCJFRWebSocketDelegate
-
--(void)websocketDidConnect:(RTCJFRWebSocket*)socket
-{
-    if(!_forceWebsockets)
-    {
-        _probing = YES;
-        [self probeWebSocket];
-    }
-    else
-    {
-        _connected = YES;
-        _probing = NO;
-        _polling = NO;
-    }
-}
--(void)websocketDidDisconnect:(RTCJFRWebSocket*)socket error:(NSError*)error
-{
-    _probing = NO;
-    
-    if(_closed)
-    {
-        [self closeOutEngine:@"Disconnect"];
-    }
-    else
-    {
-        if(_websocket)
-        {
-            [self flushProbeWait];
-        }
-        else
-        {
-            _connected = NO;
-            _websocket = NO;
-            
-            NSString *reason = @"Socket Disconnected";
-            if(error.localizedDescription.length > 0)
-            {
-                reason = error.localizedDescription;
-            }
-            [self closeOutEngine:reason];
-        }
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error {
+    if (session == _session) {
+        [self log:@"URLSession became invalid" level:RTCLogLevelError];
+        [self didError:error.localizedDescription ?: @"URLSession invalid"];
     }
 }
 
--(void)websocket:(RTCJFRWebSocket*)socket didReceiveMessage:(NSString*)string
-{
-    [self parseEngineMessage:string];
-}
--(void)websocket:(RTCJFRWebSocket*)socket didReceiveData:(NSData*)data
-{
-    [self parseEngineData:data];
-}
+
 
 @end

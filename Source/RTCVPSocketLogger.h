@@ -6,13 +6,33 @@
 //  Copyright © 2017 Vasily Popov. All rights reserved.
 //
 
+// RTCVPSocketLogger.h
 #import <Foundation/Foundation.h>
 
-@interface RTCVPSocketLogger:NSObject
+NS_ASSUME_NONNULL_BEGIN
 
-@property (nonatomic) BOOL log;
+typedef NS_ENUM(NSInteger, RTCLogLevel) {
+    RTCLogLevelError = 0,
+    RTCLogLevelWarning,
+    RTCLogLevelInfo,
+    RTCLogLevelDebug
+};
 
--(void) log:(NSString*)message type:(NSString*)type;
--(void) error:(NSString*)message type:(NSString*)type;
-- (void) onLogMsgWithCB:(void(^)(NSString *message ,NSString *type))cb;
+@interface RTCVPSocketLogger : NSObject
+
+@property (nonatomic, assign) BOOL log;
+@property (nonatomic, assign) RTCLogLevel logLevel;
+
+/// 记录日志消息
+- (void)log:(NSString *)message type:(NSString *)type;
+/// 记录错误消息
+- (void)error:(NSString *)message type:(NSString *)type;
+/// 设置日志回调
+- (void)onLogMsgWithCB:(void(^)(NSString *message, NSString *type))cb;
+
+/// 简化的日志方法
+- (void)logMessage:(NSString *)message type:(NSString *)type level:(RTCLogLevel)level;
+
 @end
+
+NS_ASSUME_NONNULL_END

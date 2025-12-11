@@ -25,4 +25,9 @@
 /// 刷新等待发送到WebSocket的消息
 - (void)flushWaitingForPostToWebSocket;
 
+
+- (void)startPingTimer;
+
+- (void)doFastUpgrade;
+
 @end
