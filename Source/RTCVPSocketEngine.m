@@ -413,25 +413,33 @@ NSURLSessionDelegate>
     [self startConnectionTimeout];
     
     // 确定传输方式
-    BOOL forceWebSocket = self.config.forceWebsockets;
-    BOOL forcePolling = self.config.forcePolling;
-    
-    if (forceWebSocket && forcePolling) {
-        [self log:@"Both forceWebsockets and forcePolling are set, defaulting to WebSocket" level:RTCLogLevelWarning];
-        forcePolling = NO;
-    }
-    
-    if (forceWebSocket) {
-        self.polling = NO;
-        self.websocket = YES;
-        [self createWebSocketAndConnect];
-    } else {
-        // 开始轮询握手
-        NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:self.urlPolling];
-        request.timeoutInterval = self.config.connectTimeout;
-        [self addHeadersToRequest:request];
-        
-        [self doLongPoll:request];
+    switch (self.config.transport) {
+        case RTCVPSocketIOTransportWebSocket:
+            [self log:@"Using WebSocket transport" level:RTCLogLevelInfo];
+            self.polling = NO;
+            self.websocket = YES;
+            [self createWebSocketAndConnect];
+            break;
+            
+        case RTCVPSocketIOTransportPolling:
+            [self log:@"Using Polling transport" level:RTCLogLevelInfo];
+            // 开始轮询握手
+            NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:self.urlPolling];
+            request.timeoutInterval = self.config.connectTimeout;
+            [self addHeadersToRequest:request];
+            
+            [self doLongPoll:request];
+            break;
+            
+        default: // RTCVPSocketIOTransportAuto
+            [self log:@"Using Auto transport" level:RTCLogLevelInfo];
+            // 自动协商传输方式，默认使用轮询握手
+            NSMutableURLRequest *autoRequest = [NSMutableURLRequest requestWithURL:self.urlPolling];
+            autoRequest.timeoutInterval = self.config.connectTimeout;
+            [self addHeadersToRequest:autoRequest];
+            
+            [self doLongPoll:autoRequest];
+            break;
     }
 }
 

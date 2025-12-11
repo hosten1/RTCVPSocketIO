@@ -275,11 +275,9 @@
         config.connectParams = connectParams;
         config.logger = logger;
         config.handleQueue = self->_currentEngineProtooQueue;
-        // 与web客户端保持一致的配置
-        config.protocolVersion = RTCVPSocketIOProtocolVersion2; // Socket.IO 3.x/4.x
-        config.transport = RTCVPSocketIOTransportAuto; // 自动协商传输方式
-        config.forceWebsockets = NO;
-        config.forcePolling = NO;
+        // 使用轮询传输，避免WebSocket控制帧碎片问题
+        config.protocolVersion = RTCVPSocketIOProtocolVersion2; // Socket.IO 2.x
+        config.transport = RTCVPSocketIOTransportPolling; // 直接指定轮询传输，无需额外配置
     }];
     
     // 创建Socket客户端
