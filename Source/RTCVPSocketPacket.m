@@ -210,11 +210,23 @@
     NSMutableArray *binary = [NSMutableArray array];
     NSArray *parsedData = [[self class] parseItems:items toBinary:binary];
     RTCVPPacketType type = [[self class] findType:binary.count ack: ack];
-    if (type == RTCVPPacketTypeEvent && isEvent) {
-        type = RTCVPPacketTypeEvent;
-    }else{
-        type = RTCVPPacketTypeAck;
+    
+    // 修复逻辑：正确处理事件类型
+    // 对于非二进制数据，类型应该是 Event，除非明确是 ACK
+    if (binary.count == 0) {
+        if (ack) {
+            type = RTCVPPacketTypeAck;
+        } else {
+            type = RTCVPPacketTypeEvent;
+        }
+    } else {
+        if (ack) {
+            type = RTCVPPacketTypeBinaryAck;
+        } else {
+            type = RTCVPPacketTypeBinaryEvent;
+        }
     }
+    
     return [[RTCVPSocketPacket alloc] init:type data:parsedData ID:ID nsp:nsp placeholders:0 binary:binary];
 }
 

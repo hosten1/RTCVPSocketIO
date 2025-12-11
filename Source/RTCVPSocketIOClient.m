@@ -419,7 +419,8 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         [dataArray addObjectsFromArray:items];
     }
     
-    if (_status != RTCVPSocketIOClientStatusConnected) {
+    // 允许在连接状态或打开状态发送消息
+    if (_status != RTCVPSocketIOClientStatusConnected && _status != RTCVPSocketIOClientStatusOpened) {
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Socket not connected, caching event: %@", event] type:self.logType];
         
         // 缓存事件，连接后发送
@@ -441,8 +442,8 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromEmit:dataArray
                                                                ID:ack
                                                               nsp:self.nsp
-                                                              ack:NO
-                                                          isEvent:NO];
+                                                              ack:ack >= 0
+                                                          isEvent:YES];
     
     NSString *str = packet.packetString;
     
