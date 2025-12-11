@@ -57,15 +57,40 @@ const io = new Server(httpServer, {
   allowEIO3: true
 });
 
+// 添加底层连接事件监听
+io.engine.on('connection', (conn) => {
+    console.log('=== 底层连接建立 ===');
+    console.log('连接ID:', conn.id);
+    console.log('传输方式:', conn.transport.name);
+    console.log('连接时间:', new Date().toISOString());
+    console.log('远程地址:', conn.remoteAddress);
+    console.log('=== 连接信息结束 ===');
+});
+
+// 添加连接错误处理
+io.engine.on('connection_error', (error) => {
+    console.error('=== 连接错误 ===');
+    console.error('错误类型:', error.type);
+    console.error('错误消息:', error.message);
+    if (error.context) {
+        console.error('错误上下文:', error.context);
+    }
+    console.error('=== 错误信息结束 ===');
+});
+
 // 监听连接事件
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-  
-  // 发送欢迎消息
-  socket.emit('welcome', { message: 'Welcome to Socket.IO server!', socketId: socket.id });
-  
-  // 广播用户连接事件给所有客户端
-  io.emit('userConnected', { socketId: socket.id, timestamp: new Date().toISOString() });
+    console.log('=== 新客户端连接 ===');
+    console.log('客户端ID:', socket.id);
+    console.log('连接时间:', new Date().toISOString());
+    console.log('传输方式:', socket.conn.transport.name);
+    console.log('=== 连接信息结束 ===');
+    
+    // 发送欢迎消息
+    socket.emit('welcome', { message: 'Welcome to Socket.IO server!', socketId: socket.id });
+    
+    // 广播用户连接事件给所有客户端
+    io.emit('userConnected', { socketId: socket.id, timestamp: new Date().toISOString() });
   
   // 监听聊天消息
   socket.on('chatMessage', (data, callback) => {

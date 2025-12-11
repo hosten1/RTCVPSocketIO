@@ -602,14 +602,35 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
                           receivedOpcode == RTCJFROpCodePing ||
                           receivedOpcode == RTCJFROpCodePong);
     
-    if(!isControlFrame &&
-       receivedOpcode != RTCJFROpCodeBinaryFrame &&
-       receivedOpcode != RTCJFROpCodeContinueFrame &&
-       receivedOpcode != RTCJFROpCodeTextFrame) {
+    // 检查是否为已知数据帧操作码
+    BOOL isKnownDataFrame = (receivedOpcode == RTCJFROpCodeBinaryFrame ||
+                            receivedOpcode == RTCJFROpCodeContinueFrame ||
+                            receivedOpcode == RTCJFROpCodeTextFrame);
+    
+    if(!isControlFrame && !isKnownDataFrame) {
         // 只记录警告，不断开连接，兼容某些不符合标准的服务器
         NSLog(@"⚠️ 收到未知操作码: 0x%x，违反协议，但继续处理", receivedOpcode);
-        // 不调用doDisconnect，继续处理该帧
-        // 跳过对未知操作码的处理，直接返回
+        // 不调用doDisconnect，也不跳过处理，而是尝试继续解析
+        // 对于未知操作码，我们将其视为普通数据帧处理，或者直接跳过
+        // 这里选择直接跳过该帧的处理，继续处理后续数据
+        NSInteger dataLength = payloadLen;
+        if(payloadLen == 127) {
+            dataLength = (NSInteger)CFSwapInt64BigToHost(*(uint64_t *)(buffer + offset));
+            offset += 8;
+        } else if(payloadLen == 126) {
+            dataLength = CFSwapInt16BigToHost(*(uint16_t *)(buffer + offset));
+            offset += 2;
+        }
+        
+        if(isMasked) {
+            offset += 4;
+        }
+        
+        NSInteger totalProcessed = offset + dataLength;
+        if(bufferLen > totalProcessed) {
+            // 有剩余数据，继续处理
+            [self processExtra:(buffer + totalProcessed) length:bufferLen - totalProcessed];
+        }
         return;
     }
     

@@ -49,7 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  Use certs from main app bundle
  
- @param usePublicKeys is to specific if the publicKeys or certificates should be used for SSL pinning validation
+ @param publicKeys is to specific if the publicKeys or certificates should be used for SSL pinning validation
  @return a representation security object to be used with
  */
 - (instancetype)initWithCerts:(NSArray<RTCJFRSSLCert*>*)certs publicKeys:(BOOL)publicKeys;

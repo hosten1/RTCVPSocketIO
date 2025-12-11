@@ -233,14 +233,21 @@
         [self closeOutEngine:@"WebSocket closed"];
     } else {
         if (self.websocket) {
-            // WebSocket 断开，尝试回退到轮询
-            self.websocket = NO;
-            self.polling = YES;
-            
-            [self log:@"Falling back to polling" level:RTCLogLevelInfo];
-            
-            if (self.connected) {
-                [self doPoll];
+            // 如果配置了只使用WebSocket传输，尝试重新连接WebSocket，而不是回退到轮询
+            if (self.config.transport == RTCVPSocketIOTransportWebSocket) {
+                [self log:@"WebSocket transport configured, attempting to reconnect WebSocket..." level:RTCLogLevelInfo];
+                // 保持WebSocket模式，尝试重新连接
+                [self createWebSocketAndConnect];
+            } else {
+                // WebSocket 断开，尝试回退到轮询
+                self.websocket = NO;
+                self.polling = YES;
+                
+                [self log:@"Falling back to polling" level:RTCLogLevelInfo];
+                
+                if (self.connected) {
+                    [self doPoll];
+                }
             }
         } else if (self.connected) {
             // 在探测期间断开，关闭连接
@@ -256,6 +263,8 @@
 }
 
 - (void)websocket:(RTCJFRWebSocket *)socket didReceiveMessage:(NSString *)string {
+    // 打印收到的消息字符串
+    [self log:[NSString stringWithFormat:@"📩 Socket层收到字符串数据: %@", string] level:RTCLogLevelInfo];
     [self parseEngineMessage:string];
 }
 
@@ -265,7 +274,18 @@
         return;
     }
     
-    [self log:[NSString stringWithFormat:@"WebSocket received binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+    // 打印二进制数据的十六进制表示
+    NSMutableString *hexString = [NSMutableString stringWithCapacity:data.length * 2];
+    for (int i = 0; i < data.length; i++) {
+        [hexString appendFormat:@"%02x", ((uint8_t *)data.bytes)[i]];
+    }
+    [self log:[NSString stringWithFormat:@"📩 Socket层收到二进制数据，长度: %lu，十六进制: %@", (unsigned long)data.length, hexString] level:RTCLogLevelInfo];
+    
+    // 尝试转换为字符串打印（如果是文本数据）
+    NSString *stringData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    if (stringData) {
+        [self log:[NSString stringWithFormat:@"📩 Socket层二进制数据转换为字符串: %@", stringData] level:RTCLogLevelInfo];
+    }
     
     // 解析二进制数据
     [self parseEngineData:data];

@@ -615,29 +615,36 @@ NSURLSessionDelegate>
     [self log:[NSString stringWithFormat:@"Connected with sid: %@", self.sid] level:RTCLogLevelInfo];
     [self log:[NSString stringWithFormat:@"Ping interval: %ldms, timeout: %ldms", (long)self.pingInterval, (long)self.pingTimeout] level:RTCLogLevelDebug];
     
-    // 决定是否升级到 WebSocket
-    BOOL shouldUpgrade = NO;
+    // 决定是否使用 WebSocket
+    BOOL shouldUseWebSocket = NO;
     
     switch (self.config.transport) {
         case RTCVPSocketIOTransportWebSocket:
-            // 强制WebSocket，直接升级
-            shouldUpgrade = canUpgradeToWebSocket;
+            // 强制WebSocket，直接使用
+            shouldUseWebSocket = YES;
             break;
             
         case RTCVPSocketIOTransportAuto:
             // 自动模式，根据服务器支持决定
-            shouldUpgrade = canUpgradeToWebSocket;
+            shouldUseWebSocket = canUpgradeToWebSocket;
             break;
             
         case RTCVPSocketIOTransportPolling:
-            // 强制轮询，不升级
-            shouldUpgrade = NO;
+            // 强制轮询，不使用WebSocket
+            shouldUseWebSocket = NO;
             break;
     }
     
-    if (shouldUpgrade) {
-        [self log:@"Upgrading to WebSocket..." level:RTCLogLevelDebug];
+    if (shouldUseWebSocket) {
+        [self log:@"Using WebSocket transport" level:RTCLogLevelDebug];
+        self.websocket = YES;
+        self.polling = NO;
+        
+        // 创建WebSocket连接
         [self createWebSocketAndConnect];
+        
+        // 开始心跳
+        [self startPingTimer];
     } else {
         [self log:@"Using polling transport" level:RTCLogLevelDebug];
         // 开始心跳
