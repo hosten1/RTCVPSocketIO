@@ -20,6 +20,9 @@ extern NSString * _Nonnull const kSocketEventReconnect;
 extern NSString * _Nonnull const kSocketEventReconnectAttempt;
 extern NSString * _Nonnull const kSocketEventStatusChange;
 
+// 全局事件类前向声明
+@class RTCVPSocketAnyEvent;
+
 // 回调类型定义
 typedef void (^RTCVPSocketIOVoidHandler)(void);
 typedef void (^RTCVPSocketAnyEventHandler)(RTCVPSocketAnyEvent* _Nonnull event);
@@ -77,18 +80,23 @@ typedef void (^RTCVPSocketConnectHandler)(BOOL connected, NSError * _Nullable er
 
 #pragma mark - 事件发射
 
-/// 发送事件
-- (void)emit:(NSString *_Nonnull)event items:(NSArray *_Nonnull)items;
+/// 发送无参数事件
+- (void)emit:(NSString *_Nonnull)event;
 
+/// 发送事件（可变参数版本）
+- (void)emit:(NSString *_Nonnull)event withArgs:(id _Nullable)arg1, ... NS_REQUIRES_NIL_TERMINATION;
+
+/// 发送事件
+- (void)emit:(NSString *_Nonnull)event items:(NSArray *_Nullable)items;
 
 /// 增强的emitWithAck方法，直接传递回调block
 - (void)emitWithAck:(NSString *_Nonnull)event
-              items:(NSArray *_Nonnull)items
+              items:(NSArray *_Nullable)items
 ackBlock:(void(^_Nonnull)(NSArray * _Nullable data, NSError * _Nullable error))ackBlock;
 
 /// 增强的emitWithAck方法，直接传递回调block，带超时时间
 - (void)emitWithAck:(NSString *_Nonnull)event
-              items:(NSArray *_Nonnull)items
+              items:(NSArray *_Nullable)items
            ackBlock:(void(^_Nonnull)(NSArray * _Nullable data, NSError * _Nullable error))ackBlock
             timeout:(NSTimeInterval)timeout;
 

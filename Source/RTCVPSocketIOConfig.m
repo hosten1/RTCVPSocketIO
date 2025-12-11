@@ -20,6 +20,21 @@ NSString *const kRTCVPSocketIOConfigKeyNsp = @"nsp";
 NSString *const kRTCVPSocketIOConfigKeyIgnoreSSLErrors = @"ignoreSSLErrors";
 NSString *const kRTCVPSocketIOConfigKeyProtocolVersion = @"protocolVersion";
 
+// 缺失的配置键常量
+NSString *const kRTCVPSocketIOConfigKeyForcePolling = @"forcePolling";
+NSString *const kRTCVPSocketIOConfigKeyForceWebsockets = @"forceWebsockets";
+NSString *const kRTCVPSocketIOConfigKeyPath = @"path";
+NSString *const kRTCVPSocketIOConfigKeySecure = @"secure";
+NSString *const kRTCVPSocketIOConfigKeyPingInterval = @"pingInterval";
+NSString *const kRTCVPSocketIOConfigKeyPingTimeout = @"pingTimeout";
+NSString *const kRTCVPSocketIOConfigKeyExtraHeaders = @"extraHeaders";
+NSString *const kRTCVPSocketIOConfigKeyCookies = @"cookies";
+NSString *const kRTCVPSocketIOConfigKeyConnectParams = @"connectParams";
+NSString *const kRTCVPSocketIOConfigKeySelfSigned = @"selfSigned";
+NSString *const kRTCVPSocketIOConfigKeySecurity = @"security";
+NSString *const kRTCVPSocketIOConfigKeyCompress = @"compress";
+NSString *const kRTCVPSocketIOConfigKeyNamespace = @"namespace";
+
 // Socket.IO 3.0协议支持常量
 const int kRTCVPSocketIOProtocolVersion2 = 2;
 const int kRTCVPSocketIOProtocolVersion3 = 3;
