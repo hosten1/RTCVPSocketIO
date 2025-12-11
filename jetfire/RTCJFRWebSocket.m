@@ -592,9 +592,9 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     
     // 检查保留位
     if((RTCJFRRSVMask & buffer[0]) && receivedOpcode != RTCJFROpCodePong) {
-        [self doDisconnect:[self errorWithDetail:@"RSV bits must be 0" code:RTCJFRCloseCodeProtocolError]];
-        [self writeError:RTCJFRCloseCodeProtocolError];
-        return;
+        // 只记录警告，不断开连接，兼容某些不符合标准的服务器
+        NSLog(@"⚠️ 收到带有非零RSV位的WebSocket帧，违反协议，但继续处理");
+        // 不调用doDisconnect，继续处理该帧
     }
     
     // 检查操作码
@@ -606,16 +606,19 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
        receivedOpcode != RTCJFROpCodeBinaryFrame &&
        receivedOpcode != RTCJFROpCodeContinueFrame &&
        receivedOpcode != RTCJFROpCodeTextFrame) {
-        [self doDisconnect:[self errorWithDetail:[NSString stringWithFormat:@"Unknown opcode: 0x%x", receivedOpcode]
-                                            code:RTCJFRCloseCodeProtocolError]];
-        [self writeError:RTCJFRCloseCodeProtocolError];
+        // 只记录警告，不断开连接，兼容某些不符合标准的服务器
+        NSLog(@"⚠️ 收到未知操作码: 0x%x，违反协议，但继续处理", receivedOpcode);
+        // 不调用doDisconnect，继续处理该帧
+        // 跳过对未知操作码的处理，直接返回
         return;
     }
     
+    // 忽略控制帧分片检查，允许接收分片的控制帧
+    // 这是为了兼容某些不符合WebSocket协议的服务器
     if(isControlFrame && !isFin) {
-        [self doDisconnect:[self errorWithDetail:@"Control frames can't be fragmented" code:RTCJFRCloseCodeProtocolError]];
-        [self writeError:RTCJFRCloseCodeProtocolError];
-        return;
+        // 只记录警告，不断开连接
+        NSLog(@"⚠️ 收到分片的控制帧，违反WebSocket协议，但继续处理");
+        // 不调用doDisconnect，继续处理该帧
     }
     
     if(receivedOpcode == RTCJFROpCodeConnectionClose) {

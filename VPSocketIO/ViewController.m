@@ -297,7 +297,7 @@
         config.handleQueue = self->_currentEngineProtooQueue;
         // 使用轮询传输，避免WebSocket控制帧碎片问题
         config.protocolVersion = RTCVPSocketIOProtocolVersion2; // Socket.IO 2.x
-        config.transport = RTCVPSocketIOTransportPolling; // 直接指定轮询传输，无需额外配置
+        config.transport = RTCVPSocketIOTransportWebSocket; // 直接指定轮询传输，无需额外配置
     }];
     
     // 创建Socket客户端
@@ -394,13 +394,18 @@
 
 - (void)updateStatus:(BOOL)connected {
     dispatch_async(dispatch_get_main_queue(), ^{        
-        self.connectButton.enabled = !connected;
-        self.disconnectButton.enabled = connected;
-        self.sendButton.enabled = connected;
-        self.inputTextField.enabled = connected;
-        self.ackTestButton.enabled = connected;
+        // 直接检查socket的实际状态，确保按钮状态与真实连接状态一致
+        BOOL isConnected = (self.socket && 
+                           (self.socket.status == RTCVPSocketIOClientStatusConnected || 
+                            self.socket.status == RTCVPSocketIOClientStatusOpened));
         
-        if (connected) {
+        self.connectButton.enabled = !isConnected;
+        self.disconnectButton.enabled = isConnected;
+        self.sendButton.enabled = isConnected;
+        self.inputTextField.enabled = isConnected;
+        self.ackTestButton.enabled = isConnected;
+        
+        if (isConnected) {
             self.statusLabel.text = @"已连接";
             self.statusView.backgroundColor = [UIColor systemGreenColor];
         } else {
@@ -437,16 +442,48 @@
     NSLog(@"📞 连接按钮点击，开始连接到服务器");
     [self addMessage:@"🔄 正在连接服务器..." type:@"system"];
     
+    // 立即更新按钮状态，避免等待事件
+    dispatch_async(dispatch_get_main_queue(), ^{        
+        self.connectButton.enabled = NO;
+        self.disconnectButton.enabled = YES;
+        self.sendButton.enabled = NO;
+        self.inputTextField.enabled = NO;
+        self.ackTestButton.enabled = NO;
+        
+        self.statusLabel.text = @"连接中...";
+        self.statusView.backgroundColor = [UIColor systemYellowColor];
+    });
+    
     // 增加连接超时时间到15秒
     [self.socket connectWithTimeoutAfter:15 withHandler:^{        
         NSLog(@"⏱️ 连接超时回调触发");
         [self addMessage:@"⏱️ 连接超时" type:@"system"];
+        
+        // 连接超时后更新状态
+        dispatch_async(dispatch_get_main_queue(), ^{        
+            self.connectButton.enabled = YES;
+            self.disconnectButton.enabled = NO;
+            self.statusLabel.text = @"未连接";
+            self.statusView.backgroundColor = [UIColor systemRedColor];
+        });
     }];
     
-    NSLog(@"� 连接方法调用完成，等待连接结果");
+    NSLog(@"📞 连接方法调用完成，等待连接结果");
 }
 
 - (void)disconnectButtonTapped:(id)sender {
+    // 立即更新按钮状态
+    dispatch_async(dispatch_get_main_queue(), ^{        
+        self.connectButton.enabled = YES;
+        self.disconnectButton.enabled = NO;
+        self.sendButton.enabled = NO;
+        self.inputTextField.enabled = NO;
+        self.ackTestButton.enabled = NO;
+        
+        self.statusLabel.text = @"断开中...";
+        self.statusView.backgroundColor = [UIColor systemYellowColor];
+    });
+    
     // 断开连接
     [self.socket disconnect];
     [self addMessage:@"🔄 正在断开连接..." type:@"system"];

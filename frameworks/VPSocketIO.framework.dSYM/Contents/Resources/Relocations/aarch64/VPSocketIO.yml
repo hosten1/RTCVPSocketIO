@@ -2,8 +2,8 @@
 triple:          'arm64-apple-darwin'
 binary-path:     '/Users/luoyongmeng/Documents/githab/RTCVPSocketIO/frameworks/VPSocketIO.framework/VPSocketIO'
 relocations:
-  - { offset: 0x32A56, size: 0x8, addend: 0x0, symName: _VPSocketIOVersionString, symObjAddr: 0x0, symBinAddr: 0x206E0, symSize: 0x0 }
-  - { offset: 0x32A8A, size: 0x8, addend: 0x0, symName: _VPSocketIOVersionNumber, symObjAddr: 0x30, symBinAddr: 0x20710, symSize: 0x0 }
+  - { offset: 0x32A56, size: 0x8, addend: 0x0, symName: _VPSocketIOVersionString, symObjAddr: 0x0, symBinAddr: 0x20640, symSize: 0x0 }
+  - { offset: 0x32A8A, size: 0x8, addend: 0x0, symName: _VPSocketIOVersionNumber, symObjAddr: 0x30, symBinAddr: 0x20670, symSize: 0x0 }
   - { offset: 0x32AC6, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketEngine engineWithClient:url:config:]', symObjAddr: 0x0, symBinAddr: 0x4000, symSize: 0x88 }
   - { offset: 0x334C6, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketEngine engineWithClient:url:config:]', symObjAddr: 0x0, symBinAddr: 0x4000, symSize: 0x88 }
   - { offset: 0x33527, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine initWithClient:url:config:]', symObjAddr: 0x88, symBinAddr: 0x4088, symSize: 0x1E0 }
@@ -371,7 +371,7 @@ relocations:
   - { offset: 0x3C7C8, size: 0x8, addend: 0x0, symName: '-[RTCVPTimer setStartTime:]', symObjAddr: 0x8FC, symBinAddr: 0xDA4C, symSize: 0x8 }
   - { offset: 0x3C804, size: 0x8, addend: 0x0, symName: '-[RTCVPTimer .cxx_destruct]', symObjAddr: 0x904, symBinAddr: 0xDA54, symSize: 0x48 }
   - { offset: 0x3C9B8, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket initWithURL:protocols:]', symObjAddr: 0x0, symBinAddr: 0xDA9C, symSize: 0x144 }
-  - { offset: 0x3CA32, size: 0x8, addend: 0x0, symName: _CRLFBytes, symObjAddr: 0x49F8, symBinAddr: 0x20760, symSize: 0x0 }
+  - { offset: 0x3CA32, size: 0x8, addend: 0x0, symName: _CRLFBytes, symObjAddr: 0x4918, symBinAddr: 0x206C0, symSize: 0x0 }
   - { offset: 0x3CF86, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket initWithURL:protocols:]', symObjAddr: 0x0, symBinAddr: 0xDA9C, symSize: 0x144 }
   - { offset: 0x3CFD8, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket connect]', symObjAddr: 0x144, symBinAddr: 0xDBE0, symSize: 0x11C }
   - { offset: 0x3D091, size: 0x8, addend: 0x0, symName: '___26-[RTCJFRWebSocket connect]_block_invoke', symObjAddr: 0x260, symBinAddr: 0xDCFC, symSize: 0x30 }
@@ -393,393 +393,393 @@ relocations:
   - { offset: 0x3DA22, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processHTTP:length:responseStatusCode:]', symObjAddr: 0x1988, symBinAddr: 0xF400, symSize: 0x174 }
   - { offset: 0x3DB34, size: 0x8, addend: 0x0, symName: '___57-[RTCJFRWebSocket processHTTP:length:responseStatusCode:]_block_invoke', symObjAddr: 0x1AFC, symBinAddr: 0xF574, symSize: 0x11C }
   - { offset: 0x3DB7E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket validateResponse:length:responseStatusCode:]', symObjAddr: 0x1C18, symBinAddr: 0xF690, symSize: 0xC4 }
-  - { offset: 0x3DD3E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processRawMessage:length:]', symObjAddr: 0x1CDC, symBinAddr: 0xF754, symSize: 0x6B0 }
-  - { offset: 0x3E009, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processExtra:length:]', symObjAddr: 0x238C, symBinAddr: 0xFE04, symSize: 0x4 }
-  - { offset: 0x3E058, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processResponse:]', symObjAddr: 0x2390, symBinAddr: 0xFE08, symSize: 0x270 }
-  - { offset: 0x3E132, size: 0x8, addend: 0x0, symName: '___35-[RTCJFRWebSocket processResponse:]_block_invoke', symObjAddr: 0x2600, symBinAddr: 0x10078, symSize: 0x134 }
-  - { offset: 0x3E18D, size: 0x8, addend: 0x0, symName: '___35-[RTCJFRWebSocket processResponse:]_block_invoke.84', symObjAddr: 0x278C, symBinAddr: 0x101AC, symSize: 0x134 }
-  - { offset: 0x3E1E8, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket dequeueWrite:withCode:]', symObjAddr: 0x28C0, symBinAddr: 0x102E0, symSize: 0x19C }
-  - { offset: 0x3E281, size: 0x8, addend: 0x0, symName: '___41-[RTCJFRWebSocket dequeueWrite:withCode:]_block_invoke', symObjAddr: 0x2A5C, symBinAddr: 0x1047C, symSize: 0x2DC }
-  - { offset: 0x3E4E4, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket doDisconnect:]', symObjAddr: 0x2D38, symBinAddr: 0x10758, symSize: 0x104 }
-  - { offset: 0x3E563, size: 0x8, addend: 0x0, symName: '___32-[RTCJFRWebSocket doDisconnect:]_block_invoke', symObjAddr: 0x2E3C, symBinAddr: 0x1085C, symSize: 0x150 }
-  - { offset: 0x3E5BE, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket errorWithDetail:code:]', symObjAddr: 0x2F8C, symBinAddr: 0x109AC, symSize: 0x8 }
-  - { offset: 0x3E611, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket errorWithDetail:code:userInfo:]', symObjAddr: 0x2F94, symBinAddr: 0x109B4, symSize: 0xD8 }
-  - { offset: 0x3E687, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket writeError:]', symObjAddr: 0x306C, symBinAddr: 0x10A8C, symSize: 0x64 }
-  - { offset: 0x3E6FA, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket dealloc]', symObjAddr: 0x30D0, symBinAddr: 0x10AF0, symSize: 0x50 }
-  - { offset: 0x3E72C, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket delegate]', symObjAddr: 0x3120, symBinAddr: 0x10B40, symSize: 0x18 }
-  - { offset: 0x3E761, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setDelegate:]', symObjAddr: 0x3138, symBinAddr: 0x10B58, symSize: 0xC }
-  - { offset: 0x3E7A0, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket url]', symObjAddr: 0x3144, symBinAddr: 0x10B64, symSize: 0x8 }
-  - { offset: 0x3E7D5, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setUrl:]', symObjAddr: 0x314C, symBinAddr: 0x10B6C, symSize: 0xC }
-  - { offset: 0x3E814, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket voipEnabled]', symObjAddr: 0x3158, symBinAddr: 0x10B78, symSize: 0x8 }
-  - { offset: 0x3E849, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setVoipEnabled:]', symObjAddr: 0x3160, symBinAddr: 0x10B80, symSize: 0x8 }
-  - { offset: 0x3E883, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket selfSignedSSL]', symObjAddr: 0x3168, symBinAddr: 0x10B88, symSize: 0x8 }
-  - { offset: 0x3E8B8, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setSelfSignedSSL:]', symObjAddr: 0x3170, symBinAddr: 0x10B90, symSize: 0x8 }
-  - { offset: 0x3E8F2, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket security]', symObjAddr: 0x3178, symBinAddr: 0x10B98, symSize: 0x8 }
-  - { offset: 0x3E927, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setSecurity:]', symObjAddr: 0x3180, symBinAddr: 0x10BA0, symSize: 0xC }
-  - { offset: 0x3E966, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket queue]', symObjAddr: 0x318C, symBinAddr: 0x10BAC, symSize: 0x8 }
-  - { offset: 0x3E99B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setQueue:]', symObjAddr: 0x3194, symBinAddr: 0x10BB4, symSize: 0xC }
-  - { offset: 0x3E9DA, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onConnect]', symObjAddr: 0x31A0, symBinAddr: 0x10BC0, symSize: 0x8 }
-  - { offset: 0x3EA0F, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnConnect:]', symObjAddr: 0x31A8, symBinAddr: 0x10BC8, symSize: 0x8 }
-  - { offset: 0x3EA4E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onDisconnect]', symObjAddr: 0x31B0, symBinAddr: 0x10BD0, symSize: 0x8 }
-  - { offset: 0x3EA83, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnDisconnect:]', symObjAddr: 0x31B8, symBinAddr: 0x10BD8, symSize: 0x8 }
-  - { offset: 0x3EAC2, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onData]', symObjAddr: 0x31C0, symBinAddr: 0x10BE0, symSize: 0x8 }
-  - { offset: 0x3EAF7, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnData:]', symObjAddr: 0x31C8, symBinAddr: 0x10BE8, symSize: 0x8 }
-  - { offset: 0x3EB36, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onText]', symObjAddr: 0x31D0, symBinAddr: 0x10BF0, symSize: 0x8 }
-  - { offset: 0x3EB6B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnText:]', symObjAddr: 0x31D8, symBinAddr: 0x10BF8, symSize: 0x8 }
-  - { offset: 0x3EBAA, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket inputStream]', symObjAddr: 0x31E0, symBinAddr: 0x10C00, symSize: 0x8 }
-  - { offset: 0x3EBDF, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setInputStream:]', symObjAddr: 0x31E8, symBinAddr: 0x10C08, symSize: 0xC }
-  - { offset: 0x3EC1E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket outputStream]', symObjAddr: 0x31F4, symBinAddr: 0x10C14, symSize: 0x8 }
-  - { offset: 0x3EC53, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOutputStream:]', symObjAddr: 0x31FC, symBinAddr: 0x10C1C, symSize: 0xC }
-  - { offset: 0x3EC92, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket writeQueue]', symObjAddr: 0x3208, symBinAddr: 0x10C28, symSize: 0x8 }
-  - { offset: 0x3ECC7, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setWriteQueue:]', symObjAddr: 0x3210, symBinAddr: 0x10C30, symSize: 0xC }
-  - { offset: 0x3ED06, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket isRunLoop]', symObjAddr: 0x321C, symBinAddr: 0x10C3C, symSize: 0x8 }
-  - { offset: 0x3ED3B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setIsRunLoop:]', symObjAddr: 0x3224, symBinAddr: 0x10C44, symSize: 0x8 }
-  - { offset: 0x3ED75, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket readStack]', symObjAddr: 0x322C, symBinAddr: 0x10C4C, symSize: 0x8 }
-  - { offset: 0x3EDAA, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setReadStack:]', symObjAddr: 0x3234, symBinAddr: 0x10C54, symSize: 0xC }
-  - { offset: 0x3EDE9, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket inputQueue]', symObjAddr: 0x3240, symBinAddr: 0x10C60, symSize: 0x8 }
-  - { offset: 0x3EE1E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setInputQueue:]', symObjAddr: 0x3248, symBinAddr: 0x10C68, symSize: 0xC }
-  - { offset: 0x3EE5D, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket fragBuffer]', symObjAddr: 0x3254, symBinAddr: 0x10C74, symSize: 0x8 }
-  - { offset: 0x3EE92, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setFragBuffer:]', symObjAddr: 0x325C, symBinAddr: 0x10C7C, symSize: 0xC }
-  - { offset: 0x3EED1, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket headers]', symObjAddr: 0x3268, symBinAddr: 0x10C88, symSize: 0x8 }
-  - { offset: 0x3EF06, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setHeaders:]', symObjAddr: 0x3270, symBinAddr: 0x10C90, symSize: 0xC }
-  - { offset: 0x3EF45, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket optProtocols]', symObjAddr: 0x327C, symBinAddr: 0x10C9C, symSize: 0x8 }
-  - { offset: 0x3EF7A, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOptProtocols:]', symObjAddr: 0x3284, symBinAddr: 0x10CA4, symSize: 0xC }
-  - { offset: 0x3EFB9, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket isCreated]', symObjAddr: 0x3290, symBinAddr: 0x10CB0, symSize: 0x8 }
-  - { offset: 0x3EFEE, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setIsCreated:]', symObjAddr: 0x3298, symBinAddr: 0x10CB8, symSize: 0x8 }
-  - { offset: 0x3F028, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket didDisconnect]', symObjAddr: 0x32A0, symBinAddr: 0x10CC0, symSize: 0x8 }
-  - { offset: 0x3F05D, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setDidDisconnect:]', symObjAddr: 0x32A8, symBinAddr: 0x10CC8, symSize: 0x8 }
-  - { offset: 0x3F097, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket certValidated]', symObjAddr: 0x32B0, symBinAddr: 0x10CD0, symSize: 0x8 }
-  - { offset: 0x3F0CC, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setCertValidated:]', symObjAddr: 0x32B8, symBinAddr: 0x10CD8, symSize: 0x8 }
-  - { offset: 0x3F106, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket customHeaders]', symObjAddr: 0x32C0, symBinAddr: 0x10CE0, symSize: 0x8 }
-  - { offset: 0x3F13B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setCustomHeaders:]', symObjAddr: 0x32C8, symBinAddr: 0x10CE8, symSize: 0xC }
-  - { offset: 0x3F17A, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket .cxx_destruct]', symObjAddr: 0x32D4, symBinAddr: 0x10CF4, symSize: 0xE0 }
-  - { offset: 0x3F1AB, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse isFin]', symObjAddr: 0x33B4, symBinAddr: 0x10DD4, symSize: 0x8 }
-  - { offset: 0x3F1E0, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setIsFin:]', symObjAddr: 0x33BC, symBinAddr: 0x10DDC, symSize: 0x8 }
-  - { offset: 0x3F21A, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse code]', symObjAddr: 0x33C4, symBinAddr: 0x10DE4, symSize: 0x8 }
-  - { offset: 0x3F24F, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setCode:]', symObjAddr: 0x33CC, symBinAddr: 0x10DEC, symSize: 0x8 }
-  - { offset: 0x3F28B, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse bytesLeft]', symObjAddr: 0x33D4, symBinAddr: 0x10DF4, symSize: 0x8 }
-  - { offset: 0x3F2C0, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setBytesLeft:]', symObjAddr: 0x33DC, symBinAddr: 0x10DFC, symSize: 0x8 }
-  - { offset: 0x3F2FC, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse frameCount]', symObjAddr: 0x33E4, symBinAddr: 0x10E04, symSize: 0x8 }
-  - { offset: 0x3F331, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setFrameCount:]', symObjAddr: 0x33EC, symBinAddr: 0x10E0C, symSize: 0x8 }
-  - { offset: 0x3F36D, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse buffer]', symObjAddr: 0x33F4, symBinAddr: 0x10E14, symSize: 0x8 }
-  - { offset: 0x3F3A2, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setBuffer:]', symObjAddr: 0x33FC, symBinAddr: 0x10E1C, symSize: 0xC }
-  - { offset: 0x3F3E1, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse .cxx_destruct]', symObjAddr: 0x3408, symBinAddr: 0x10E28, symSize: 0xC }
-  - { offset: 0x3F7D3, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert initWithData:]', symObjAddr: 0x0, symBinAddr: 0x10E34, symSize: 0x78 }
-  - { offset: 0x3F92D, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert initWithData:]', symObjAddr: 0x0, symBinAddr: 0x10E34, symSize: 0x78 }
-  - { offset: 0x3F970, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert initWithKey:]', symObjAddr: 0x78, symBinAddr: 0x10EAC, symSize: 0x70 }
-  - { offset: 0x3F9DD, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert dealloc]', symObjAddr: 0xE8, symBinAddr: 0x10F1C, symSize: 0x60 }
-  - { offset: 0x3FA2B, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert certData]', symObjAddr: 0x148, symBinAddr: 0x10F7C, symSize: 0x8 }
-  - { offset: 0x3FA60, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert setCertData:]', symObjAddr: 0x150, symBinAddr: 0x10F84, symSize: 0xC }
-  - { offset: 0x3FA9F, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert key]', symObjAddr: 0x15C, symBinAddr: 0x10F90, symSize: 0x8 }
-  - { offset: 0x3FAD4, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert setKey:]', symObjAddr: 0x164, symBinAddr: 0x10F98, symSize: 0x8 }
-  - { offset: 0x3FB10, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert keyOwned]', symObjAddr: 0x16C, symBinAddr: 0x10FA0, symSize: 0x8 }
-  - { offset: 0x3FB45, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert setKeyOwned:]', symObjAddr: 0x174, symBinAddr: 0x10FA8, symSize: 0x8 }
-  - { offset: 0x3FB7F, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert .cxx_destruct]', symObjAddr: 0x17C, symBinAddr: 0x10FB0, symSize: 0xC }
-  - { offset: 0x3FBAF, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity init]', symObjAddr: 0x188, symBinAddr: 0x10FBC, symSize: 0x68 }
-  - { offset: 0x3FC11, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity initUsingPublicKeys:]', symObjAddr: 0x1F0, symBinAddr: 0x11024, symSize: 0x1D0 }
-  - { offset: 0x3FCA6, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity initWithCerts:publicKeys:]', symObjAddr: 0x3C0, symBinAddr: 0x111F4, symSize: 0x25C }
-  - { offset: 0x3FDCD, size: 0x8, addend: 0x0, symName: '___43-[RTCJFRSecurity initWithCerts:publicKeys:]_block_invoke', symObjAddr: 0x61C, symBinAddr: 0x11450, symSize: 0x2E4 }
-  - { offset: 0x3FEE0, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity isValid:domain:]', symObjAddr: 0x950, symBinAddr: 0x11734, symSize: 0x56C }
-  - { offset: 0x4020F, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity extractPublicKey:]', symObjAddr: 0xEBC, symBinAddr: 0x11CA0, symSize: 0xD0 }
-  - { offset: 0x403A1, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity extractPublicKeyFromCert:policy:]', symObjAddr: 0xF8C, symBinAddr: 0x11D70, symSize: 0x94 }
-  - { offset: 0x40468, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity certificateChainForTrust:]', symObjAddr: 0x1020, symBinAddr: 0x11E04, symSize: 0xBC }
-  - { offset: 0x405A0, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity publicKeyChainForTrust:]', symObjAddr: 0x10DC, symBinAddr: 0x11EC0, symSize: 0xE8 }
-  - { offset: 0x406C6, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity validatedDN]', symObjAddr: 0x11C4, symBinAddr: 0x11FA8, symSize: 0x8 }
-  - { offset: 0x406FB, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setValidatedDN:]', symObjAddr: 0x11CC, symBinAddr: 0x11FB0, symSize: 0x8 }
-  - { offset: 0x40735, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity isReady]', symObjAddr: 0x11D4, symBinAddr: 0x11FB8, symSize: 0x8 }
-  - { offset: 0x4076A, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setIsReady:]', symObjAddr: 0x11DC, symBinAddr: 0x11FC0, symSize: 0x8 }
-  - { offset: 0x407A4, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity certificates]', symObjAddr: 0x11E4, symBinAddr: 0x11FC8, symSize: 0x8 }
-  - { offset: 0x407D9, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setCertificates:]', symObjAddr: 0x11EC, symBinAddr: 0x11FD0, symSize: 0xC }
-  - { offset: 0x40818, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity publicKeys]', symObjAddr: 0x11F8, symBinAddr: 0x11FDC, symSize: 0x8 }
-  - { offset: 0x4084D, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setPublicKeys:]', symObjAddr: 0x1200, symBinAddr: 0x11FE4, symSize: 0xC }
-  - { offset: 0x4088C, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity usePublicKeys]', symObjAddr: 0x120C, symBinAddr: 0x11FF0, symSize: 0x8 }
-  - { offset: 0x408C1, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setUsePublicKeys:]', symObjAddr: 0x1214, symBinAddr: 0x11FF8, symSize: 0x8 }
-  - { offset: 0x408FB, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity readySemaphore]', symObjAddr: 0x121C, symBinAddr: 0x12000, symSize: 0x8 }
-  - { offset: 0x40930, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setReadySemaphore:]', symObjAddr: 0x1224, symBinAddr: 0x12008, symSize: 0xC }
-  - { offset: 0x4096F, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity .cxx_destruct]', symObjAddr: 0x1230, symBinAddr: 0x12014, symSize: 0x3C }
-  - { offset: 0x40ACC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem initWithAck:andCallBack:]', symObjAddr: 0x0, symBinAddr: 0x12050, symSize: 0x88 }
-  - { offset: 0x40BD3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem initWithAck:andCallBack:]', symObjAddr: 0x0, symBinAddr: 0x12050, symSize: 0x88 }
-  - { offset: 0x40C26, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem ack]', symObjAddr: 0x88, symBinAddr: 0x120D8, symSize: 0x8 }
-  - { offset: 0x40C5B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem setAck:]', symObjAddr: 0x90, symBinAddr: 0x120E0, symSize: 0x8 }
-  - { offset: 0x40C97, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem callback]', symObjAddr: 0x98, symBinAddr: 0x120E8, symSize: 0x8 }
-  - { offset: 0x40CCC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem setCallback:]', symObjAddr: 0xA0, symBinAddr: 0x120F0, symSize: 0x8 }
-  - { offset: 0x40D0B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem .cxx_destruct]', symObjAddr: 0xA8, symBinAddr: 0x120F8, symSize: 0xC }
-  - { offset: 0x40D3B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager init]', symObjAddr: 0xB4, symBinAddr: 0x12104, symSize: 0x84 }
-  - { offset: 0x40D9D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager addAck:callback:]', symObjAddr: 0x138, symBinAddr: 0x12188, symSize: 0x8C }
-  - { offset: 0x40E3F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager executeAck:withItems:onQueue:]', symObjAddr: 0x1C4, symBinAddr: 0x12214, symSize: 0xE0 }
-  - { offset: 0x40EE3, size: 0x8, addend: 0x0, symName: '___54-[RTCVPSocketAckManager executeAck:withItems:onQueue:]_block_invoke', symObjAddr: 0x2A4, symBinAddr: 0x122F4, symSize: 0x34 }
-  - { offset: 0x40F37, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager timeoutAck:onQueue:]', symObjAddr: 0x334, symBinAddr: 0x12328, symSize: 0xB4 }
-  - { offset: 0x40FB3, size: 0x8, addend: 0x0, symName: '___44-[RTCVPSocketAckManager timeoutAck:onQueue:]_block_invoke', symObjAddr: 0x3E8, symBinAddr: 0x123DC, symSize: 0xB0 }
-  - { offset: 0x41007, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager removeAckCallbackWithId:]', symObjAddr: 0x4B0, symBinAddr: 0x1248C, symSize: 0x194 }
-  - { offset: 0x410A1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager removeAllAcks]', symObjAddr: 0x644, symBinAddr: 0x12620, symSize: 0x34 }
-  - { offset: 0x410EE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager .cxx_destruct]', symObjAddr: 0x678, symBinAddr: 0x12654, symSize: 0x30 }
-  - { offset: 0x41279, size: 0x8, addend: 0x0, symName: '-[NSArray(JSON) toJSON:]', symObjAddr: 0x0, symBinAddr: 0x12684, symSize: 0x18 }
-  - { offset: 0x413C6, size: 0x8, addend: 0x0, symName: '-[NSArray(JSON) toJSON:]', symObjAddr: 0x0, symBinAddr: 0x12684, symSize: 0x18 }
-  - { offset: 0x41409, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket description]', symObjAddr: 0x18, symBinAddr: 0x1269C, symSize: 0xB4 }
-  - { offset: 0x4143E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket logType]', symObjAddr: 0xCC, symBinAddr: 0x12750, symSize: 0xC }
-  - { offset: 0x4146E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket args]', symObjAddr: 0xD8, symBinAddr: 0x1275C, symSize: 0x68 }
-  - { offset: 0x414A2, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket event]', symObjAddr: 0x140, symBinAddr: 0x127C4, symSize: 0x6C }
-  - { offset: 0x414D7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket packetString]', symObjAddr: 0x1AC, symBinAddr: 0x12830, symSize: 0x4 }
-  - { offset: 0x4150A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket init:nsp:placeholders:]', symObjAddr: 0x1B0, symBinAddr: 0x12834, symSize: 0x98 }
-  - { offset: 0x4156B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket init:data:ID:nsp:placeholders:binary:]', symObjAddr: 0x248, symBinAddr: 0x128CC, symSize: 0x104 }
-  - { offset: 0x415F9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket setupData]', symObjAddr: 0x34C, symBinAddr: 0x129D0, symSize: 0x1EC }
-  - { offset: 0x4162A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket addData:]', symObjAddr: 0x538, symBinAddr: 0x12BBC, symSize: 0xC4 }
-  - { offset: 0x4167C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket completeMessage:]', symObjAddr: 0x5FC, symBinAddr: 0x12C80, symSize: 0x164 }
-  - { offset: 0x416F3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket createPacketString]', symObjAddr: 0x760, symBinAddr: 0x12DE4, symSize: 0x1B8 }
-  - { offset: 0x4178F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket fillInPlaceholders]', symObjAddr: 0x918, symBinAddr: 0x12F9C, symSize: 0x140 }
-  - { offset: 0x417EB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket _fillInPlaceholders:]', symObjAddr: 0xA58, symBinAddr: 0x130DC, symSize: 0x344 }
-  - { offset: 0x418E6, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket packetFromEmit:ID:nsp:ack:isEvent:]', symObjAddr: 0xD9C, symBinAddr: 0x13420, symSize: 0x12C }
-  - { offset: 0x41991, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket findType:ack:]', symObjAddr: 0xEC8, symBinAddr: 0x1354C, symSize: 0x24 }
-  - { offset: 0x419E2, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket parseItems:toBinary:]', symObjAddr: 0xEEC, symBinAddr: 0x13570, symSize: 0x178 }
-  - { offset: 0x41A61, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket shred:binary:]', symObjAddr: 0x1064, symBinAddr: 0x136E8, symSize: 0x3C8 }
-  - { offset: 0x41B59, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket binary]', symObjAddr: 0x142C, symBinAddr: 0x13AB0, symSize: 0x8 }
-  - { offset: 0x41B8E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket type]', symObjAddr: 0x1434, symBinAddr: 0x13AB8, symSize: 0x8 }
-  - { offset: 0x41BC3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket ID]', symObjAddr: 0x143C, symBinAddr: 0x13AC0, symSize: 0x8 }
-  - { offset: 0x41BF8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket nsp]', symObjAddr: 0x1444, symBinAddr: 0x13AC8, symSize: 0x8 }
-  - { offset: 0x41C2D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket data]', symObjAddr: 0x144C, symBinAddr: 0x13AD0, symSize: 0x8 }
-  - { offset: 0x41C62, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket .cxx_destruct]', symObjAddr: 0x1454, symBinAddr: 0x13AD8, symSize: 0x48 }
-  - { offset: 0x41D45, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) doLongPoll:]', symObjAddr: 0x0, symBinAddr: 0x13B20, symSize: 0x13C }
-  - { offset: 0x41E30, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) doLongPoll:]', symObjAddr: 0x0, symBinAddr: 0x13B20, symSize: 0x13C }
-  - { offset: 0x41E8E, size: 0x8, addend: 0x0, symName: '___48-[RTCVPSocketEngine(EnginePollable) doLongPoll:]_block_invoke', symObjAddr: 0x13C, symBinAddr: 0x13C5C, symSize: 0x124 }
-  - { offset: 0x41FA4, size: 0x8, addend: 0x0, symName: '___48-[RTCVPSocketEngine(EnginePollable) doLongPoll:]_block_invoke_2', symObjAddr: 0x260, symBinAddr: 0x13D80, symSize: 0x2A0 }
-  - { offset: 0x4205C, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32s40s48s56s, symObjAddr: 0x500, symBinAddr: 0x14020, symSize: 0x38 }
-  - { offset: 0x42085, size: 0x8, addend: 0x0, symName: ___destroy_helper_block_e8_32s40s48s56s, symObjAddr: 0x538, symBinAddr: 0x14058, symSize: 0x38 }
-  - { offset: 0x420A3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) doPoll]', symObjAddr: 0x584, symBinAddr: 0x14090, symSize: 0xC4 }
-  - { offset: 0x420E2, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) parsePollingMessage:]', symObjAddr: 0x648, symBinAddr: 0x14154, symSize: 0x140 }
-  - { offset: 0x42181, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) sendPollMessage:withType:withData:]', symObjAddr: 0x788, symBinAddr: 0x14294, symSize: 0x268 }
-  - { offset: 0x4222F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) disconnectPolling]', symObjAddr: 0x9F0, symBinAddr: 0x144FC, symSize: 0x124 }
-  - { offset: 0x42299, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) flushWaitingForPost]', symObjAddr: 0xB14, symBinAddr: 0x14620, symSize: 0x198 }
-  - { offset: 0x422F7, size: 0x8, addend: 0x0, symName: '___56-[RTCVPSocketEngine(EnginePollable) flushWaitingForPost]_block_invoke', symObjAddr: 0xCAC, symBinAddr: 0x147B8, symSize: 0xC4 }
-  - { offset: 0x42392, size: 0x8, addend: 0x0, symName: '___56-[RTCVPSocketEngine(EnginePollable) flushWaitingForPost]_block_invoke_2', symObjAddr: 0xD70, symBinAddr: 0x1487C, symSize: 0x11C }
-  - { offset: 0x423DA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) urlPollingWithSid]', symObjAddr: 0xEDC, symBinAddr: 0x14998, symSize: 0x1F0 }
-  - { offset: 0x42449, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) createRequestForPostWithPostWait]', symObjAddr: 0x10CC, symBinAddr: 0x14B88, symSize: 0x2F4 }
-  - { offset: 0x424C0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) stopPolling]', symObjAddr: 0x13C0, symBinAddr: 0x14E7C, symSize: 0x4C }
-  - { offset: 0x42D9D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler initWithEvent:uuid:andCallback:]', symObjAddr: 0x0, symBinAddr: 0x14EC8, symSize: 0xDC }
-  - { offset: 0x42DB6, size: 0x8, addend: 0x0, symName: _kSocketEventConnect, symObjAddr: 0x7150, symBinAddr: 0x2C800, symSize: 0x0 }
-  - { offset: 0x42DD5, size: 0x8, addend: 0x0, symName: _kSocketEventDisconnect, symObjAddr: 0x7158, symBinAddr: 0x2C808, symSize: 0x0 }
-  - { offset: 0x42DEA, size: 0x8, addend: 0x0, symName: _kSocketEventError, symObjAddr: 0x7160, symBinAddr: 0x2C810, symSize: 0x0 }
-  - { offset: 0x42DFF, size: 0x8, addend: 0x0, symName: _kSocketEventReconnect, symObjAddr: 0x7168, symBinAddr: 0x2C818, symSize: 0x0 }
-  - { offset: 0x42E14, size: 0x8, addend: 0x0, symName: _kSocketEventReconnectAttempt, symObjAddr: 0x7170, symBinAddr: 0x2C820, symSize: 0x0 }
-  - { offset: 0x42E29, size: 0x8, addend: 0x0, symName: _kSocketEventStatusChange, symObjAddr: 0x7178, symBinAddr: 0x2C828, symSize: 0x0 }
-  - { offset: 0x4366F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler initWithEvent:uuid:andCallback:]', symObjAddr: 0x0, symBinAddr: 0x14EC8, symSize: 0xDC }
-  - { offset: 0x436D0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler executeCallbackWith:withAck:withSocket:withEmitter:]', symObjAddr: 0xDC, symBinAddr: 0x14FA4, symSize: 0x94 }
-  - { offset: 0x43752, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler event]', symObjAddr: 0x170, symBinAddr: 0x15038, symSize: 0x8 }
-  - { offset: 0x43787, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler setEvent:]', symObjAddr: 0x178, symBinAddr: 0x15040, symSize: 0xC }
-  - { offset: 0x437C6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler uuid]', symObjAddr: 0x184, symBinAddr: 0x1504C, symSize: 0x8 }
-  - { offset: 0x437FB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler setUuid:]', symObjAddr: 0x18C, symBinAddr: 0x15054, symSize: 0xC }
-  - { offset: 0x4383A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler callback]', symObjAddr: 0x198, symBinAddr: 0x15060, symSize: 0x8 }
-  - { offset: 0x4386F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler setCallback:]', symObjAddr: 0x1A0, symBinAddr: 0x15068, symSize: 0x8 }
-  - { offset: 0x438AE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler .cxx_destruct]', symObjAddr: 0x1A8, symBinAddr: 0x15070, symSize: 0x3C }
-  - { offset: 0x438DE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter initWithAckId:emitBlock:]', symObjAddr: 0x1E4, symBinAddr: 0x150AC, symSize: 0x88 }
-  - { offset: 0x43930, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter send:]', symObjAddr: 0x26C, symBinAddr: 0x15134, symSize: 0x78 }
-  - { offset: 0x43984, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter ackId]', symObjAddr: 0x2E4, symBinAddr: 0x151AC, symSize: 0x8 }
-  - { offset: 0x439B9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter setAckId:]', symObjAddr: 0x2EC, symBinAddr: 0x151B4, symSize: 0x8 }
-  - { offset: 0x439F5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter emitBlock]', symObjAddr: 0x2F4, symBinAddr: 0x151BC, symSize: 0x8 }
-  - { offset: 0x43A2A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter setEmitBlock:]', symObjAddr: 0x2FC, symBinAddr: 0x151C4, symSize: 0x8 }
-  - { offset: 0x43A69, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter .cxx_destruct]', symObjAddr: 0x304, symBinAddr: 0x151CC, symSize: 0xC }
-  - { offset: 0x43A99, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent initWithEvent:andItems:]', symObjAddr: 0x310, symBinAddr: 0x151D8, symSize: 0xB0 }
-  - { offset: 0x43AEC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent event]', symObjAddr: 0x3C0, symBinAddr: 0x15288, symSize: 0x8 }
-  - { offset: 0x43B21, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent setEvent:]', symObjAddr: 0x3C8, symBinAddr: 0x15290, symSize: 0xC }
-  - { offset: 0x43B60, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent items]', symObjAddr: 0x3D4, symBinAddr: 0x1529C, symSize: 0x8 }
-  - { offset: 0x43B95, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent setItems:]', symObjAddr: 0x3DC, symBinAddr: 0x152A4, symSize: 0xC }
-  - { offset: 0x43BD4, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent .cxx_destruct]', symObjAddr: 0x3E8, symBinAddr: 0x152B0, symSize: 0x30 }
-  - { offset: 0x43C05, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData ack]', symObjAddr: 0x418, symBinAddr: 0x152E0, symSize: 0x8 }
-  - { offset: 0x43C3A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData setAck:]', symObjAddr: 0x420, symBinAddr: 0x152E8, symSize: 0x8 }
-  - { offset: 0x43C76, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData items]', symObjAddr: 0x428, symBinAddr: 0x152F0, symSize: 0x8 }
-  - { offset: 0x43CAB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData setItems:]', symObjAddr: 0x430, symBinAddr: 0x152F8, symSize: 0xC }
-  - { offset: 0x43CEA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData isEvent]', symObjAddr: 0x43C, symBinAddr: 0x15304, symSize: 0x8 }
-  - { offset: 0x43D1F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData setIsEvent:]', symObjAddr: 0x444, symBinAddr: 0x1530C, symSize: 0x8 }
-  - { offset: 0x43D59, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData .cxx_destruct]', symObjAddr: 0x44C, symBinAddr: 0x15314, symSize: 0xC }
-  - { offset: 0x43D89, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOClient clientWithSocketURL:config:]', symObjAddr: 0x458, symBinAddr: 0x15320, symSize: 0x6C }
-  - { offset: 0x43DDB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient initWithSocketURL:config:]', symObjAddr: 0x4C4, symBinAddr: 0x1538C, symSize: 0x41C }
-  - { offset: 0x43E2D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient initWithSocketURL:configDictionary:]', symObjAddr: 0x8E0, symBinAddr: 0x157A8, symSize: 0x8C }
-  - { offset: 0x43E8E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient dealloc]', symObjAddr: 0x96C, symBinAddr: 0x15834, symSize: 0xE8 }
-  - { offset: 0x43EBE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setDefaultValues]', symObjAddr: 0xA54, symBinAddr: 0x1591C, symSize: 0x3AC }
-  - { offset: 0x43EEE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setStatus:]', symObjAddr: 0xE00, symBinAddr: 0x15CC8, symSize: 0x140 }
-  - { offset: 0x43F2E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient logType]', symObjAddr: 0xF40, symBinAddr: 0x15E08, symSize: 0xC }
-  - { offset: 0x43F60, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient connect]', symObjAddr: 0xF4C, symBinAddr: 0x15E14, symSize: 0x10 }
-  - { offset: 0x43F91, size: 0x8, addend: 0x0, symName: '___30-[RTCVPSocketIOClient connect]_block_invoke', symObjAddr: 0xF5C, symBinAddr: 0x15E24, symSize: 0x4 }
-  - { offset: 0x43FBA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient connectWithTimeoutAfter:withHandler:]', symObjAddr: 0xF60, symBinAddr: 0x15E28, symSize: 0x1E4 }
-  - { offset: 0x440DE, size: 0x8, addend: 0x0, symName: '___59-[RTCVPSocketIOClient connectWithTimeoutAfter:withHandler:]_block_invoke', symObjAddr: 0x1144, symBinAddr: 0x1600C, symSize: 0x70 }
-  - { offset: 0x44158, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32b40w, symObjAddr: 0x11B4, symBinAddr: 0x1607C, symSize: 0x38 }
-  - { offset: 0x44181, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient disconnect]', symObjAddr: 0x1214, symBinAddr: 0x160B4, symSize: 0x84 }
-  - { offset: 0x441B3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient disconnectWithHandler:]', symObjAddr: 0x1298, symBinAddr: 0x16138, symSize: 0x44 }
-  - { offset: 0x4420A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnect]', symObjAddr: 0x12DC, symBinAddr: 0x1617C, symSize: 0x18 }
-  - { offset: 0x4423B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient addEngine]', symObjAddr: 0x12F4, symBinAddr: 0x16194, symSize: 0x250 }
-  - { offset: 0x4426D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient didDisconnect:]', symObjAddr: 0x1544, symBinAddr: 0x163E4, symSize: 0x1B4 }
-  - { offset: 0x442B0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient generateNextAck]', symObjAddr: 0x16F8, symBinAddr: 0x16598, symSize: 0x18 }
-  - { offset: 0x442E6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:]', symObjAddr: 0x1710, symBinAddr: 0x165B0, symSize: 0x8 }
-  - { offset: 0x44326, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:withArgs:]', symObjAddr: 0x1718, symBinAddr: 0x165B8, symSize: 0xF8 }
-  - { offset: 0x443BC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:items:]', symObjAddr: 0x1810, symBinAddr: 0x166B0, symSize: 0x8 }
-  - { offset: 0x4440B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:items:ack:]', symObjAddr: 0x1818, symBinAddr: 0x166B8, symSize: 0x31C }
-  - { offset: 0x444C2, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emitWithAck:items:ackBlock:]', symObjAddr: 0x1B34, symBinAddr: 0x169D4, symSize: 0x8 }
-  - { offset: 0x44520, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emitWithAck:items:ackBlock:timeout:]', symObjAddr: 0x1B3C, symBinAddr: 0x169DC, symSize: 0x36C }
-  - { offset: 0x44629, size: 0x8, addend: 0x0, symName: '___58-[RTCVPSocketIOClient emitWithAck:items:ackBlock:timeout:]_block_invoke', symObjAddr: 0x1EA8, symBinAddr: 0x16D48, symSize: 0x14 }
-  - { offset: 0x4468B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient registerAckCallback:callback:timeout:]', symObjAddr: 0x1F18, symBinAddr: 0x16D5C, symSize: 0x21C }
-  - { offset: 0x44723, size: 0x8, addend: 0x0, symName: '___60-[RTCVPSocketIOClient registerAckCallback:callback:timeout:]_block_invoke', symObjAddr: 0x2134, symBinAddr: 0x16F78, symSize: 0x1C0 }
-  - { offset: 0x447E5, size: 0x8, addend: 0x0, symName: '___60-[RTCVPSocketIOClient registerAckCallback:callback:timeout:]_block_invoke.155', symObjAddr: 0x22F4, symBinAddr: 0x17138, symSize: 0x14C }
-  - { offset: 0x448C9, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32b40w48w, symObjAddr: 0x2440, symBinAddr: 0x17284, symSize: 0x44 }
-  - { offset: 0x448F2, size: 0x8, addend: 0x0, symName: ___destroy_helper_block_e8_32s40w48w, symObjAddr: 0x2484, symBinAddr: 0x172C8, symSize: 0x34 }
-  - { offset: 0x44911, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleAck:withData:]', symObjAddr: 0x24B8, symBinAddr: 0x172FC, symSize: 0x134 }
-  - { offset: 0x44965, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient sendAck:withData:]', symObjAddr: 0x25EC, symBinAddr: 0x17430, symSize: 0x25C }
-  - { offset: 0x449EC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleEvent:withData:isInternalMessage:]', symObjAddr: 0x2848, symBinAddr: 0x1768C, symSize: 0x8 }
-  - { offset: 0x44A4F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleClientEvent:withData:]', symObjAddr: 0x2850, symBinAddr: 0x17694, symSize: 0x8 }
-  - { offset: 0x44A9E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleEvent:withData:isInternalMessage:withAck:]', symObjAddr: 0x2858, symBinAddr: 0x1769C, symSize: 0x3A8 }
-  - { offset: 0x44B8F, size: 0x8, addend: 0x0, symName: '___70-[RTCVPSocketIOClient handleEvent:withData:isInternalMessage:withAck:]_block_invoke', symObjAddr: 0x2C00, symBinAddr: 0x17A44, symSize: 0x58 }
-  - { offset: 0x44C0E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient leaveNamespace]', symObjAddr: 0x2C6C, symBinAddr: 0x17A9C, symSize: 0x1F8 }
-  - { offset: 0x44C40, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient joinNamespace:]', symObjAddr: 0x2E64, symBinAddr: 0x17C94, symSize: 0x244 }
-  - { offset: 0x44C83, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient on:callback:]', symObjAddr: 0x30A8, symBinAddr: 0x17ED8, symSize: 0x204 }
-  - { offset: 0x44CEC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient once:callback:]', symObjAddr: 0x32AC, symBinAddr: 0x180DC, symSize: 0x2B4 }
-  - { offset: 0x44D77, size: 0x8, addend: 0x0, symName: '___37-[RTCVPSocketIOClient once:callback:]_block_invoke', symObjAddr: 0x3560, symBinAddr: 0x18390, symSize: 0x84 }
-  - { offset: 0x44E33, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32s40b48w, symObjAddr: 0x35E4, symBinAddr: 0x18414, symSize: 0x40 }
-  - { offset: 0x44E5C, size: 0x8, addend: 0x0, symName: ___destroy_helper_block_e8_32s40s48w, symObjAddr: 0x3624, symBinAddr: 0x18454, symSize: 0x30 }
-  - { offset: 0x44E7B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient onAny:]', symObjAddr: 0x3654, symBinAddr: 0x18484, symSize: 0x30 }
-  - { offset: 0x44EBE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient off:]', symObjAddr: 0x3684, symBinAddr: 0x184B4, symSize: 0x110 }
-  - { offset: 0x44F12, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient offWithID:]', symObjAddr: 0x3794, symBinAddr: 0x185C4, symSize: 0x130 }
-  - { offset: 0x44F66, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient removeAllHandlers]', symObjAddr: 0x38C4, symBinAddr: 0x186F4, symSize: 0x40 }
-  - { offset: 0x44F98, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient tryReconnect:]', symObjAddr: 0x3904, symBinAddr: 0x18734, symSize: 0x198 }
-  - { offset: 0x44FDB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient _tryReconnect]', symObjAddr: 0x3A9C, symBinAddr: 0x188CC, symSize: 0x2E4 }
-  - { offset: 0x4500D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnectTimer]', symObjAddr: 0x3D80, symBinAddr: 0x18BB0, symSize: 0x1A0 }
-  - { offset: 0x450C2, size: 0x8, addend: 0x0, symName: '___40-[RTCVPSocketIOClient setReconnectTimer]_block_invoke', symObjAddr: 0x3F20, symBinAddr: 0x18D50, symSize: 0x114 }
-  - { offset: 0x4512D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient startNetworkMonitoring]', symObjAddr: 0x4064, symBinAddr: 0x18E64, symSize: 0x13C }
-  - { offset: 0x45177, size: 0x8, addend: 0x0, symName: '___45-[RTCVPSocketIOClient startNetworkMonitoring]_block_invoke', symObjAddr: 0x41A0, symBinAddr: 0x18FA0, symSize: 0x34 }
-  - { offset: 0x451E5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient stopNetworkMonitoring]', symObjAddr: 0x41D4, symBinAddr: 0x18FD4, symSize: 0x68 }
-  - { offset: 0x45217, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleNetworkStatusChange:]', symObjAddr: 0x423C, symBinAddr: 0x1903C, symSize: 0x1C4 }
-  - { offset: 0x4525A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emitAck:withItems:isEvent:]', symObjAddr: 0x4400, symBinAddr: 0x19200, symSize: 0xD0 }
-  - { offset: 0x452EB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient didConnect:]', symObjAddr: 0x44D0, symBinAddr: 0x192D0, symSize: 0x2C0 }
-  - { offset: 0x4536C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient didError:]', symObjAddr: 0x4790, symBinAddr: 0x19590, symSize: 0xFC }
-  - { offset: 0x453AF, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engineDidError:]', symObjAddr: 0x488C, symBinAddr: 0x1968C, symSize: 0xF0 }
-  - { offset: 0x45420, size: 0x8, addend: 0x0, symName: '___38-[RTCVPSocketIOClient engineDidError:]_block_invoke', symObjAddr: 0x497C, symBinAddr: 0x1977C, symSize: 0x3C }
-  - { offset: 0x4548E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient _engineDidError:]', symObjAddr: 0x49B8, symBinAddr: 0x197B8, symSize: 0xFC }
-  - { offset: 0x454D1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engineDidOpen:]', symObjAddr: 0x4AB4, symBinAddr: 0x198B4, symSize: 0xB8 }
-  - { offset: 0x45514, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engineDidClose:]', symObjAddr: 0x4B6C, symBinAddr: 0x1996C, symSize: 0xF0 }
-  - { offset: 0x45585, size: 0x8, addend: 0x0, symName: '___38-[RTCVPSocketIOClient engineDidClose:]_block_invoke', symObjAddr: 0x4C5C, symBinAddr: 0x19A5C, symSize: 0x3C }
-  - { offset: 0x455F3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient _engineDidClose:]', symObjAddr: 0x4C98, symBinAddr: 0x19A98, symSize: 0xA4 }
-  - { offset: 0x45636, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseEngineMessage:]', symObjAddr: 0x4D3C, symBinAddr: 0x19B3C, symSize: 0x170 }
-  - { offset: 0x456A7, size: 0x8, addend: 0x0, symName: '___42-[RTCVPSocketIOClient parseEngineMessage:]_block_invoke', symObjAddr: 0x4EAC, symBinAddr: 0x19CAC, symSize: 0x3C }
-  - { offset: 0x45715, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseEngineBinaryData:]', symObjAddr: 0x4EE8, symBinAddr: 0x19CE8, symSize: 0xF0 }
-  - { offset: 0x45786, size: 0x8, addend: 0x0, symName: '___45-[RTCVPSocketIOClient parseEngineBinaryData:]_block_invoke', symObjAddr: 0x4FD8, symBinAddr: 0x19DD8, symSize: 0x3C }
-  - { offset: 0x457F4, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseSocketMessage:]', symObjAddr: 0x5014, symBinAddr: 0x19E14, symSize: 0x178 }
-  - { offset: 0x45856, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseBinaryData:]', symObjAddr: 0x518C, symBinAddr: 0x19F8C, symSize: 0x194 }
-  - { offset: 0x458BE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseString:]', symObjAddr: 0x5320, symBinAddr: 0x1A120, symSize: 0x530 }
-  - { offset: 0x45A53, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient isCorrectNamespace:]', symObjAddr: 0x5850, symBinAddr: 0x1A650, symSize: 0x68 }
-  - { offset: 0x45A9A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handlePacket:]', symObjAddr: 0x58B8, symBinAddr: 0x1A6B8, symSize: 0x294 }
-  - { offset: 0x45ADD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleConnect:]', symObjAddr: 0x5B4C, symBinAddr: 0x1A94C, symSize: 0xAC }
-  - { offset: 0x45B20, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient ackHandlers]', symObjAddr: 0x5BF8, symBinAddr: 0x1A9F8, symSize: 0x8 }
-  - { offset: 0x45B55, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setAckHandlers:]', symObjAddr: 0x5C00, symBinAddr: 0x1AA00, symSize: 0xC }
-  - { offset: 0x45B94, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient status]', symObjAddr: 0x5C0C, symBinAddr: 0x1AA0C, symSize: 0x8 }
-  - { offset: 0x45BC9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient forceNew]', symObjAddr: 0x5C14, symBinAddr: 0x1AA14, symSize: 0x8 }
-  - { offset: 0x45BFE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setForceNew:]', symObjAddr: 0x5C1C, symBinAddr: 0x1AA1C, symSize: 0x8 }
-  - { offset: 0x45C38, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient config]', symObjAddr: 0x5C24, symBinAddr: 0x1AA24, symSize: 0x8 }
-  - { offset: 0x45C6D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnects]', symObjAddr: 0x5C2C, symBinAddr: 0x1AA2C, symSize: 0x8 }
-  - { offset: 0x45CA2, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnects:]', symObjAddr: 0x5C34, symBinAddr: 0x1AA34, symSize: 0x8 }
-  - { offset: 0x45CDC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnectWait]', symObjAddr: 0x5C3C, symBinAddr: 0x1AA3C, symSize: 0x8 }
-  - { offset: 0x45D10, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnectWait:]', symObjAddr: 0x5C44, symBinAddr: 0x1AA44, symSize: 0x8 }
-  - { offset: 0x45D4D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnectAttempts]', symObjAddr: 0x5C4C, symBinAddr: 0x1AA4C, symSize: 0x8 }
-  - { offset: 0x45D82, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnectAttempts:]', symObjAddr: 0x5C54, symBinAddr: 0x1AA54, symSize: 0x8 }
-  - { offset: 0x45DBE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient currentReconnectAttempt]', symObjAddr: 0x5C5C, symBinAddr: 0x1AA5C, symSize: 0x8 }
-  - { offset: 0x45DF3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setCurrentReconnectAttempt:]', symObjAddr: 0x5C64, symBinAddr: 0x1AA64, symSize: 0x8 }
-  - { offset: 0x45E2F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient socketURL]', symObjAddr: 0x5C6C, symBinAddr: 0x1AA6C, symSize: 0x8 }
-  - { offset: 0x45E64, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleQueue]', symObjAddr: 0x5C74, symBinAddr: 0x1AA74, symSize: 0x8 }
-  - { offset: 0x45E99, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient nsp]', symObjAddr: 0x5C7C, symBinAddr: 0x1AA7C, symSize: 0x8 }
-  - { offset: 0x45ECE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engine]', symObjAddr: 0x5C84, symBinAddr: 0x1AA84, symSize: 0x8 }
-  - { offset: 0x45F03, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setEngine:]', symObjAddr: 0x5C8C, symBinAddr: 0x1AA8C, symSize: 0xC }
-  - { offset: 0x45F42, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handlers]', symObjAddr: 0x5C98, symBinAddr: 0x1AA98, symSize: 0x8 }
-  - { offset: 0x45F77, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setHandlers:]', symObjAddr: 0x5CA0, symBinAddr: 0x1AAA0, symSize: 0xC }
-  - { offset: 0x45FB6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient waitingPackets]', symObjAddr: 0x5CAC, symBinAddr: 0x1AAAC, symSize: 0x8 }
-  - { offset: 0x45FEB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setWaitingPackets:]', symObjAddr: 0x5CB4, symBinAddr: 0x1AAB4, symSize: 0xC }
-  - { offset: 0x4602A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient networkManager]', symObjAddr: 0x5CC0, symBinAddr: 0x1AAC0, symSize: 0x8 }
-  - { offset: 0x4605F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setNetworkManager:]', symObjAddr: 0x5CC8, symBinAddr: 0x1AAC8, symSize: 0xC }
-  - { offset: 0x4609E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient currentNetworkStatus]', symObjAddr: 0x5CD4, symBinAddr: 0x1AAD4, symSize: 0x8 }
-  - { offset: 0x460D3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setCurrentNetworkStatus:]', symObjAddr: 0x5CDC, symBinAddr: 0x1AADC, symSize: 0x8 }
-  - { offset: 0x4610F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient dataCache]', symObjAddr: 0x5CE4, symBinAddr: 0x1AAE4, symSize: 0x8 }
-  - { offset: 0x46144, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setDataCache:]', symObjAddr: 0x5CEC, symBinAddr: 0x1AAEC, symSize: 0xC }
-  - { offset: 0x46183, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient .cxx_destruct]', symObjAddr: 0x5CF8, symBinAddr: 0x1AAF8, symSize: 0xB4 }
-  - { offset: 0x469BB, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig defaultConfig]', symObjAddr: 0x0, symBinAddr: 0x1ABAC, symSize: 0x18 }
-  - { offset: 0x469D4, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyForceNew, symObjAddr: 0xB60, symBinAddr: 0x2C990, symSize: 0x0 }
-  - { offset: 0x469F3, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyReconnects, symObjAddr: 0xB68, symBinAddr: 0x2C998, symSize: 0x0 }
-  - { offset: 0x46A08, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyReconnectWait, symObjAddr: 0xB70, symBinAddr: 0x2C9A0, symSize: 0x0 }
-  - { offset: 0x46A1D, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyTimeout, symObjAddr: 0xB78, symBinAddr: 0x2C9A8, symSize: 0x0 }
-  - { offset: 0x46A32, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyQuery, symObjAddr: 0xB80, symBinAddr: 0x2C9B0, symSize: 0x0 }
-  - { offset: 0x46A47, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyNsp, symObjAddr: 0xB88, symBinAddr: 0x2C9B8, symSize: 0x0 }
-  - { offset: 0x46A5C, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyIgnoreSSLErrors, symObjAddr: 0xB90, symBinAddr: 0x2C9C0, symSize: 0x0 }
-  - { offset: 0x46A71, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyProtocolVersion, symObjAddr: 0xB98, symBinAddr: 0x2C9C8, symSize: 0x0 }
-  - { offset: 0x46A86, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyPath, symObjAddr: 0xBA0, symBinAddr: 0x2C9D0, symSize: 0x0 }
-  - { offset: 0x46A9B, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeySecure, symObjAddr: 0xBA8, symBinAddr: 0x2C9D8, symSize: 0x0 }
-  - { offset: 0x46AB0, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyPingInterval, symObjAddr: 0xBB0, symBinAddr: 0x2C9E0, symSize: 0x0 }
-  - { offset: 0x46AC5, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyPingTimeout, symObjAddr: 0xBB8, symBinAddr: 0x2C9E8, symSize: 0x0 }
-  - { offset: 0x46ADA, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyExtraHeaders, symObjAddr: 0xBC0, symBinAddr: 0x2C9F0, symSize: 0x0 }
-  - { offset: 0x46AEF, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyCookies, symObjAddr: 0xBC8, symBinAddr: 0x2C9F8, symSize: 0x0 }
-  - { offset: 0x46B04, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyConnectParams, symObjAddr: 0xBD0, symBinAddr: 0x2CA00, symSize: 0x0 }
-  - { offset: 0x46B19, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeySelfSigned, symObjAddr: 0xBD8, symBinAddr: 0x2CA08, symSize: 0x0 }
-  - { offset: 0x46B2E, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeySecurity, symObjAddr: 0xBE0, symBinAddr: 0x2CA10, symSize: 0x0 }
-  - { offset: 0x46B43, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyCompress, symObjAddr: 0xBE8, symBinAddr: 0x2CA18, symSize: 0x0 }
-  - { offset: 0x46B58, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyNamespace, symObjAddr: 0xBF0, symBinAddr: 0x2CA20, symSize: 0x0 }
-  - { offset: 0x46B6D, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOProtocolVersion2, symObjAddr: 0xBF8, symBinAddr: 0x207D0, symSize: 0x0 }
-  - { offset: 0x46B8E, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOProtocolVersion3, symObjAddr: 0xBFC, symBinAddr: 0x207D4, symSize: 0x0 }
-  - { offset: 0x46F8C, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig defaultConfig]', symObjAddr: 0x0, symBinAddr: 0x1ABAC, symSize: 0x18 }
-  - { offset: 0x46FC0, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig productionConfig]', symObjAddr: 0x18, symBinAddr: 0x1ABC4, symSize: 0x58 }
-  - { offset: 0x47003, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig developmentConfig]', symObjAddr: 0x70, symBinAddr: 0x1AC1C, symSize: 0x40 }
-  - { offset: 0x47046, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig init]', symObjAddr: 0xB0, symBinAddr: 0x1AC5C, symSize: 0xB4 }
-  - { offset: 0x4707A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig initWithDictionary:]', symObjAddr: 0x164, symBinAddr: 0x1AD10, symSize: 0x50 }
-  - { offset: 0x470BD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig initWithBuilder:]', symObjAddr: 0x1B4, symBinAddr: 0x1AD60, symSize: 0x58 }
-  - { offset: 0x4711B, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig configWithBlock:]', symObjAddr: 0x20C, symBinAddr: 0x1ADB8, symSize: 0x48 }
-  - { offset: 0x4715E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig applyDictionary:]', symObjAddr: 0x254, symBinAddr: 0x1AE00, symSize: 0x318 }
-  - { offset: 0x471CA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig path]', symObjAddr: 0x56C, symBinAddr: 0x1B118, symSize: 0x8 }
-  - { offset: 0x471FF, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setPath:]', symObjAddr: 0x574, symBinAddr: 0x1B120, symSize: 0x8 }
-  - { offset: 0x4723E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig namespace]', symObjAddr: 0x57C, symBinAddr: 0x1B128, symSize: 0x8 }
-  - { offset: 0x47273, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setNamespace:]', symObjAddr: 0x584, symBinAddr: 0x1B130, symSize: 0x8 }
-  - { offset: 0x472B2, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig secure]', symObjAddr: 0x58C, symBinAddr: 0x1B138, symSize: 0x8 }
-  - { offset: 0x472E7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setSecure:]', symObjAddr: 0x594, symBinAddr: 0x1B140, symSize: 0x8 }
-  - { offset: 0x47321, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig connectTimeout]', symObjAddr: 0x59C, symBinAddr: 0x1B148, symSize: 0x8 }
-  - { offset: 0x47355, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setConnectTimeout:]', symObjAddr: 0x5A4, symBinAddr: 0x1B150, symSize: 0x8 }
-  - { offset: 0x47392, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig transport]', symObjAddr: 0x5AC, symBinAddr: 0x1B158, symSize: 0x8 }
-  - { offset: 0x473C7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setTransport:]', symObjAddr: 0x5B4, symBinAddr: 0x1B160, symSize: 0x8 }
-  - { offset: 0x47403, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig protocolVersion]', symObjAddr: 0x5BC, symBinAddr: 0x1B168, symSize: 0x8 }
-  - { offset: 0x47438, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setProtocolVersion:]', symObjAddr: 0x5C4, symBinAddr: 0x1B170, symSize: 0x8 }
-  - { offset: 0x47474, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig pingInterval]', symObjAddr: 0x5CC, symBinAddr: 0x1B178, symSize: 0x8 }
-  - { offset: 0x474A9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setPingInterval:]', symObjAddr: 0x5D4, symBinAddr: 0x1B180, symSize: 0x8 }
-  - { offset: 0x474E5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig pingTimeout]', symObjAddr: 0x5DC, symBinAddr: 0x1B188, symSize: 0x8 }
-  - { offset: 0x4751A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setPingTimeout:]', symObjAddr: 0x5E4, symBinAddr: 0x1B190, symSize: 0x8 }
-  - { offset: 0x47556, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig enableBinary]', symObjAddr: 0x5EC, symBinAddr: 0x1B198, symSize: 0x8 }
-  - { offset: 0x4758B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setEnableBinary:]', symObjAddr: 0x5F4, symBinAddr: 0x1B1A0, symSize: 0x8 }
-  - { offset: 0x475C5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionEnabled]', symObjAddr: 0x5FC, symBinAddr: 0x1B1A8, symSize: 0x8 }
-  - { offset: 0x475FA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionEnabled:]', symObjAddr: 0x604, symBinAddr: 0x1B1B0, symSize: 0x8 }
-  - { offset: 0x47634, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionAttempts]', symObjAddr: 0x60C, symBinAddr: 0x1B1B8, symSize: 0x8 }
-  - { offset: 0x47669, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionAttempts:]', symObjAddr: 0x614, symBinAddr: 0x1B1C0, symSize: 0x8 }
-  - { offset: 0x476A5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionDelay]', symObjAddr: 0x61C, symBinAddr: 0x1B1C8, symSize: 0x8 }
-  - { offset: 0x476D9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionDelay:]', symObjAddr: 0x624, symBinAddr: 0x1B1D0, symSize: 0x8 }
-  - { offset: 0x47716, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionDelayMax]', symObjAddr: 0x62C, symBinAddr: 0x1B1D8, symSize: 0x8 }
-  - { offset: 0x4774A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionDelayMax:]', symObjAddr: 0x634, symBinAddr: 0x1B1E0, symSize: 0x8 }
-  - { offset: 0x47787, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig randomizationFactor]', symObjAddr: 0x63C, symBinAddr: 0x1B1E8, symSize: 0x8 }
-  - { offset: 0x477BB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setRandomizationFactor:]', symObjAddr: 0x644, symBinAddr: 0x1B1F0, symSize: 0x8 }
-  - { offset: 0x477F8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig allowSelfSignedCertificates]', symObjAddr: 0x64C, symBinAddr: 0x1B1F8, symSize: 0x8 }
-  - { offset: 0x4782D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setAllowSelfSignedCertificates:]', symObjAddr: 0x654, symBinAddr: 0x1B200, symSize: 0x8 }
-  - { offset: 0x47867, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig ignoreSSLErrors]', symObjAddr: 0x65C, symBinAddr: 0x1B208, symSize: 0x8 }
-  - { offset: 0x4789C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setIgnoreSSLErrors:]', symObjAddr: 0x664, symBinAddr: 0x1B210, symSize: 0x8 }
-  - { offset: 0x478D6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig security]', symObjAddr: 0x66C, symBinAddr: 0x1B218, symSize: 0x8 }
-  - { offset: 0x4790B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setSecurity:]', symObjAddr: 0x674, symBinAddr: 0x1B220, symSize: 0xC }
-  - { offset: 0x4794A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig compressionEnabled]', symObjAddr: 0x680, symBinAddr: 0x1B22C, symSize: 0x8 }
-  - { offset: 0x4797F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setCompressionEnabled:]', symObjAddr: 0x688, symBinAddr: 0x1B234, symSize: 0x8 }
-  - { offset: 0x479B9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig forceNewConnection]', symObjAddr: 0x690, symBinAddr: 0x1B23C, symSize: 0x8 }
-  - { offset: 0x479EE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setForceNewConnection:]', symObjAddr: 0x698, symBinAddr: 0x1B244, symSize: 0x8 }
-  - { offset: 0x47A28, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig extraHeaders]', symObjAddr: 0x6A0, symBinAddr: 0x1B24C, symSize: 0x8 }
-  - { offset: 0x47A5D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setExtraHeaders:]', symObjAddr: 0x6A8, symBinAddr: 0x1B254, symSize: 0xC }
-  - { offset: 0x47A9C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig connectParams]', symObjAddr: 0x6B4, symBinAddr: 0x1B260, symSize: 0x8 }
-  - { offset: 0x47AD1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setConnectParams:]', symObjAddr: 0x6BC, symBinAddr: 0x1B268, symSize: 0xC }
-  - { offset: 0x47B10, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig cookies]', symObjAddr: 0x6C8, symBinAddr: 0x1B274, symSize: 0x8 }
-  - { offset: 0x47B45, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setCookies:]', symObjAddr: 0x6D0, symBinAddr: 0x1B27C, symSize: 0xC }
-  - { offset: 0x47B84, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig sessionDelegate]', symObjAddr: 0x6DC, symBinAddr: 0x1B288, symSize: 0x18 }
-  - { offset: 0x47BB9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setSessionDelegate:]', symObjAddr: 0x6F4, symBinAddr: 0x1B2A0, symSize: 0xC }
-  - { offset: 0x47BF8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig logger]', symObjAddr: 0x700, symBinAddr: 0x1B2AC, symSize: 0x8 }
-  - { offset: 0x47C2D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setLogger:]', symObjAddr: 0x708, symBinAddr: 0x1B2B4, symSize: 0xC }
-  - { offset: 0x47C6C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig loggingEnabled]', symObjAddr: 0x714, symBinAddr: 0x1B2C0, symSize: 0x8 }
-  - { offset: 0x47CA1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setLoggingEnabled:]', symObjAddr: 0x71C, symBinAddr: 0x1B2C8, symSize: 0x8 }
-  - { offset: 0x47CDB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig logLevel]', symObjAddr: 0x724, symBinAddr: 0x1B2D0, symSize: 0x8 }
-  - { offset: 0x47D10, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setLogLevel:]', symObjAddr: 0x72C, symBinAddr: 0x1B2D8, symSize: 0x8 }
-  - { offset: 0x47D4C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig handleQueue]', symObjAddr: 0x734, symBinAddr: 0x1B2E0, symSize: 0x8 }
-  - { offset: 0x47D81, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setHandleQueue:]', symObjAddr: 0x73C, symBinAddr: 0x1B2E8, symSize: 0xC }
-  - { offset: 0x47DC0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig enableNetworkMonitoring]', symObjAddr: 0x748, symBinAddr: 0x1B2F4, symSize: 0x8 }
-  - { offset: 0x47DF5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setEnableNetworkMonitoring:]', symObjAddr: 0x750, symBinAddr: 0x1B2FC, symSize: 0x8 }
-  - { offset: 0x47E2F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig .cxx_destruct]', symObjAddr: 0x758, symBinAddr: 0x1B304, symSize: 0x80 }
+  - { offset: 0x3DD3E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processRawMessage:length:]', symObjAddr: 0x1CDC, symBinAddr: 0xF754, symSize: 0x624 }
+  - { offset: 0x3E043, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processExtra:length:]', symObjAddr: 0x2300, symBinAddr: 0xFD78, symSize: 0x4 }
+  - { offset: 0x3E092, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket processResponse:]', symObjAddr: 0x2304, symBinAddr: 0xFD7C, symSize: 0x270 }
+  - { offset: 0x3E16C, size: 0x8, addend: 0x0, symName: '___35-[RTCJFRWebSocket processResponse:]_block_invoke', symObjAddr: 0x2574, symBinAddr: 0xFFEC, symSize: 0x134 }
+  - { offset: 0x3E1C7, size: 0x8, addend: 0x0, symName: '___35-[RTCJFRWebSocket processResponse:]_block_invoke.84', symObjAddr: 0x2700, symBinAddr: 0x10120, symSize: 0x134 }
+  - { offset: 0x3E222, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket dequeueWrite:withCode:]', symObjAddr: 0x2834, symBinAddr: 0x10254, symSize: 0x19C }
+  - { offset: 0x3E2BB, size: 0x8, addend: 0x0, symName: '___41-[RTCJFRWebSocket dequeueWrite:withCode:]_block_invoke', symObjAddr: 0x29D0, symBinAddr: 0x103F0, symSize: 0x2DC }
+  - { offset: 0x3E51E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket doDisconnect:]', symObjAddr: 0x2CAC, symBinAddr: 0x106CC, symSize: 0x104 }
+  - { offset: 0x3E59D, size: 0x8, addend: 0x0, symName: '___32-[RTCJFRWebSocket doDisconnect:]_block_invoke', symObjAddr: 0x2DB0, symBinAddr: 0x107D0, symSize: 0x150 }
+  - { offset: 0x3E5F8, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket errorWithDetail:code:]', symObjAddr: 0x2F00, symBinAddr: 0x10920, symSize: 0x8 }
+  - { offset: 0x3E64B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket errorWithDetail:code:userInfo:]', symObjAddr: 0x2F08, symBinAddr: 0x10928, symSize: 0xD8 }
+  - { offset: 0x3E6C1, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket writeError:]', symObjAddr: 0x2FE0, symBinAddr: 0x10A00, symSize: 0x64 }
+  - { offset: 0x3E734, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket dealloc]', symObjAddr: 0x3044, symBinAddr: 0x10A64, symSize: 0x50 }
+  - { offset: 0x3E766, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket delegate]', symObjAddr: 0x3094, symBinAddr: 0x10AB4, symSize: 0x18 }
+  - { offset: 0x3E79B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setDelegate:]', symObjAddr: 0x30AC, symBinAddr: 0x10ACC, symSize: 0xC }
+  - { offset: 0x3E7DA, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket url]', symObjAddr: 0x30B8, symBinAddr: 0x10AD8, symSize: 0x8 }
+  - { offset: 0x3E80F, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setUrl:]', symObjAddr: 0x30C0, symBinAddr: 0x10AE0, symSize: 0xC }
+  - { offset: 0x3E84E, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket voipEnabled]', symObjAddr: 0x30CC, symBinAddr: 0x10AEC, symSize: 0x8 }
+  - { offset: 0x3E883, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setVoipEnabled:]', symObjAddr: 0x30D4, symBinAddr: 0x10AF4, symSize: 0x8 }
+  - { offset: 0x3E8BD, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket selfSignedSSL]', symObjAddr: 0x30DC, symBinAddr: 0x10AFC, symSize: 0x8 }
+  - { offset: 0x3E8F2, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setSelfSignedSSL:]', symObjAddr: 0x30E4, symBinAddr: 0x10B04, symSize: 0x8 }
+  - { offset: 0x3E92C, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket security]', symObjAddr: 0x30EC, symBinAddr: 0x10B0C, symSize: 0x8 }
+  - { offset: 0x3E961, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setSecurity:]', symObjAddr: 0x30F4, symBinAddr: 0x10B14, symSize: 0xC }
+  - { offset: 0x3E9A0, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket queue]', symObjAddr: 0x3100, symBinAddr: 0x10B20, symSize: 0x8 }
+  - { offset: 0x3E9D5, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setQueue:]', symObjAddr: 0x3108, symBinAddr: 0x10B28, symSize: 0xC }
+  - { offset: 0x3EA14, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onConnect]', symObjAddr: 0x3114, symBinAddr: 0x10B34, symSize: 0x8 }
+  - { offset: 0x3EA49, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnConnect:]', symObjAddr: 0x311C, symBinAddr: 0x10B3C, symSize: 0x8 }
+  - { offset: 0x3EA88, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onDisconnect]', symObjAddr: 0x3124, symBinAddr: 0x10B44, symSize: 0x8 }
+  - { offset: 0x3EABD, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnDisconnect:]', symObjAddr: 0x312C, symBinAddr: 0x10B4C, symSize: 0x8 }
+  - { offset: 0x3EAFC, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onData]', symObjAddr: 0x3134, symBinAddr: 0x10B54, symSize: 0x8 }
+  - { offset: 0x3EB31, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnData:]', symObjAddr: 0x313C, symBinAddr: 0x10B5C, symSize: 0x8 }
+  - { offset: 0x3EB70, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket onText]', symObjAddr: 0x3144, symBinAddr: 0x10B64, symSize: 0x8 }
+  - { offset: 0x3EBA5, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOnText:]', symObjAddr: 0x314C, symBinAddr: 0x10B6C, symSize: 0x8 }
+  - { offset: 0x3EBE4, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket inputStream]', symObjAddr: 0x3154, symBinAddr: 0x10B74, symSize: 0x8 }
+  - { offset: 0x3EC19, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setInputStream:]', symObjAddr: 0x315C, symBinAddr: 0x10B7C, symSize: 0xC }
+  - { offset: 0x3EC58, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket outputStream]', symObjAddr: 0x3168, symBinAddr: 0x10B88, symSize: 0x8 }
+  - { offset: 0x3EC8D, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOutputStream:]', symObjAddr: 0x3170, symBinAddr: 0x10B90, symSize: 0xC }
+  - { offset: 0x3ECCC, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket writeQueue]', symObjAddr: 0x317C, symBinAddr: 0x10B9C, symSize: 0x8 }
+  - { offset: 0x3ED01, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setWriteQueue:]', symObjAddr: 0x3184, symBinAddr: 0x10BA4, symSize: 0xC }
+  - { offset: 0x3ED40, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket isRunLoop]', symObjAddr: 0x3190, symBinAddr: 0x10BB0, symSize: 0x8 }
+  - { offset: 0x3ED75, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setIsRunLoop:]', symObjAddr: 0x3198, symBinAddr: 0x10BB8, symSize: 0x8 }
+  - { offset: 0x3EDAF, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket readStack]', symObjAddr: 0x31A0, symBinAddr: 0x10BC0, symSize: 0x8 }
+  - { offset: 0x3EDE4, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setReadStack:]', symObjAddr: 0x31A8, symBinAddr: 0x10BC8, symSize: 0xC }
+  - { offset: 0x3EE23, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket inputQueue]', symObjAddr: 0x31B4, symBinAddr: 0x10BD4, symSize: 0x8 }
+  - { offset: 0x3EE58, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setInputQueue:]', symObjAddr: 0x31BC, symBinAddr: 0x10BDC, symSize: 0xC }
+  - { offset: 0x3EE97, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket fragBuffer]', symObjAddr: 0x31C8, symBinAddr: 0x10BE8, symSize: 0x8 }
+  - { offset: 0x3EECC, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setFragBuffer:]', symObjAddr: 0x31D0, symBinAddr: 0x10BF0, symSize: 0xC }
+  - { offset: 0x3EF0B, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket headers]', symObjAddr: 0x31DC, symBinAddr: 0x10BFC, symSize: 0x8 }
+  - { offset: 0x3EF40, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setHeaders:]', symObjAddr: 0x31E4, symBinAddr: 0x10C04, symSize: 0xC }
+  - { offset: 0x3EF7F, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket optProtocols]', symObjAddr: 0x31F0, symBinAddr: 0x10C10, symSize: 0x8 }
+  - { offset: 0x3EFB4, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setOptProtocols:]', symObjAddr: 0x31F8, symBinAddr: 0x10C18, symSize: 0xC }
+  - { offset: 0x3EFF3, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket isCreated]', symObjAddr: 0x3204, symBinAddr: 0x10C24, symSize: 0x8 }
+  - { offset: 0x3F028, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setIsCreated:]', symObjAddr: 0x320C, symBinAddr: 0x10C2C, symSize: 0x8 }
+  - { offset: 0x3F062, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket didDisconnect]', symObjAddr: 0x3214, symBinAddr: 0x10C34, symSize: 0x8 }
+  - { offset: 0x3F097, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setDidDisconnect:]', symObjAddr: 0x321C, symBinAddr: 0x10C3C, symSize: 0x8 }
+  - { offset: 0x3F0D1, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket certValidated]', symObjAddr: 0x3224, symBinAddr: 0x10C44, symSize: 0x8 }
+  - { offset: 0x3F106, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setCertValidated:]', symObjAddr: 0x322C, symBinAddr: 0x10C4C, symSize: 0x8 }
+  - { offset: 0x3F140, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket customHeaders]', symObjAddr: 0x3234, symBinAddr: 0x10C54, symSize: 0x8 }
+  - { offset: 0x3F175, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket setCustomHeaders:]', symObjAddr: 0x323C, symBinAddr: 0x10C5C, symSize: 0xC }
+  - { offset: 0x3F1B4, size: 0x8, addend: 0x0, symName: '-[RTCJFRWebSocket .cxx_destruct]', symObjAddr: 0x3248, symBinAddr: 0x10C68, symSize: 0xE0 }
+  - { offset: 0x3F1E5, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse isFin]', symObjAddr: 0x3328, symBinAddr: 0x10D48, symSize: 0x8 }
+  - { offset: 0x3F21A, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setIsFin:]', symObjAddr: 0x3330, symBinAddr: 0x10D50, symSize: 0x8 }
+  - { offset: 0x3F254, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse code]', symObjAddr: 0x3338, symBinAddr: 0x10D58, symSize: 0x8 }
+  - { offset: 0x3F289, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setCode:]', symObjAddr: 0x3340, symBinAddr: 0x10D60, symSize: 0x8 }
+  - { offset: 0x3F2C5, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse bytesLeft]', symObjAddr: 0x3348, symBinAddr: 0x10D68, symSize: 0x8 }
+  - { offset: 0x3F2FA, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setBytesLeft:]', symObjAddr: 0x3350, symBinAddr: 0x10D70, symSize: 0x8 }
+  - { offset: 0x3F336, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse frameCount]', symObjAddr: 0x3358, symBinAddr: 0x10D78, symSize: 0x8 }
+  - { offset: 0x3F36B, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setFrameCount:]', symObjAddr: 0x3360, symBinAddr: 0x10D80, symSize: 0x8 }
+  - { offset: 0x3F3A7, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse buffer]', symObjAddr: 0x3368, symBinAddr: 0x10D88, symSize: 0x8 }
+  - { offset: 0x3F3DC, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse setBuffer:]', symObjAddr: 0x3370, symBinAddr: 0x10D90, symSize: 0xC }
+  - { offset: 0x3F41B, size: 0x8, addend: 0x0, symName: '-[RTCJFRResponse .cxx_destruct]', symObjAddr: 0x337C, symBinAddr: 0x10D9C, symSize: 0xC }
+  - { offset: 0x3F80D, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert initWithData:]', symObjAddr: 0x0, symBinAddr: 0x10DA8, symSize: 0x78 }
+  - { offset: 0x3F967, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert initWithData:]', symObjAddr: 0x0, symBinAddr: 0x10DA8, symSize: 0x78 }
+  - { offset: 0x3F9AA, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert initWithKey:]', symObjAddr: 0x78, symBinAddr: 0x10E20, symSize: 0x70 }
+  - { offset: 0x3FA17, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert dealloc]', symObjAddr: 0xE8, symBinAddr: 0x10E90, symSize: 0x60 }
+  - { offset: 0x3FA65, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert certData]', symObjAddr: 0x148, symBinAddr: 0x10EF0, symSize: 0x8 }
+  - { offset: 0x3FA9A, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert setCertData:]', symObjAddr: 0x150, symBinAddr: 0x10EF8, symSize: 0xC }
+  - { offset: 0x3FAD9, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert key]', symObjAddr: 0x15C, symBinAddr: 0x10F04, symSize: 0x8 }
+  - { offset: 0x3FB0E, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert setKey:]', symObjAddr: 0x164, symBinAddr: 0x10F0C, symSize: 0x8 }
+  - { offset: 0x3FB4A, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert keyOwned]', symObjAddr: 0x16C, symBinAddr: 0x10F14, symSize: 0x8 }
+  - { offset: 0x3FB7F, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert setKeyOwned:]', symObjAddr: 0x174, symBinAddr: 0x10F1C, symSize: 0x8 }
+  - { offset: 0x3FBB9, size: 0x8, addend: 0x0, symName: '-[RTCJFRSSLCert .cxx_destruct]', symObjAddr: 0x17C, symBinAddr: 0x10F24, symSize: 0xC }
+  - { offset: 0x3FBE9, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity init]', symObjAddr: 0x188, symBinAddr: 0x10F30, symSize: 0x68 }
+  - { offset: 0x3FC4B, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity initUsingPublicKeys:]', symObjAddr: 0x1F0, symBinAddr: 0x10F98, symSize: 0x1D0 }
+  - { offset: 0x3FCE0, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity initWithCerts:publicKeys:]', symObjAddr: 0x3C0, symBinAddr: 0x11168, symSize: 0x25C }
+  - { offset: 0x3FE07, size: 0x8, addend: 0x0, symName: '___43-[RTCJFRSecurity initWithCerts:publicKeys:]_block_invoke', symObjAddr: 0x61C, symBinAddr: 0x113C4, symSize: 0x2E4 }
+  - { offset: 0x3FF1A, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity isValid:domain:]', symObjAddr: 0x950, symBinAddr: 0x116A8, symSize: 0x56C }
+  - { offset: 0x40249, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity extractPublicKey:]', symObjAddr: 0xEBC, symBinAddr: 0x11C14, symSize: 0xD0 }
+  - { offset: 0x403DB, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity extractPublicKeyFromCert:policy:]', symObjAddr: 0xF8C, symBinAddr: 0x11CE4, symSize: 0x94 }
+  - { offset: 0x404A2, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity certificateChainForTrust:]', symObjAddr: 0x1020, symBinAddr: 0x11D78, symSize: 0xBC }
+  - { offset: 0x405DA, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity publicKeyChainForTrust:]', symObjAddr: 0x10DC, symBinAddr: 0x11E34, symSize: 0xE8 }
+  - { offset: 0x40700, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity validatedDN]', symObjAddr: 0x11C4, symBinAddr: 0x11F1C, symSize: 0x8 }
+  - { offset: 0x40735, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setValidatedDN:]', symObjAddr: 0x11CC, symBinAddr: 0x11F24, symSize: 0x8 }
+  - { offset: 0x4076F, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity isReady]', symObjAddr: 0x11D4, symBinAddr: 0x11F2C, symSize: 0x8 }
+  - { offset: 0x407A4, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setIsReady:]', symObjAddr: 0x11DC, symBinAddr: 0x11F34, symSize: 0x8 }
+  - { offset: 0x407DE, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity certificates]', symObjAddr: 0x11E4, symBinAddr: 0x11F3C, symSize: 0x8 }
+  - { offset: 0x40813, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setCertificates:]', symObjAddr: 0x11EC, symBinAddr: 0x11F44, symSize: 0xC }
+  - { offset: 0x40852, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity publicKeys]', symObjAddr: 0x11F8, symBinAddr: 0x11F50, symSize: 0x8 }
+  - { offset: 0x40887, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setPublicKeys:]', symObjAddr: 0x1200, symBinAddr: 0x11F58, symSize: 0xC }
+  - { offset: 0x408C6, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity usePublicKeys]', symObjAddr: 0x120C, symBinAddr: 0x11F64, symSize: 0x8 }
+  - { offset: 0x408FB, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setUsePublicKeys:]', symObjAddr: 0x1214, symBinAddr: 0x11F6C, symSize: 0x8 }
+  - { offset: 0x40935, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity readySemaphore]', symObjAddr: 0x121C, symBinAddr: 0x11F74, symSize: 0x8 }
+  - { offset: 0x4096A, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity setReadySemaphore:]', symObjAddr: 0x1224, symBinAddr: 0x11F7C, symSize: 0xC }
+  - { offset: 0x409A9, size: 0x8, addend: 0x0, symName: '-[RTCJFRSecurity .cxx_destruct]', symObjAddr: 0x1230, symBinAddr: 0x11F88, symSize: 0x3C }
+  - { offset: 0x40B06, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem initWithAck:andCallBack:]', symObjAddr: 0x0, symBinAddr: 0x11FC4, symSize: 0x88 }
+  - { offset: 0x40C0D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem initWithAck:andCallBack:]', symObjAddr: 0x0, symBinAddr: 0x11FC4, symSize: 0x88 }
+  - { offset: 0x40C60, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem ack]', symObjAddr: 0x88, symBinAddr: 0x1204C, symSize: 0x8 }
+  - { offset: 0x40C95, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem setAck:]', symObjAddr: 0x90, symBinAddr: 0x12054, symSize: 0x8 }
+  - { offset: 0x40CD1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem callback]', symObjAddr: 0x98, symBinAddr: 0x1205C, symSize: 0x8 }
+  - { offset: 0x40D06, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem setCallback:]', symObjAddr: 0xA0, symBinAddr: 0x12064, symSize: 0x8 }
+  - { offset: 0x40D45, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckItem .cxx_destruct]', symObjAddr: 0xA8, symBinAddr: 0x1206C, symSize: 0xC }
+  - { offset: 0x40D75, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager init]', symObjAddr: 0xB4, symBinAddr: 0x12078, symSize: 0x84 }
+  - { offset: 0x40DD7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager addAck:callback:]', symObjAddr: 0x138, symBinAddr: 0x120FC, symSize: 0x8C }
+  - { offset: 0x40E79, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager executeAck:withItems:onQueue:]', symObjAddr: 0x1C4, symBinAddr: 0x12188, symSize: 0xE0 }
+  - { offset: 0x40F1D, size: 0x8, addend: 0x0, symName: '___54-[RTCVPSocketAckManager executeAck:withItems:onQueue:]_block_invoke', symObjAddr: 0x2A4, symBinAddr: 0x12268, symSize: 0x34 }
+  - { offset: 0x40F71, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager timeoutAck:onQueue:]', symObjAddr: 0x334, symBinAddr: 0x1229C, symSize: 0xB4 }
+  - { offset: 0x40FED, size: 0x8, addend: 0x0, symName: '___44-[RTCVPSocketAckManager timeoutAck:onQueue:]_block_invoke', symObjAddr: 0x3E8, symBinAddr: 0x12350, symSize: 0xB0 }
+  - { offset: 0x41041, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager removeAckCallbackWithId:]', symObjAddr: 0x4B0, symBinAddr: 0x12400, symSize: 0x194 }
+  - { offset: 0x410DB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager removeAllAcks]', symObjAddr: 0x644, symBinAddr: 0x12594, symSize: 0x34 }
+  - { offset: 0x41128, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckManager .cxx_destruct]', symObjAddr: 0x678, symBinAddr: 0x125C8, symSize: 0x30 }
+  - { offset: 0x412B3, size: 0x8, addend: 0x0, symName: '-[NSArray(JSON) toJSON:]', symObjAddr: 0x0, symBinAddr: 0x125F8, symSize: 0x18 }
+  - { offset: 0x41400, size: 0x8, addend: 0x0, symName: '-[NSArray(JSON) toJSON:]', symObjAddr: 0x0, symBinAddr: 0x125F8, symSize: 0x18 }
+  - { offset: 0x41443, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket description]', symObjAddr: 0x18, symBinAddr: 0x12610, symSize: 0xB4 }
+  - { offset: 0x41478, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket logType]', symObjAddr: 0xCC, symBinAddr: 0x126C4, symSize: 0xC }
+  - { offset: 0x414A8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket args]', symObjAddr: 0xD8, symBinAddr: 0x126D0, symSize: 0x68 }
+  - { offset: 0x414DC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket event]', symObjAddr: 0x140, symBinAddr: 0x12738, symSize: 0x6C }
+  - { offset: 0x41511, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket packetString]', symObjAddr: 0x1AC, symBinAddr: 0x127A4, symSize: 0x4 }
+  - { offset: 0x41544, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket init:nsp:placeholders:]', symObjAddr: 0x1B0, symBinAddr: 0x127A8, symSize: 0x98 }
+  - { offset: 0x415A5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket init:data:ID:nsp:placeholders:binary:]', symObjAddr: 0x248, symBinAddr: 0x12840, symSize: 0x104 }
+  - { offset: 0x41633, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket setupData]', symObjAddr: 0x34C, symBinAddr: 0x12944, symSize: 0x1EC }
+  - { offset: 0x41664, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket addData:]', symObjAddr: 0x538, symBinAddr: 0x12B30, symSize: 0xC4 }
+  - { offset: 0x416B6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket completeMessage:]', symObjAddr: 0x5FC, symBinAddr: 0x12BF4, symSize: 0x164 }
+  - { offset: 0x4172D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket createPacketString]', symObjAddr: 0x760, symBinAddr: 0x12D58, symSize: 0x1B8 }
+  - { offset: 0x417C9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket fillInPlaceholders]', symObjAddr: 0x918, symBinAddr: 0x12F10, symSize: 0x140 }
+  - { offset: 0x41825, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket _fillInPlaceholders:]', symObjAddr: 0xA58, symBinAddr: 0x13050, symSize: 0x344 }
+  - { offset: 0x41920, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket packetFromEmit:ID:nsp:ack:isEvent:]', symObjAddr: 0xD9C, symBinAddr: 0x13394, symSize: 0x12C }
+  - { offset: 0x419CB, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket findType:ack:]', symObjAddr: 0xEC8, symBinAddr: 0x134C0, symSize: 0x24 }
+  - { offset: 0x41A1C, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket parseItems:toBinary:]', symObjAddr: 0xEEC, symBinAddr: 0x134E4, symSize: 0x178 }
+  - { offset: 0x41A9B, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketPacket shred:binary:]', symObjAddr: 0x1064, symBinAddr: 0x1365C, symSize: 0x3C8 }
+  - { offset: 0x41B93, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket binary]', symObjAddr: 0x142C, symBinAddr: 0x13A24, symSize: 0x8 }
+  - { offset: 0x41BC8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket type]', symObjAddr: 0x1434, symBinAddr: 0x13A2C, symSize: 0x8 }
+  - { offset: 0x41BFD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket ID]', symObjAddr: 0x143C, symBinAddr: 0x13A34, symSize: 0x8 }
+  - { offset: 0x41C32, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket nsp]', symObjAddr: 0x1444, symBinAddr: 0x13A3C, symSize: 0x8 }
+  - { offset: 0x41C67, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket data]', symObjAddr: 0x144C, symBinAddr: 0x13A44, symSize: 0x8 }
+  - { offset: 0x41C9C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketPacket .cxx_destruct]', symObjAddr: 0x1454, symBinAddr: 0x13A4C, symSize: 0x48 }
+  - { offset: 0x41D7F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) doLongPoll:]', symObjAddr: 0x0, symBinAddr: 0x13A94, symSize: 0x13C }
+  - { offset: 0x41E6A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) doLongPoll:]', symObjAddr: 0x0, symBinAddr: 0x13A94, symSize: 0x13C }
+  - { offset: 0x41EC8, size: 0x8, addend: 0x0, symName: '___48-[RTCVPSocketEngine(EnginePollable) doLongPoll:]_block_invoke', symObjAddr: 0x13C, symBinAddr: 0x13BD0, symSize: 0x124 }
+  - { offset: 0x41FDE, size: 0x8, addend: 0x0, symName: '___48-[RTCVPSocketEngine(EnginePollable) doLongPoll:]_block_invoke_2', symObjAddr: 0x260, symBinAddr: 0x13CF4, symSize: 0x2A0 }
+  - { offset: 0x42096, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32s40s48s56s, symObjAddr: 0x500, symBinAddr: 0x13F94, symSize: 0x38 }
+  - { offset: 0x420BF, size: 0x8, addend: 0x0, symName: ___destroy_helper_block_e8_32s40s48s56s, symObjAddr: 0x538, symBinAddr: 0x13FCC, symSize: 0x38 }
+  - { offset: 0x420DD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) doPoll]', symObjAddr: 0x584, symBinAddr: 0x14004, symSize: 0xC4 }
+  - { offset: 0x4211C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) parsePollingMessage:]', symObjAddr: 0x648, symBinAddr: 0x140C8, symSize: 0x140 }
+  - { offset: 0x421BB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) sendPollMessage:withType:withData:]', symObjAddr: 0x788, symBinAddr: 0x14208, symSize: 0x268 }
+  - { offset: 0x42269, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) disconnectPolling]', symObjAddr: 0x9F0, symBinAddr: 0x14470, symSize: 0x124 }
+  - { offset: 0x422D3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) flushWaitingForPost]', symObjAddr: 0xB14, symBinAddr: 0x14594, symSize: 0x198 }
+  - { offset: 0x42331, size: 0x8, addend: 0x0, symName: '___56-[RTCVPSocketEngine(EnginePollable) flushWaitingForPost]_block_invoke', symObjAddr: 0xCAC, symBinAddr: 0x1472C, symSize: 0xC4 }
+  - { offset: 0x423CC, size: 0x8, addend: 0x0, symName: '___56-[RTCVPSocketEngine(EnginePollable) flushWaitingForPost]_block_invoke_2', symObjAddr: 0xD70, symBinAddr: 0x147F0, symSize: 0x11C }
+  - { offset: 0x42414, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) urlPollingWithSid]', symObjAddr: 0xEDC, symBinAddr: 0x1490C, symSize: 0x1F0 }
+  - { offset: 0x42483, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) createRequestForPostWithPostWait]', symObjAddr: 0x10CC, symBinAddr: 0x14AFC, symSize: 0x2F4 }
+  - { offset: 0x424FA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEngine(EnginePollable) stopPolling]', symObjAddr: 0x13C0, symBinAddr: 0x14DF0, symSize: 0x4C }
+  - { offset: 0x42DD7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler initWithEvent:uuid:andCallback:]', symObjAddr: 0x0, symBinAddr: 0x14E3C, symSize: 0xDC }
+  - { offset: 0x42DF0, size: 0x8, addend: 0x0, symName: _kSocketEventConnect, symObjAddr: 0x7150, symBinAddr: 0x2C800, symSize: 0x0 }
+  - { offset: 0x42E0F, size: 0x8, addend: 0x0, symName: _kSocketEventDisconnect, symObjAddr: 0x7158, symBinAddr: 0x2C808, symSize: 0x0 }
+  - { offset: 0x42E24, size: 0x8, addend: 0x0, symName: _kSocketEventError, symObjAddr: 0x7160, symBinAddr: 0x2C810, symSize: 0x0 }
+  - { offset: 0x42E39, size: 0x8, addend: 0x0, symName: _kSocketEventReconnect, symObjAddr: 0x7168, symBinAddr: 0x2C818, symSize: 0x0 }
+  - { offset: 0x42E4E, size: 0x8, addend: 0x0, symName: _kSocketEventReconnectAttempt, symObjAddr: 0x7170, symBinAddr: 0x2C820, symSize: 0x0 }
+  - { offset: 0x42E63, size: 0x8, addend: 0x0, symName: _kSocketEventStatusChange, symObjAddr: 0x7178, symBinAddr: 0x2C828, symSize: 0x0 }
+  - { offset: 0x436A9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler initWithEvent:uuid:andCallback:]', symObjAddr: 0x0, symBinAddr: 0x14E3C, symSize: 0xDC }
+  - { offset: 0x4370A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler executeCallbackWith:withAck:withSocket:withEmitter:]', symObjAddr: 0xDC, symBinAddr: 0x14F18, symSize: 0x94 }
+  - { offset: 0x4378C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler event]', symObjAddr: 0x170, symBinAddr: 0x14FAC, symSize: 0x8 }
+  - { offset: 0x437C1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler setEvent:]', symObjAddr: 0x178, symBinAddr: 0x14FB4, symSize: 0xC }
+  - { offset: 0x43800, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler uuid]', symObjAddr: 0x184, symBinAddr: 0x14FC0, symSize: 0x8 }
+  - { offset: 0x43835, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler setUuid:]', symObjAddr: 0x18C, symBinAddr: 0x14FC8, symSize: 0xC }
+  - { offset: 0x43874, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler callback]', symObjAddr: 0x198, symBinAddr: 0x14FD4, symSize: 0x8 }
+  - { offset: 0x438A9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler setCallback:]', symObjAddr: 0x1A0, symBinAddr: 0x14FDC, symSize: 0x8 }
+  - { offset: 0x438E8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketEventHandler .cxx_destruct]', symObjAddr: 0x1A8, symBinAddr: 0x14FE4, symSize: 0x3C }
+  - { offset: 0x43918, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter initWithAckId:emitBlock:]', symObjAddr: 0x1E4, symBinAddr: 0x15020, symSize: 0x88 }
+  - { offset: 0x4396A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter send:]', symObjAddr: 0x26C, symBinAddr: 0x150A8, symSize: 0x78 }
+  - { offset: 0x439BE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter ackId]', symObjAddr: 0x2E4, symBinAddr: 0x15120, symSize: 0x8 }
+  - { offset: 0x439F3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter setAckId:]', symObjAddr: 0x2EC, symBinAddr: 0x15128, symSize: 0x8 }
+  - { offset: 0x43A2F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter emitBlock]', symObjAddr: 0x2F4, symBinAddr: 0x15130, symSize: 0x8 }
+  - { offset: 0x43A64, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter setEmitBlock:]', symObjAddr: 0x2FC, symBinAddr: 0x15138, symSize: 0x8 }
+  - { offset: 0x43AA3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAckEmitter .cxx_destruct]', symObjAddr: 0x304, symBinAddr: 0x15140, symSize: 0xC }
+  - { offset: 0x43AD3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent initWithEvent:andItems:]', symObjAddr: 0x310, symBinAddr: 0x1514C, symSize: 0xB0 }
+  - { offset: 0x43B26, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent event]', symObjAddr: 0x3C0, symBinAddr: 0x151FC, symSize: 0x8 }
+  - { offset: 0x43B5B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent setEvent:]', symObjAddr: 0x3C8, symBinAddr: 0x15204, symSize: 0xC }
+  - { offset: 0x43B9A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent items]', symObjAddr: 0x3D4, symBinAddr: 0x15210, symSize: 0x8 }
+  - { offset: 0x43BCF, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent setItems:]', symObjAddr: 0x3DC, symBinAddr: 0x15218, symSize: 0xC }
+  - { offset: 0x43C0E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketAnyEvent .cxx_destruct]', symObjAddr: 0x3E8, symBinAddr: 0x15224, symSize: 0x30 }
+  - { offset: 0x43C3F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData ack]', symObjAddr: 0x418, symBinAddr: 0x15254, symSize: 0x8 }
+  - { offset: 0x43C74, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData setAck:]', symObjAddr: 0x420, symBinAddr: 0x1525C, symSize: 0x8 }
+  - { offset: 0x43CB0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData items]', symObjAddr: 0x428, symBinAddr: 0x15264, symSize: 0x8 }
+  - { offset: 0x43CE5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData setItems:]', symObjAddr: 0x430, symBinAddr: 0x1526C, symSize: 0xC }
+  - { offset: 0x43D24, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData isEvent]', symObjAddr: 0x43C, symBinAddr: 0x15278, symSize: 0x8 }
+  - { offset: 0x43D59, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData setIsEvent:]', symObjAddr: 0x444, symBinAddr: 0x15280, symSize: 0x8 }
+  - { offset: 0x43D93, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClientCacheData .cxx_destruct]', symObjAddr: 0x44C, symBinAddr: 0x15288, symSize: 0xC }
+  - { offset: 0x43DC3, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOClient clientWithSocketURL:config:]', symObjAddr: 0x458, symBinAddr: 0x15294, symSize: 0x6C }
+  - { offset: 0x43E15, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient initWithSocketURL:config:]', symObjAddr: 0x4C4, symBinAddr: 0x15300, symSize: 0x41C }
+  - { offset: 0x43E67, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient initWithSocketURL:configDictionary:]', symObjAddr: 0x8E0, symBinAddr: 0x1571C, symSize: 0x8C }
+  - { offset: 0x43EC8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient dealloc]', symObjAddr: 0x96C, symBinAddr: 0x157A8, symSize: 0xE8 }
+  - { offset: 0x43EF8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setDefaultValues]', symObjAddr: 0xA54, symBinAddr: 0x15890, symSize: 0x3AC }
+  - { offset: 0x43F28, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setStatus:]', symObjAddr: 0xE00, symBinAddr: 0x15C3C, symSize: 0x140 }
+  - { offset: 0x43F68, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient logType]', symObjAddr: 0xF40, symBinAddr: 0x15D7C, symSize: 0xC }
+  - { offset: 0x43F9A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient connect]', symObjAddr: 0xF4C, symBinAddr: 0x15D88, symSize: 0x10 }
+  - { offset: 0x43FCB, size: 0x8, addend: 0x0, symName: '___30-[RTCVPSocketIOClient connect]_block_invoke', symObjAddr: 0xF5C, symBinAddr: 0x15D98, symSize: 0x4 }
+  - { offset: 0x43FF4, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient connectWithTimeoutAfter:withHandler:]', symObjAddr: 0xF60, symBinAddr: 0x15D9C, symSize: 0x1E4 }
+  - { offset: 0x44118, size: 0x8, addend: 0x0, symName: '___59-[RTCVPSocketIOClient connectWithTimeoutAfter:withHandler:]_block_invoke', symObjAddr: 0x1144, symBinAddr: 0x15F80, symSize: 0x70 }
+  - { offset: 0x44192, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32b40w, symObjAddr: 0x11B4, symBinAddr: 0x15FF0, symSize: 0x38 }
+  - { offset: 0x441BB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient disconnect]', symObjAddr: 0x1214, symBinAddr: 0x16028, symSize: 0x84 }
+  - { offset: 0x441ED, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient disconnectWithHandler:]', symObjAddr: 0x1298, symBinAddr: 0x160AC, symSize: 0x44 }
+  - { offset: 0x44244, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnect]', symObjAddr: 0x12DC, symBinAddr: 0x160F0, symSize: 0x18 }
+  - { offset: 0x44275, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient addEngine]', symObjAddr: 0x12F4, symBinAddr: 0x16108, symSize: 0x250 }
+  - { offset: 0x442A7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient didDisconnect:]', symObjAddr: 0x1544, symBinAddr: 0x16358, symSize: 0x1B4 }
+  - { offset: 0x442EA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient generateNextAck]', symObjAddr: 0x16F8, symBinAddr: 0x1650C, symSize: 0x18 }
+  - { offset: 0x44320, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:]', symObjAddr: 0x1710, symBinAddr: 0x16524, symSize: 0x8 }
+  - { offset: 0x44360, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:withArgs:]', symObjAddr: 0x1718, symBinAddr: 0x1652C, symSize: 0xF8 }
+  - { offset: 0x443F6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:items:]', symObjAddr: 0x1810, symBinAddr: 0x16624, symSize: 0x8 }
+  - { offset: 0x44445, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emit:items:ack:]', symObjAddr: 0x1818, symBinAddr: 0x1662C, symSize: 0x31C }
+  - { offset: 0x444FC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emitWithAck:items:ackBlock:]', symObjAddr: 0x1B34, symBinAddr: 0x16948, symSize: 0x8 }
+  - { offset: 0x4455A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emitWithAck:items:ackBlock:timeout:]', symObjAddr: 0x1B3C, symBinAddr: 0x16950, symSize: 0x36C }
+  - { offset: 0x44663, size: 0x8, addend: 0x0, symName: '___58-[RTCVPSocketIOClient emitWithAck:items:ackBlock:timeout:]_block_invoke', symObjAddr: 0x1EA8, symBinAddr: 0x16CBC, symSize: 0x14 }
+  - { offset: 0x446C5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient registerAckCallback:callback:timeout:]', symObjAddr: 0x1F18, symBinAddr: 0x16CD0, symSize: 0x21C }
+  - { offset: 0x4475D, size: 0x8, addend: 0x0, symName: '___60-[RTCVPSocketIOClient registerAckCallback:callback:timeout:]_block_invoke', symObjAddr: 0x2134, symBinAddr: 0x16EEC, symSize: 0x1C0 }
+  - { offset: 0x4481F, size: 0x8, addend: 0x0, symName: '___60-[RTCVPSocketIOClient registerAckCallback:callback:timeout:]_block_invoke.155', symObjAddr: 0x22F4, symBinAddr: 0x170AC, symSize: 0x14C }
+  - { offset: 0x44903, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32b40w48w, symObjAddr: 0x2440, symBinAddr: 0x171F8, symSize: 0x44 }
+  - { offset: 0x4492C, size: 0x8, addend: 0x0, symName: ___destroy_helper_block_e8_32s40w48w, symObjAddr: 0x2484, symBinAddr: 0x1723C, symSize: 0x34 }
+  - { offset: 0x4494B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleAck:withData:]', symObjAddr: 0x24B8, symBinAddr: 0x17270, symSize: 0x134 }
+  - { offset: 0x4499F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient sendAck:withData:]', symObjAddr: 0x25EC, symBinAddr: 0x173A4, symSize: 0x25C }
+  - { offset: 0x44A26, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleEvent:withData:isInternalMessage:]', symObjAddr: 0x2848, symBinAddr: 0x17600, symSize: 0x8 }
+  - { offset: 0x44A89, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleClientEvent:withData:]', symObjAddr: 0x2850, symBinAddr: 0x17608, symSize: 0x8 }
+  - { offset: 0x44AD8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleEvent:withData:isInternalMessage:withAck:]', symObjAddr: 0x2858, symBinAddr: 0x17610, symSize: 0x3A8 }
+  - { offset: 0x44BC9, size: 0x8, addend: 0x0, symName: '___70-[RTCVPSocketIOClient handleEvent:withData:isInternalMessage:withAck:]_block_invoke', symObjAddr: 0x2C00, symBinAddr: 0x179B8, symSize: 0x58 }
+  - { offset: 0x44C48, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient leaveNamespace]', symObjAddr: 0x2C6C, symBinAddr: 0x17A10, symSize: 0x1F8 }
+  - { offset: 0x44C7A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient joinNamespace:]', symObjAddr: 0x2E64, symBinAddr: 0x17C08, symSize: 0x244 }
+  - { offset: 0x44CBD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient on:callback:]', symObjAddr: 0x30A8, symBinAddr: 0x17E4C, symSize: 0x204 }
+  - { offset: 0x44D26, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient once:callback:]', symObjAddr: 0x32AC, symBinAddr: 0x18050, symSize: 0x2B4 }
+  - { offset: 0x44DB1, size: 0x8, addend: 0x0, symName: '___37-[RTCVPSocketIOClient once:callback:]_block_invoke', symObjAddr: 0x3560, symBinAddr: 0x18304, symSize: 0x84 }
+  - { offset: 0x44E6D, size: 0x8, addend: 0x0, symName: ___copy_helper_block_e8_32s40b48w, symObjAddr: 0x35E4, symBinAddr: 0x18388, symSize: 0x40 }
+  - { offset: 0x44E96, size: 0x8, addend: 0x0, symName: ___destroy_helper_block_e8_32s40s48w, symObjAddr: 0x3624, symBinAddr: 0x183C8, symSize: 0x30 }
+  - { offset: 0x44EB5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient onAny:]', symObjAddr: 0x3654, symBinAddr: 0x183F8, symSize: 0x30 }
+  - { offset: 0x44EF8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient off:]', symObjAddr: 0x3684, symBinAddr: 0x18428, symSize: 0x110 }
+  - { offset: 0x44F4C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient offWithID:]', symObjAddr: 0x3794, symBinAddr: 0x18538, symSize: 0x130 }
+  - { offset: 0x44FA0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient removeAllHandlers]', symObjAddr: 0x38C4, symBinAddr: 0x18668, symSize: 0x40 }
+  - { offset: 0x44FD2, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient tryReconnect:]', symObjAddr: 0x3904, symBinAddr: 0x186A8, symSize: 0x198 }
+  - { offset: 0x45015, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient _tryReconnect]', symObjAddr: 0x3A9C, symBinAddr: 0x18840, symSize: 0x2E4 }
+  - { offset: 0x45047, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnectTimer]', symObjAddr: 0x3D80, symBinAddr: 0x18B24, symSize: 0x1A0 }
+  - { offset: 0x450FC, size: 0x8, addend: 0x0, symName: '___40-[RTCVPSocketIOClient setReconnectTimer]_block_invoke', symObjAddr: 0x3F20, symBinAddr: 0x18CC4, symSize: 0x114 }
+  - { offset: 0x45167, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient startNetworkMonitoring]', symObjAddr: 0x4064, symBinAddr: 0x18DD8, symSize: 0x13C }
+  - { offset: 0x451B1, size: 0x8, addend: 0x0, symName: '___45-[RTCVPSocketIOClient startNetworkMonitoring]_block_invoke', symObjAddr: 0x41A0, symBinAddr: 0x18F14, symSize: 0x34 }
+  - { offset: 0x4521F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient stopNetworkMonitoring]', symObjAddr: 0x41D4, symBinAddr: 0x18F48, symSize: 0x68 }
+  - { offset: 0x45251, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleNetworkStatusChange:]', symObjAddr: 0x423C, symBinAddr: 0x18FB0, symSize: 0x1C4 }
+  - { offset: 0x45294, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient emitAck:withItems:isEvent:]', symObjAddr: 0x4400, symBinAddr: 0x19174, symSize: 0xD0 }
+  - { offset: 0x45325, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient didConnect:]', symObjAddr: 0x44D0, symBinAddr: 0x19244, symSize: 0x2C0 }
+  - { offset: 0x453A6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient didError:]', symObjAddr: 0x4790, symBinAddr: 0x19504, symSize: 0xFC }
+  - { offset: 0x453E9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engineDidError:]', symObjAddr: 0x488C, symBinAddr: 0x19600, symSize: 0xF0 }
+  - { offset: 0x4545A, size: 0x8, addend: 0x0, symName: '___38-[RTCVPSocketIOClient engineDidError:]_block_invoke', symObjAddr: 0x497C, symBinAddr: 0x196F0, symSize: 0x3C }
+  - { offset: 0x454C8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient _engineDidError:]', symObjAddr: 0x49B8, symBinAddr: 0x1972C, symSize: 0xFC }
+  - { offset: 0x4550B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engineDidOpen:]', symObjAddr: 0x4AB4, symBinAddr: 0x19828, symSize: 0xB8 }
+  - { offset: 0x4554E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engineDidClose:]', symObjAddr: 0x4B6C, symBinAddr: 0x198E0, symSize: 0xF0 }
+  - { offset: 0x455BF, size: 0x8, addend: 0x0, symName: '___38-[RTCVPSocketIOClient engineDidClose:]_block_invoke', symObjAddr: 0x4C5C, symBinAddr: 0x199D0, symSize: 0x3C }
+  - { offset: 0x4562D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient _engineDidClose:]', symObjAddr: 0x4C98, symBinAddr: 0x19A0C, symSize: 0xA4 }
+  - { offset: 0x45670, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseEngineMessage:]', symObjAddr: 0x4D3C, symBinAddr: 0x19AB0, symSize: 0x170 }
+  - { offset: 0x456E1, size: 0x8, addend: 0x0, symName: '___42-[RTCVPSocketIOClient parseEngineMessage:]_block_invoke', symObjAddr: 0x4EAC, symBinAddr: 0x19C20, symSize: 0x3C }
+  - { offset: 0x4574F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseEngineBinaryData:]', symObjAddr: 0x4EE8, symBinAddr: 0x19C5C, symSize: 0xF0 }
+  - { offset: 0x457C0, size: 0x8, addend: 0x0, symName: '___45-[RTCVPSocketIOClient parseEngineBinaryData:]_block_invoke', symObjAddr: 0x4FD8, symBinAddr: 0x19D4C, symSize: 0x3C }
+  - { offset: 0x4582E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseSocketMessage:]', symObjAddr: 0x5014, symBinAddr: 0x19D88, symSize: 0x178 }
+  - { offset: 0x45890, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseBinaryData:]', symObjAddr: 0x518C, symBinAddr: 0x19F00, symSize: 0x194 }
+  - { offset: 0x458F8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient parseString:]', symObjAddr: 0x5320, symBinAddr: 0x1A094, symSize: 0x530 }
+  - { offset: 0x45A8D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient isCorrectNamespace:]', symObjAddr: 0x5850, symBinAddr: 0x1A5C4, symSize: 0x68 }
+  - { offset: 0x45AD4, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handlePacket:]', symObjAddr: 0x58B8, symBinAddr: 0x1A62C, symSize: 0x294 }
+  - { offset: 0x45B17, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleConnect:]', symObjAddr: 0x5B4C, symBinAddr: 0x1A8C0, symSize: 0xAC }
+  - { offset: 0x45B5A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient ackHandlers]', symObjAddr: 0x5BF8, symBinAddr: 0x1A96C, symSize: 0x8 }
+  - { offset: 0x45B8F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setAckHandlers:]', symObjAddr: 0x5C00, symBinAddr: 0x1A974, symSize: 0xC }
+  - { offset: 0x45BCE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient status]', symObjAddr: 0x5C0C, symBinAddr: 0x1A980, symSize: 0x8 }
+  - { offset: 0x45C03, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient forceNew]', symObjAddr: 0x5C14, symBinAddr: 0x1A988, symSize: 0x8 }
+  - { offset: 0x45C38, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setForceNew:]', symObjAddr: 0x5C1C, symBinAddr: 0x1A990, symSize: 0x8 }
+  - { offset: 0x45C72, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient config]', symObjAddr: 0x5C24, symBinAddr: 0x1A998, symSize: 0x8 }
+  - { offset: 0x45CA7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnects]', symObjAddr: 0x5C2C, symBinAddr: 0x1A9A0, symSize: 0x8 }
+  - { offset: 0x45CDC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnects:]', symObjAddr: 0x5C34, symBinAddr: 0x1A9A8, symSize: 0x8 }
+  - { offset: 0x45D16, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnectWait]', symObjAddr: 0x5C3C, symBinAddr: 0x1A9B0, symSize: 0x8 }
+  - { offset: 0x45D4A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnectWait:]', symObjAddr: 0x5C44, symBinAddr: 0x1A9B8, symSize: 0x8 }
+  - { offset: 0x45D87, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient reconnectAttempts]', symObjAddr: 0x5C4C, symBinAddr: 0x1A9C0, symSize: 0x8 }
+  - { offset: 0x45DBC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setReconnectAttempts:]', symObjAddr: 0x5C54, symBinAddr: 0x1A9C8, symSize: 0x8 }
+  - { offset: 0x45DF8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient currentReconnectAttempt]', symObjAddr: 0x5C5C, symBinAddr: 0x1A9D0, symSize: 0x8 }
+  - { offset: 0x45E2D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setCurrentReconnectAttempt:]', symObjAddr: 0x5C64, symBinAddr: 0x1A9D8, symSize: 0x8 }
+  - { offset: 0x45E69, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient socketURL]', symObjAddr: 0x5C6C, symBinAddr: 0x1A9E0, symSize: 0x8 }
+  - { offset: 0x45E9E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handleQueue]', symObjAddr: 0x5C74, symBinAddr: 0x1A9E8, symSize: 0x8 }
+  - { offset: 0x45ED3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient nsp]', symObjAddr: 0x5C7C, symBinAddr: 0x1A9F0, symSize: 0x8 }
+  - { offset: 0x45F08, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient engine]', symObjAddr: 0x5C84, symBinAddr: 0x1A9F8, symSize: 0x8 }
+  - { offset: 0x45F3D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setEngine:]', symObjAddr: 0x5C8C, symBinAddr: 0x1AA00, symSize: 0xC }
+  - { offset: 0x45F7C, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient handlers]', symObjAddr: 0x5C98, symBinAddr: 0x1AA0C, symSize: 0x8 }
+  - { offset: 0x45FB1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setHandlers:]', symObjAddr: 0x5CA0, symBinAddr: 0x1AA14, symSize: 0xC }
+  - { offset: 0x45FF0, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient waitingPackets]', symObjAddr: 0x5CAC, symBinAddr: 0x1AA20, symSize: 0x8 }
+  - { offset: 0x46025, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setWaitingPackets:]', symObjAddr: 0x5CB4, symBinAddr: 0x1AA28, symSize: 0xC }
+  - { offset: 0x46064, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient networkManager]', symObjAddr: 0x5CC0, symBinAddr: 0x1AA34, symSize: 0x8 }
+  - { offset: 0x46099, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setNetworkManager:]', symObjAddr: 0x5CC8, symBinAddr: 0x1AA3C, symSize: 0xC }
+  - { offset: 0x460D8, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient currentNetworkStatus]', symObjAddr: 0x5CD4, symBinAddr: 0x1AA48, symSize: 0x8 }
+  - { offset: 0x4610D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setCurrentNetworkStatus:]', symObjAddr: 0x5CDC, symBinAddr: 0x1AA50, symSize: 0x8 }
+  - { offset: 0x46149, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient dataCache]', symObjAddr: 0x5CE4, symBinAddr: 0x1AA58, symSize: 0x8 }
+  - { offset: 0x4617E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient setDataCache:]', symObjAddr: 0x5CEC, symBinAddr: 0x1AA60, symSize: 0xC }
+  - { offset: 0x461BD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOClient .cxx_destruct]', symObjAddr: 0x5CF8, symBinAddr: 0x1AA6C, symSize: 0xB4 }
+  - { offset: 0x469F5, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig defaultConfig]', symObjAddr: 0x0, symBinAddr: 0x1AB20, symSize: 0x18 }
+  - { offset: 0x46A0E, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyForceNew, symObjAddr: 0xB60, symBinAddr: 0x2C990, symSize: 0x0 }
+  - { offset: 0x46A2D, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyReconnects, symObjAddr: 0xB68, symBinAddr: 0x2C998, symSize: 0x0 }
+  - { offset: 0x46A42, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyReconnectWait, symObjAddr: 0xB70, symBinAddr: 0x2C9A0, symSize: 0x0 }
+  - { offset: 0x46A57, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyTimeout, symObjAddr: 0xB78, symBinAddr: 0x2C9A8, symSize: 0x0 }
+  - { offset: 0x46A6C, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyQuery, symObjAddr: 0xB80, symBinAddr: 0x2C9B0, symSize: 0x0 }
+  - { offset: 0x46A81, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyNsp, symObjAddr: 0xB88, symBinAddr: 0x2C9B8, symSize: 0x0 }
+  - { offset: 0x46A96, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyIgnoreSSLErrors, symObjAddr: 0xB90, symBinAddr: 0x2C9C0, symSize: 0x0 }
+  - { offset: 0x46AAB, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyProtocolVersion, symObjAddr: 0xB98, symBinAddr: 0x2C9C8, symSize: 0x0 }
+  - { offset: 0x46AC0, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyPath, symObjAddr: 0xBA0, symBinAddr: 0x2C9D0, symSize: 0x0 }
+  - { offset: 0x46AD5, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeySecure, symObjAddr: 0xBA8, symBinAddr: 0x2C9D8, symSize: 0x0 }
+  - { offset: 0x46AEA, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyPingInterval, symObjAddr: 0xBB0, symBinAddr: 0x2C9E0, symSize: 0x0 }
+  - { offset: 0x46AFF, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyPingTimeout, symObjAddr: 0xBB8, symBinAddr: 0x2C9E8, symSize: 0x0 }
+  - { offset: 0x46B14, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyExtraHeaders, symObjAddr: 0xBC0, symBinAddr: 0x2C9F0, symSize: 0x0 }
+  - { offset: 0x46B29, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyCookies, symObjAddr: 0xBC8, symBinAddr: 0x2C9F8, symSize: 0x0 }
+  - { offset: 0x46B3E, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyConnectParams, symObjAddr: 0xBD0, symBinAddr: 0x2CA00, symSize: 0x0 }
+  - { offset: 0x46B53, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeySelfSigned, symObjAddr: 0xBD8, symBinAddr: 0x2CA08, symSize: 0x0 }
+  - { offset: 0x46B68, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeySecurity, symObjAddr: 0xBE0, symBinAddr: 0x2CA10, symSize: 0x0 }
+  - { offset: 0x46B7D, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyCompress, symObjAddr: 0xBE8, symBinAddr: 0x2CA18, symSize: 0x0 }
+  - { offset: 0x46B92, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOConfigKeyNamespace, symObjAddr: 0xBF0, symBinAddr: 0x2CA20, symSize: 0x0 }
+  - { offset: 0x46BA7, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOProtocolVersion2, symObjAddr: 0xBF8, symBinAddr: 0x20730, symSize: 0x0 }
+  - { offset: 0x46BC8, size: 0x8, addend: 0x0, symName: _kRTCVPSocketIOProtocolVersion3, symObjAddr: 0xBFC, symBinAddr: 0x20734, symSize: 0x0 }
+  - { offset: 0x46FC6, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig defaultConfig]', symObjAddr: 0x0, symBinAddr: 0x1AB20, symSize: 0x18 }
+  - { offset: 0x46FFA, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig productionConfig]', symObjAddr: 0x18, symBinAddr: 0x1AB38, symSize: 0x58 }
+  - { offset: 0x4703D, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig developmentConfig]', symObjAddr: 0x70, symBinAddr: 0x1AB90, symSize: 0x40 }
+  - { offset: 0x47080, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig init]', symObjAddr: 0xB0, symBinAddr: 0x1ABD0, symSize: 0xB4 }
+  - { offset: 0x470B4, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig initWithDictionary:]', symObjAddr: 0x164, symBinAddr: 0x1AC84, symSize: 0x50 }
+  - { offset: 0x470F7, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig initWithBuilder:]', symObjAddr: 0x1B4, symBinAddr: 0x1ACD4, symSize: 0x58 }
+  - { offset: 0x47155, size: 0x8, addend: 0x0, symName: '+[RTCVPSocketIOConfig configWithBlock:]', symObjAddr: 0x20C, symBinAddr: 0x1AD2C, symSize: 0x48 }
+  - { offset: 0x47198, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig applyDictionary:]', symObjAddr: 0x254, symBinAddr: 0x1AD74, symSize: 0x318 }
+  - { offset: 0x47204, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig path]', symObjAddr: 0x56C, symBinAddr: 0x1B08C, symSize: 0x8 }
+  - { offset: 0x47239, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setPath:]', symObjAddr: 0x574, symBinAddr: 0x1B094, symSize: 0x8 }
+  - { offset: 0x47278, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig namespace]', symObjAddr: 0x57C, symBinAddr: 0x1B09C, symSize: 0x8 }
+  - { offset: 0x472AD, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setNamespace:]', symObjAddr: 0x584, symBinAddr: 0x1B0A4, symSize: 0x8 }
+  - { offset: 0x472EC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig secure]', symObjAddr: 0x58C, symBinAddr: 0x1B0AC, symSize: 0x8 }
+  - { offset: 0x47321, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setSecure:]', symObjAddr: 0x594, symBinAddr: 0x1B0B4, symSize: 0x8 }
+  - { offset: 0x4735B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig connectTimeout]', symObjAddr: 0x59C, symBinAddr: 0x1B0BC, symSize: 0x8 }
+  - { offset: 0x4738F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setConnectTimeout:]', symObjAddr: 0x5A4, symBinAddr: 0x1B0C4, symSize: 0x8 }
+  - { offset: 0x473CC, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig transport]', symObjAddr: 0x5AC, symBinAddr: 0x1B0CC, symSize: 0x8 }
+  - { offset: 0x47401, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setTransport:]', symObjAddr: 0x5B4, symBinAddr: 0x1B0D4, symSize: 0x8 }
+  - { offset: 0x4743D, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig protocolVersion]', symObjAddr: 0x5BC, symBinAddr: 0x1B0DC, symSize: 0x8 }
+  - { offset: 0x47472, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setProtocolVersion:]', symObjAddr: 0x5C4, symBinAddr: 0x1B0E4, symSize: 0x8 }
+  - { offset: 0x474AE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig pingInterval]', symObjAddr: 0x5CC, symBinAddr: 0x1B0EC, symSize: 0x8 }
+  - { offset: 0x474E3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setPingInterval:]', symObjAddr: 0x5D4, symBinAddr: 0x1B0F4, symSize: 0x8 }
+  - { offset: 0x4751F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig pingTimeout]', symObjAddr: 0x5DC, symBinAddr: 0x1B0FC, symSize: 0x8 }
+  - { offset: 0x47554, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setPingTimeout:]', symObjAddr: 0x5E4, symBinAddr: 0x1B104, symSize: 0x8 }
+  - { offset: 0x47590, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig enableBinary]', symObjAddr: 0x5EC, symBinAddr: 0x1B10C, symSize: 0x8 }
+  - { offset: 0x475C5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setEnableBinary:]', symObjAddr: 0x5F4, symBinAddr: 0x1B114, symSize: 0x8 }
+  - { offset: 0x475FF, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionEnabled]', symObjAddr: 0x5FC, symBinAddr: 0x1B11C, symSize: 0x8 }
+  - { offset: 0x47634, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionEnabled:]', symObjAddr: 0x604, symBinAddr: 0x1B124, symSize: 0x8 }
+  - { offset: 0x4766E, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionAttempts]', symObjAddr: 0x60C, symBinAddr: 0x1B12C, symSize: 0x8 }
+  - { offset: 0x476A3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionAttempts:]', symObjAddr: 0x614, symBinAddr: 0x1B134, symSize: 0x8 }
+  - { offset: 0x476DF, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionDelay]', symObjAddr: 0x61C, symBinAddr: 0x1B13C, symSize: 0x8 }
+  - { offset: 0x47713, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionDelay:]', symObjAddr: 0x624, symBinAddr: 0x1B144, symSize: 0x8 }
+  - { offset: 0x47750, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig reconnectionDelayMax]', symObjAddr: 0x62C, symBinAddr: 0x1B14C, symSize: 0x8 }
+  - { offset: 0x47784, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setReconnectionDelayMax:]', symObjAddr: 0x634, symBinAddr: 0x1B154, symSize: 0x8 }
+  - { offset: 0x477C1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig randomizationFactor]', symObjAddr: 0x63C, symBinAddr: 0x1B15C, symSize: 0x8 }
+  - { offset: 0x477F5, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setRandomizationFactor:]', symObjAddr: 0x644, symBinAddr: 0x1B164, symSize: 0x8 }
+  - { offset: 0x47832, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig allowSelfSignedCertificates]', symObjAddr: 0x64C, symBinAddr: 0x1B16C, symSize: 0x8 }
+  - { offset: 0x47867, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setAllowSelfSignedCertificates:]', symObjAddr: 0x654, symBinAddr: 0x1B174, symSize: 0x8 }
+  - { offset: 0x478A1, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig ignoreSSLErrors]', symObjAddr: 0x65C, symBinAddr: 0x1B17C, symSize: 0x8 }
+  - { offset: 0x478D6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setIgnoreSSLErrors:]', symObjAddr: 0x664, symBinAddr: 0x1B184, symSize: 0x8 }
+  - { offset: 0x47910, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig security]', symObjAddr: 0x66C, symBinAddr: 0x1B18C, symSize: 0x8 }
+  - { offset: 0x47945, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setSecurity:]', symObjAddr: 0x674, symBinAddr: 0x1B194, symSize: 0xC }
+  - { offset: 0x47984, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig compressionEnabled]', symObjAddr: 0x680, symBinAddr: 0x1B1A0, symSize: 0x8 }
+  - { offset: 0x479B9, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setCompressionEnabled:]', symObjAddr: 0x688, symBinAddr: 0x1B1A8, symSize: 0x8 }
+  - { offset: 0x479F3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig forceNewConnection]', symObjAddr: 0x690, symBinAddr: 0x1B1B0, symSize: 0x8 }
+  - { offset: 0x47A28, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setForceNewConnection:]', symObjAddr: 0x698, symBinAddr: 0x1B1B8, symSize: 0x8 }
+  - { offset: 0x47A62, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig extraHeaders]', symObjAddr: 0x6A0, symBinAddr: 0x1B1C0, symSize: 0x8 }
+  - { offset: 0x47A97, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setExtraHeaders:]', symObjAddr: 0x6A8, symBinAddr: 0x1B1C8, symSize: 0xC }
+  - { offset: 0x47AD6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig connectParams]', symObjAddr: 0x6B4, symBinAddr: 0x1B1D4, symSize: 0x8 }
+  - { offset: 0x47B0B, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setConnectParams:]', symObjAddr: 0x6BC, symBinAddr: 0x1B1DC, symSize: 0xC }
+  - { offset: 0x47B4A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig cookies]', symObjAddr: 0x6C8, symBinAddr: 0x1B1E8, symSize: 0x8 }
+  - { offset: 0x47B7F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setCookies:]', symObjAddr: 0x6D0, symBinAddr: 0x1B1F0, symSize: 0xC }
+  - { offset: 0x47BBE, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig sessionDelegate]', symObjAddr: 0x6DC, symBinAddr: 0x1B1FC, symSize: 0x18 }
+  - { offset: 0x47BF3, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setSessionDelegate:]', symObjAddr: 0x6F4, symBinAddr: 0x1B214, symSize: 0xC }
+  - { offset: 0x47C32, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig logger]', symObjAddr: 0x700, symBinAddr: 0x1B220, symSize: 0x8 }
+  - { offset: 0x47C67, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setLogger:]', symObjAddr: 0x708, symBinAddr: 0x1B228, symSize: 0xC }
+  - { offset: 0x47CA6, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig loggingEnabled]', symObjAddr: 0x714, symBinAddr: 0x1B234, symSize: 0x8 }
+  - { offset: 0x47CDB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setLoggingEnabled:]', symObjAddr: 0x71C, symBinAddr: 0x1B23C, symSize: 0x8 }
+  - { offset: 0x47D15, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig logLevel]', symObjAddr: 0x724, symBinAddr: 0x1B244, symSize: 0x8 }
+  - { offset: 0x47D4A, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setLogLevel:]', symObjAddr: 0x72C, symBinAddr: 0x1B24C, symSize: 0x8 }
+  - { offset: 0x47D86, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig handleQueue]', symObjAddr: 0x734, symBinAddr: 0x1B254, symSize: 0x8 }
+  - { offset: 0x47DBB, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setHandleQueue:]', symObjAddr: 0x73C, symBinAddr: 0x1B25C, symSize: 0xC }
+  - { offset: 0x47DFA, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig enableNetworkMonitoring]', symObjAddr: 0x748, symBinAddr: 0x1B268, symSize: 0x8 }
+  - { offset: 0x47E2F, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig setEnableNetworkMonitoring:]', symObjAddr: 0x750, symBinAddr: 0x1B270, symSize: 0x8 }
+  - { offset: 0x47E69, size: 0x8, addend: 0x0, symName: '-[RTCVPSocketIOConfig .cxx_destruct]', symObjAddr: 0x758, symBinAddr: 0x1B278, symSize: 0x80 }
 ...
