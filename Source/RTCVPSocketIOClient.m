@@ -1018,9 +1018,104 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 }
 
 - (RTCVPSocketPacket *)parseString:(NSString *)message {
-    // 简单的实现，返回nil表示解析失败
-    // 实际项目中应该使用RTCVPStringReader来实现完整的Socket.IO协议解析
-    return nil;
+    if (message.length == 0) {
+        return nil;
+    }
+    
+    // 解析Socket.IO协议消息
+    // 消息格式: [type][nsp][data]，例如: 2["event",{"data":"value"}]
+    
+    // 提取类型字符
+    NSString *typeStr = [message substringToIndex:1];
+    RTCVPPacketType type = [typeStr integerValue];
+    
+    // 提取内容部分（类型之后的所有内容）
+    NSString *content = [message substringFromIndex:1];
+    
+    // 处理不同类型的消息
+    switch (type) {
+        case RTCVPPacketTypeEvent: {
+            // 事件消息格式: 2["event",{"data":"value"}]
+            // 解析JSON数组
+            NSData *jsonData = [content dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error = nil;
+            NSArray *jsonArray = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+            if (error || !jsonArray || jsonArray.count < 1) {
+                [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"Failed to parse JSON: %@", error.localizedDescription] type:@"SocketParser"];
+                return nil;
+            }
+            
+            // 创建数据包，直接传递完整的JSON数组作为data
+            // 事件名称会从data[0]自动提取
+            RTCVPSocketPacket *packet = [[RTCVPSocketPacket alloc] init:type 
+                                                                   data:jsonArray 
+                                                                     ID:-1 
+                                                                    nsp:@"/" 
+                                                           placeholders:0 
+                                                           binary:@[]];
+            return packet;
+        }
+            
+        case RTCVPPacketTypeConnect: {
+            // 连接消息
+            return [[RTCVPSocketPacket alloc] init:type 
+                                             data:@[] 
+                                               ID:-1 
+                                              nsp:@"/" 
+                                     placeholders:0 
+                                     binary:@[]];
+        }
+            
+        case RTCVPPacketTypeDisconnect: {
+            // 断开连接消息
+            return [[RTCVPSocketPacket alloc] init:type 
+                                             data:@[] 
+                                               ID:-1 
+                                              nsp:@"/" 
+                                     placeholders:0 
+                                     binary:@[]];
+        }
+            
+        case RTCVPPacketTypeAck: {
+            // ACK消息
+            NSData *jsonData = [content dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error = nil;
+            NSArray *jsonArray = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+            if (error || !jsonArray) {
+                jsonArray = @[];
+            }
+            
+            return [[RTCVPSocketPacket alloc] init:type 
+                                             data:jsonArray 
+                                               ID:-1 
+                                              nsp:@"/" 
+                                     placeholders:0 
+                                     binary:@[]];
+        }
+            
+        case RTCVPPacketTypeError: {
+            // 错误消息
+            NSData *jsonData = [content dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error = nil;
+            NSArray *jsonArray = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+            if (error || !jsonArray) {
+                jsonArray = @[];
+            }
+            
+            return [[RTCVPSocketPacket alloc] init:type 
+                                             data:jsonArray 
+                                               ID:-1 
+                                              nsp:@"/" 
+                                     placeholders:0 
+                                     binary:@[]];
+        }
+            
+        default: {
+            // 未知类型
+            [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"Unknown packet type: %d", (int)type] type:@"SocketParser"];
+            return nil;
+        }
+    }
 }
 
 - (BOOL)isCorrectNamespace:(NSString *)nsp {

@@ -206,16 +206,37 @@
     CGRect keyboardFrame = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
     CGFloat keyboardHeight = keyboardFrame.size.height;
     
+    // 移除所有现有的底部约束
+    for (NSLayoutConstraint *constraint in self.inputContainerView.constraints) {
+        if (constraint.firstAttribute == NSLayoutAttributeBottom) {
+            constraint.active = NO;
+        }
+    }
+    
     [UIView animateWithDuration:0.3 animations:^{        
-        [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-(10 + keyboardHeight)].active = YES;
+        // 添加新的底部约束
+        [NSLayoutConstraint activateConstraints:@[
+            [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-(10 + keyboardHeight)]
+        ]];
         [self.view layoutIfNeeded];
     }];
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification {
     // 键盘隐藏时，恢复输入容器视图的位置
+    
+    // 移除所有现有的底部约束
+    for (NSLayoutConstraint *constraint in self.inputContainerView.constraints) {
+        if (constraint.firstAttribute == NSLayoutAttributeBottom) {
+            constraint.active = NO;
+        }
+    }
+    
     [UIView animateWithDuration:0.3 animations:^{        
-        [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10].active = YES;
+        // 添加新的底部约束
+        [NSLayoutConstraint activateConstraints:@[
+            [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10]
+        ]];
         [self.view layoutIfNeeded];
     }];
 }
@@ -244,18 +265,21 @@
         config.loggingEnabled = YES;
         config.reconnectionEnabled = YES;
         config.reconnectionAttempts = 3;
-        config.forcePolling = NO;
         config.secure = NO;
         config.forceNewConnection = YES;
-        config.transport = RTCVPSocketIOTransportAuto;
-        config.allowSelfSignedCertificates = NO;
+        config.allowSelfSignedCertificates = YES;
         config.ignoreSSLErrors = NO;
         config.reconnectionDelay = 2;
+        config.connectTimeout = 15; // 增加连接超时时间
         config.namespace = @"/";
         config.connectParams = connectParams;
-        config.forceWebsockets = NO;
         config.logger = logger;
         config.handleQueue = self->_currentEngineProtooQueue;
+        // 与web客户端保持一致的配置
+        config.protocolVersion = RTCVPSocketIOProtocolVersion2; // Socket.IO 3.x/4.x
+        config.transport = RTCVPSocketIOTransportAuto; // 自动协商传输方式
+        config.forceWebsockets = NO;
+        config.forcePolling = NO;
     }];
     
     // 创建Socket客户端
@@ -387,10 +411,16 @@
 
 - (void)connectButtonTapped:(id)sender {
     // 连接到服务器
-    [self.socket connectWithTimeoutAfter:10 withHandler:^{        
+    NSLog(@"📞 连接按钮点击，开始连接到服务器");
+    [self addMessage:@"🔄 正在连接服务器..." type:@"system"];
+    
+    // 增加连接超时时间到15秒
+    [self.socket connectWithTimeoutAfter:15 withHandler:^{        
+        NSLog(@"⏱️ 连接超时回调触发");
         [self addMessage:@"⏱️ 连接超时" type:@"system"];
     }];
-    [self addMessage:@"🔄 正在连接服务器..." type:@"system"];
+    
+    NSLog(@"� 连接方法调用完成，等待连接结果");
 }
 
 - (void)disconnectButtonTapped:(id)sender {
