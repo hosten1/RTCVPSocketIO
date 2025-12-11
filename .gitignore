@@ -1,18 +1,6 @@
 
 .DS_Store
-VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/luoyongmeng.xcuserdatad/UserInterfaceState.xcuserstate
-*.zip
-VPSocketIO.xcodeproj/xcuserdata/luoyongmeng.xcuserdatad/xcdebugger/Breakpoints_v2.xcbkptlist
-frameworks/VPSocketIO.framework.dSYM/Contents/Info.plist
-frameworks/VPSocketIO.framework.dSYM/Contents/Resources/DWARF/VPSocketIO
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketAckEmitter.h
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketAnyEvent.h
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketIO.h
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketIOClient.h
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketIOClientProtocol.h
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketLogger.h
-frameworks/VPSocketIO.framework/Headers/RTCVPSocketOnAckCallback.h
-frameworks/VPSocketIO.framework/Info.plist
-frameworks/VPSocketIO.framework/VPSocketIO
-VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/luoyongmeng.xcuserdatad/WorkspaceSettings.xcsettings
-frameworks/VPSocketIO.framework/_CodeSignature/CodeResources
+VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/
+VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/
+frameworks/
+testServer/node_modules/

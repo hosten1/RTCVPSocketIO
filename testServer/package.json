@@ -1,0 +1,20 @@
+{
+  "name": "rtcvpsocketio-server",
+  "version": "1.0.0",
+  "description": "Node.js Socket.IO server for testing RTCVPSocketIO client",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "socket.io",
+    "server",
+    "test"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "socket.io": "^4.7.2"
+  }
+}
