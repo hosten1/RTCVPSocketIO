@@ -34,6 +34,12 @@
 @property(nonatomic, strong) UIButton *ackTestButton;
 @property(nonatomic, strong) UIView *inputContainerView;
 
+// 新增的下拉选项
+@property(nonatomic, strong) UILabel *protocolLabel;
+@property(nonatomic, strong) UISegmentedControl *protocolSegment;
+@property(nonatomic, strong) UILabel *transportLabel;
+@property(nonatomic, strong) UISegmentedControl *transportSegment;
+
 @property(nonatomic, strong)UIColor *connBtnBC;
 @property(nonatomic, strong)UIColor *disconnectBtnBC ;
 @property(nonatomic, strong)UIColor *sendBtnBC ;
@@ -59,6 +65,16 @@
     
     // 添加键盘通知
     [self setupKeyboardNotifications];
+    
+    // 添加点击外部键盘收回手势
+    UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissKeyboard)];
+    tapGesture.cancelsTouchesInView = NO; // 允许子视图的触摸事件
+    [self.view addGestureRecognizer:tapGesture];
+}
+
+// 点击外部收回键盘
+- (void)dismissKeyboard {
+    [self.view endEditing:YES];
 }
 
 - (void)createUI {
@@ -66,6 +82,8 @@
     self.connBtnBC = [UIColor systemGreenColor];
     self.disconnectBtnBC = [UIColor systemRedColor];
     self.ackTestBtnBC = [UIColor systemPurpleColor];
+    self.inputTFBC = [UIColor whiteColor];
+    
     // 状态视图
     self.statusView = [[UIView alloc] initWithFrame:CGRectZero];
     self.statusView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -79,6 +97,26 @@
     self.statusLabel.textColor = [UIColor whiteColor];
     self.statusLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightSemibold];
     [self.statusView addSubview:self.statusLabel];
+    
+    // 协议版本选择
+    self.protocolLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    self.protocolLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.protocolLabel.text = @"协议版本:";
+    self.protocolLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
+    
+    self.protocolSegment = [[UISegmentedControl alloc] initWithItems:@[@"v2", @"v3"]];
+    self.protocolSegment.translatesAutoresizingMaskIntoConstraints = NO;
+    self.protocolSegment.selectedSegmentIndex = 1; // 默认v3
+    
+    // 传输方式选择
+    self.transportLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    self.transportLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.transportLabel.text = @"传输方式:";
+    self.transportLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
+    
+    self.transportSegment = [[UISegmentedControl alloc] initWithItems:@[@"轮询(Polling)", @"WebSocket"]];
+    self.transportSegment.translatesAutoresizingMaskIntoConstraints = NO;
+    self.transportSegment.selectedSegmentIndex = 1; // 默认WebSocket
     
     // 消息文本视图
     self.messageTextView = [[UITextView alloc] initWithFrame:CGRectZero];
@@ -153,6 +191,10 @@
     [self.inputContainerView addSubview:self.sendButton];
     
     [self.view addSubview:self.statusView];
+    [self.view addSubview:self.protocolLabel];
+    [self.view addSubview:self.protocolSegment];
+    [self.view addSubview:self.transportLabel];
+    [self.view addSubview:self.transportSegment];
     [self.view addSubview:self.messageTextView];
     [self.view addSubview:self.inputContainerView];
     [self.view addSubview:self.connectButton];
@@ -172,8 +214,28 @@
         [self.statusLabel.centerXAnchor constraintEqualToAnchor:self.statusView.centerXAnchor],
         [self.statusLabel.centerYAnchor constraintEqualToAnchor:self.statusView.centerYAnchor],
         
+        // 协议版本
+        [self.protocolLabel.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
+        [self.protocolLabel.topAnchor constraintEqualToAnchor:self.statusView.bottomAnchor constant:10],
+        [self.protocolLabel.heightAnchor constraintEqualToConstant:20],
+        
+        [self.protocolSegment.leadingAnchor constraintEqualToAnchor:self.protocolLabel.trailingAnchor constant:10],
+        [self.protocolSegment.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
+        [self.protocolSegment.centerYAnchor constraintEqualToAnchor:self.protocolLabel.centerYAnchor],
+        [self.protocolSegment.heightAnchor constraintEqualToConstant:24],
+        
+        // 传输方式
+        [self.transportLabel.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
+        [self.transportLabel.topAnchor constraintEqualToAnchor:self.protocolLabel.bottomAnchor constant:10],
+        [self.transportLabel.heightAnchor constraintEqualToConstant:20],
+        
+        [self.transportSegment.leadingAnchor constraintEqualToAnchor:self.transportLabel.trailingAnchor constant:10],
+        [self.transportSegment.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
+        [self.transportSegment.centerYAnchor constraintEqualToAnchor:self.transportLabel.centerYAnchor],
+        [self.transportSegment.heightAnchor constraintEqualToConstant:24],
+        
         // 消息文本视图
-        [self.messageTextView.topAnchor constraintEqualToAnchor:self.statusView.bottomAnchor constant:10],
+        [self.messageTextView.topAnchor constraintEqualToAnchor:self.transportLabel.bottomAnchor constant:10],
         [self.messageTextView.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
         [self.messageTextView.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
         
@@ -236,6 +298,7 @@
     NSDictionary *info = [notification userInfo];
     CGRect keyboardFrame = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
     CGFloat keyboardHeight = keyboardFrame.size.height;
+    CGFloat duration = [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     
     // 移除所有现有的底部约束
     for (NSLayoutConstraint *constraint in self.inputContainerView.constraints) {
@@ -244,17 +307,20 @@
         }
     }
     
-    [UIView animateWithDuration:0.3 animations:^{        
+    [UIView animateWithDuration:duration delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{        
         // 添加新的底部约束
         [NSLayoutConstraint activateConstraints:@[
             [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-(10 + keyboardHeight)]
         ]];
         [self.view layoutIfNeeded];
-    }];
+    } completion:nil];
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification {
     // 键盘隐藏时，恢复输入容器视图的位置
+    
+    NSDictionary *info = [notification userInfo];
+    CGFloat duration = [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     
     // 移除所有现有的底部约束
     for (NSLayoutConstraint *constraint in self.inputContainerView.constraints) {
@@ -263,16 +329,19 @@
         }
     }
     
-    [UIView animateWithDuration:0.3 animations:^{        
+    [UIView animateWithDuration:duration delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{        
         // 添加新的底部约束
         [NSLayoutConstraint activateConstraints:@[
             [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10]
         ]];
         [self.view layoutIfNeeded];
-    }];
+    } completion:nil];
 }
 
 - (void)setupSocket {
+    if (_socket) {
+        [_socket disconnect];
+    }
     // 使用电脑的实际IP地址连接（HTTP）
     NSString *urlString = @"https://192.168.141.149:3443";
     
@@ -291,25 +360,45 @@
         NSLog(@"[%@] %@", type, message);
     }];
     
+    // 获取当前选中的协议版本和传输方式
+    RTCVPSocketIOProtocolVersion protocolVersion;
+    if (self.protocolSegment.selectedSegmentIndex == 0) {
+        protocolVersion = RTCVPSocketIOProtocolVersion2;
+    } else {
+        protocolVersion = RTCVPSocketIOProtocolVersion3;
+    }
+    
+    RTCVPSocketIOTransport transport;
+    if (self.transportSegment.selectedSegmentIndex == 0) {
+        transport = RTCVPSocketIOTransportPolling;
+    } else {
+        transport = RTCVPSocketIOTransportWebSocket;
+    }
+    
     // 创建配置对象
-    RTCVPSocketIOConfig *config = [RTCVPSocketIOConfig configWithBlock:^(RTCVPSocketIOConfig *config) {
-        config.loggingEnabled = YES;
-        config.reconnectionEnabled = YES;
-        config.reconnectionAttempts = 3;
-        config.secure = YES;
-        config.forceNewConnection = YES;
-        config.allowSelfSignedCertificates = YES;
-        config.ignoreSSLErrors = NO;
-        config.reconnectionDelay = 2;
-        config.connectTimeout = 15; // 增加连接超时时间
-        config.namespace = @"/";
-        config.connectParams = connectParams;
-        config.logger = logger;
-        config.handleQueue = self->_currentEngineProtooQueue;
-        // 使用轮询传输，避免WebSocket控制帧碎片问题
-        config.protocolVersion = RTCVPSocketIOProtocolVersion3; // Socket.IO 2.x
-        config.transport = RTCVPSocketIOTransportPolling; // 直接指定轮询传输，无需额外配置
-    }];
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc ]init];
+    config.loggingEnabled = YES;
+    config.reconnectionEnabled = YES;
+    config.reconnectionAttempts = 3;
+    config.secure = YES;
+    config.forceNewConnection = YES;
+    config.allowSelfSignedCertificates = YES;
+    config.ignoreSSLErrors = NO;
+    config.reconnectionDelay = 2;
+    config.connectTimeout = 15; // 增加连接超时时间
+    config.namespace = @"/";
+    config.connectParams = connectParams;
+    config.logger = logger;
+    config.handleQueue = self->_currentEngineProtooQueue;
+    
+    // 使用当前选中的协议版本和传输方式
+    config.protocolVersion = protocolVersion;
+    config.transport = transport;
+    
+    // 打印当前连接配置
+    NSLog(@"📋 当前连接配置: 协议版本=%@, 传输方式=%@",
+          (protocolVersion == RTCVPSocketIOProtocolVersion2 ? @"v2" : @"v3"),
+          (transport == RTCVPSocketIOTransportPolling ? @"轮询" : @"WebSocket"));
     
     // 创建Socket客户端
     self.socket = [[RTCVPSocketIOClient alloc] initWithSocketURL:[NSURL URLWithString:urlString] config:config];
@@ -320,7 +409,9 @@
     [_socket on:kSocketEventConnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         STRONGSELF
         [strongSelf updateStatus:YES];
-        [strongSelf addMessage:@"✅ 连接成功" type:@"system"];
+        [strongSelf addMessage:[NSString stringWithFormat:@"✅ 连接成功，协议版本: %@, 传输方式: %@", 
+                               (self.protocolSegment.selectedSegmentIndex == 0 ? @"v2" : @"v3"), 
+                               (self.transportSegment.selectedSegmentIndex == 0 ? @"轮询" : @"WebSocket")] type:@"system"];
     }];
     
     // 监听断开连接事件
@@ -410,11 +501,11 @@
     self.inputTextField.enabled = isConnected;
     self.ackTestButton.enabled = isConnected;
     
-    self.connectButton.backgroundColor = !isConnected?[UIColor grayColor] : self.connBtnBC;
-    self.disconnectButton.backgroundColor = isConnected?[UIColor grayColor] : self.disconnectBtnBC;
-    self.sendButton.backgroundColor = isConnected?[UIColor grayColor] : self.sendBtnBC;
-    self.inputTextField.backgroundColor = isConnected?[UIColor grayColor] : self.inputTFBC;
-    self.ackTestButton.backgroundColor = isConnected?[UIColor grayColor] : self.ackTestBtnBC;
+    self.connectButton.backgroundColor = isConnected?[UIColor grayColor] : self.connBtnBC;
+    self.disconnectButton.backgroundColor = !isConnected?[UIColor grayColor] : self.disconnectBtnBC;
+    self.sendButton.backgroundColor = !isConnected?[UIColor grayColor] : self.sendBtnBC;
+    self.inputTextField.backgroundColor = !isConnected?[UIColor grayColor] : self.inputTFBC;
+    self.ackTestButton.backgroundColor = !isConnected?[UIColor grayColor] : self.ackTestBtnBC;
 }
 
 - (void)updateStatus:(BOOL)connected {
@@ -461,6 +552,7 @@
 - (void)connectButtonTapped:(id)sender {
     // 连接到服务器
     NSLog(@"📞 连接按钮点击，开始连接到服务器");
+    [self setupSocket    ];
     [self addMessage:@"🔄 正在连接服务器..." type:@"system"];
   
     // 立即更新按钮状态，避免等待事件

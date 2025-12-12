@@ -33,9 +33,22 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) return;
         
-        dispatch_async(strongSelf.engineQueue, ^{
+        // 获取 engineQueue 的引用，避免 strongSelf 被释放后访问 nil
+        dispatch_queue_t engineQueue = strongSelf.engineQueue;
+        if (!engineQueue) return;
+        
+        dispatch_async(engineQueue, ^{ 
+            // 再次检查 strongSelf，确保在队列执行时仍有效
+            __strong typeof(weakSelf) strongSelfInQueue = weakSelf;
+            if (!strongSelfInQueue) return;
+            
             @autoreleasepool {
-                if (!strongSelf.polling || strongSelf.closed) {
+                // 使用局部变量存储状态，避免频繁访问实例变量
+                BOOL isPolling = strongSelfInQueue.polling;
+                BOOL isClosed = strongSelfInQueue.closed;
+                BOOL isFastUpgrade = strongSelfInQueue.fastUpgrade;
+                
+                if (!isPolling || isClosed) {
                     return;
                 }
                 
@@ -46,36 +59,42 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
                 }
                 
                 if (error) {
-                    [strongSelf log:[NSString stringWithFormat:@"Polling error: %@", error.localizedDescription] level:RTCLogLevelError];
-                    [strongSelf didError:error.localizedDescription];
+                    [strongSelfInQueue log:[NSString stringWithFormat:@"Polling error: %@", error.localizedDescription] level:RTCLogLevelError];
+                    [strongSelfInQueue didError:error.localizedDescription];
                 } else if (statusCode != 200) {
                     NSString *errorMsg = [NSString stringWithFormat:@"HTTP %ld", (long)statusCode];
-                    [strongSelf log:[NSString stringWithFormat:@"Polling HTTP error: %@", errorMsg] level:RTCLogLevelError];
-                    [strongSelf didError:errorMsg];
+                    [strongSelfInQueue log:[NSString stringWithFormat:@"Polling HTTP error: %@", errorMsg] level:RTCLogLevelError];
+                    [strongSelfInQueue didError:errorMsg];
                 } else if (!data) {
-                    [strongSelf log:@"Polling received empty data" level:RTCLogLevelError];
-                    [strongSelf didError:@"Empty response"];
+                    [strongSelfInQueue log:@"Polling received empty data" level:RTCLogLevelError];
+                    [strongSelfInQueue didError:@"Empty response"];
                 } else {
                     NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                     if (responseString) {
-                        [strongSelf log:[NSString stringWithFormat:@"Polling response: %@", responseString] level:RTCLogLevelDebug];
-                        [strongSelf parsePollingMessage:responseString];
+                        [strongSelfInQueue log:[NSString stringWithFormat:@"Polling response: %@", responseString] level:RTCLogLevelDebug];
+                        [strongSelfInQueue parsePollingMessage:responseString];
                     } else {
-                        [strongSelf log:@"Polling response not UTF-8" level:RTCLogLevelWarning];
+                        [strongSelfInQueue log:@"Polling response not UTF-8" level:RTCLogLevelWarning];
                         // 尝试处理二进制数据
-                        [strongSelf parseEngineData:data];
+                        [strongSelfInQueue parseEngineData:data];
                     }
                 }
                 
-                strongSelf.waitingForPoll = NO;
+                // 安全设置实例变量
+                strongSelfInQueue.waitingForPoll = NO;
+                
+                // 再次检查状态，避免过时信息
+                isPolling = strongSelfInQueue.polling;
+                isClosed = strongSelfInQueue.closed;
+                isFastUpgrade = strongSelfInQueue.fastUpgrade;
                 
                 // 如果快速升级标记已设置，执行升级
-                if (strongSelf.fastUpgrade) {
-                    [strongSelf doFastUpgrade];
+                if (isFastUpgrade) {
+                    [strongSelfInQueue doFastUpgrade];
                 }
                 // 否则继续轮询
-                else if (strongSelf.polling && !strongSelf.closed) {
-                    [strongSelf doPoll];
+                else if (isPolling && !isClosed) {
+                    [strongSelfInQueue doPoll];
                 }
             }
         });
@@ -199,21 +218,37 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) return;
         
-        dispatch_async(strongSelf.engineQueue, ^{
-            strongSelf.waitingForPost = NO;
+        // 获取 engineQueue 的引用，避免 strongSelf 被释放后访问 nil
+        dispatch_queue_t engineQueue = strongSelf.engineQueue;
+        if (!engineQueue) return;
+        
+        dispatch_async(engineQueue, ^{ 
+            // 再次检查 strongSelf，确保在队列执行时仍有效
+            __strong typeof(weakSelf) strongSelfInQueue = weakSelf;
+            if (!strongSelfInQueue) return;
+            
+            // 安全设置实例变量
+            strongSelfInQueue.waitingForPost = NO;
+            
+            // 使用局部变量存储状态
+            BOOL isPolling = strongSelfInQueue.polling;
+            BOOL isFastUpgrade = strongSelfInQueue.fastUpgrade;
             
             if (error) {
-                [strongSelf log:[NSString stringWithFormat:@"POST error: %@", error.localizedDescription] level:RTCLogLevelError];
-                if (strongSelf.polling) {
-                    [strongSelf didError:error.localizedDescription];
+                [strongSelfInQueue log:[NSString stringWithFormat:@"POST error: %@", error.localizedDescription] level:RTCLogLevelError];
+                if (isPolling) {
+                    [strongSelfInQueue didError:error.localizedDescription];
                 }
             } else {
-                [strongSelf log:@"POST successful" level:RTCLogLevelDebug];
+                [strongSelfInQueue log:@"POST successful" level:RTCLogLevelDebug];
+                
+                // 再次检查 fastUpgrade 状态
+                isFastUpgrade = strongSelfInQueue.fastUpgrade;
                 
                 // 如果有更多消息等待发送，继续发送
-                if (!strongSelf.fastUpgrade) {
-                    [strongSelf flushWaitingForPost];
-                    [strongSelf doPoll];
+                if (!isFastUpgrade) {
+                    [strongSelfInQueue flushWaitingForPost];
+                    [strongSelfInQueue doPoll];
                 }
             }
         });

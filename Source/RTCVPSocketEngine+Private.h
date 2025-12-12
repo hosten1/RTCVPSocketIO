@@ -76,6 +76,9 @@ typedef enum : NSUInteger{
 @property (nonatomic, strong) RTCVPACKManager *ackManager;
 @property (nonatomic, assign) NSInteger ackIdCounter;
 
+// 线程安全锁，保护共享状态变量
+@property (nonatomic, strong) NSLock *stateLock;
+
 /// 生成唯一的ACK ID
 - (NSInteger)generateACKId;
 

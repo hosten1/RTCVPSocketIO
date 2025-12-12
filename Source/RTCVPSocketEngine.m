@@ -122,11 +122,11 @@ NSURLSessionDelegate>
     
     self.reconnectAttempts = 0;
     
-    dispatch_queue_t networkQueue = dispatch_queue_create("com.vpsocketio.network", DISPATCH_QUEUE_CONCURRENT);
+//    dispatch_queue_t networkQueue = dispatch_queue_create("com.vpsocketio.network", DISPATCH_QUEUE_CONCURRENT);
     
     NSOperationQueue *sessionQueue = [[NSOperationQueue alloc] init];
-    sessionQueue.underlyingQueue = networkQueue;
-    sessionQueue.maxConcurrentOperationCount = 2;
+//    sessionQueue.underlyingQueue = networkQueue;
+    sessionQueue.maxConcurrentOperationCount = 1;
     sessionQueue.name = @"com.vpsocketio.session.queue";
     
     NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
@@ -134,7 +134,7 @@ NSURLSessionDelegate>
     sessionConfig.timeoutIntervalForRequest = 30;
     sessionConfig.timeoutIntervalForResource = 300;
     sessionConfig.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-            sessionConfig.HTTPShouldUsePipelining = YES;
+    sessionConfig.HTTPShouldUsePipelining = YES;
     
     _session = [NSURLSession sessionWithConfiguration:sessionConfig
                                              delegate:self.config.sessionDelegate ?: self
@@ -512,9 +512,23 @@ NSURLSessionDelegate>
 }
 
 - (void)disconnect:(NSString *)reason {
-    dispatch_async(self.engineQueue, ^{
-        [self _disconnect:reason];
-    });
+    // 使用 weakSelf 模式避免保留环和崩溃
+    __weak typeof(self) weakSelf = self;
+    
+    // 获取 engineQueue 引用，避免 self 被释放后访问 nil
+    dispatch_queue_t engineQueue = self.engineQueue;
+    if (!engineQueue) {
+        [self log:[NSString stringWithFormat:@"Disconnect: engineQueue is nil, reason: %@", reason] level:RTCLogLevelWarning];
+        return;
+    }
+    
+    dispatch_async(engineQueue, ^{ 
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return;
+        }
+        [strongSelf _disconnect:reason]; 
+    }); 
 }
 
 - (void)_disconnect:(NSString *)reason {
@@ -719,7 +733,7 @@ NSURLSessionDelegate>
 //        [self startPingTimer];
         // 继续轮询
         if (self.polling) {
-//            [self doPoll];
+            [self doPoll];
         }
     }
     

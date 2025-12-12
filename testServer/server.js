@@ -85,7 +85,7 @@ const io = new Server(httpServer, {
     credentials: true
   },
   transports: ['websocket', 'polling'],
-  // allowEIO3: true
+  allowEIO3: true
 });
 
 // 如果有证书，创建HTTPS服务器
