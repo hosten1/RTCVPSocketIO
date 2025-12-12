@@ -60,8 +60,8 @@
     // 创建UI
     [self createUI];
     
-    // 初始化Socket客户端
-    [self setupSocket];
+//    // 初始化Socket客户端
+//    [self setupSocket];
     
     // 添加键盘通知
     [self setupKeyboardNotifications];
@@ -234,16 +234,37 @@
         [self.transportSegment.centerYAnchor constraintEqualToAnchor:self.transportLabel.centerYAnchor],
         [self.transportSegment.heightAnchor constraintEqualToConstant:24],
         
-        // 消息文本视图
+        // 消息文本视图 - 固定高度，位于传输方式下方
         [self.messageTextView.topAnchor constraintEqualToAnchor:self.transportLabel.bottomAnchor constant:10],
         [self.messageTextView.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
         [self.messageTextView.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
+        [self.messageTextView.heightAnchor constraintEqualToConstant:300], // 固定高度，确保按钮可见
         
-        // 输入容器视图
+        // 连接按钮 - 左侧
+        [self.connectButton.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
+        [self.connectButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
+        [self.connectButton.widthAnchor constraintEqualToConstant:120],
+        [self.connectButton.heightAnchor constraintEqualToConstant:40],
+        
+        // 断开连接按钮 - 中间
+        [self.disconnectButton.leadingAnchor constraintEqualToAnchor:self.connectButton.trailingAnchor constant:10],
+        [self.disconnectButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
+        [self.disconnectButton.widthAnchor constraintEqualToConstant:120],
+        [self.disconnectButton.heightAnchor constraintEqualToConstant:40],
+        
+        // ACK测试按钮 - 右侧
+        [self.ackTestButton.leadingAnchor constraintEqualToAnchor:self.disconnectButton.trailingAnchor constant:10],
+        [self.ackTestButton.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
+        [self.ackTestButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
+        [self.ackTestButton.widthAnchor constraintEqualToConstant:120],
+        [self.ackTestButton.heightAnchor constraintEqualToConstant:40],
+        
+        // 输入容器视图 - 位于按钮下方，固定位置
         [self.inputContainerView.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
         [self.inputContainerView.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
-        [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10],
+        [self.inputContainerView.topAnchor constraintEqualToAnchor:self.connectButton.bottomAnchor constant:10],
         [self.inputContainerView.heightAnchor constraintEqualToConstant:60],
+        [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10],
         
         // 输入文本框
         [self.inputTextField.leadingAnchor constraintEqualToAnchor:self.inputContainerView.leadingAnchor constant:10],
@@ -255,28 +276,7 @@
         [self.sendButton.trailingAnchor constraintEqualToAnchor:self.inputContainerView.trailingAnchor constant:-10],
         [self.sendButton.centerYAnchor constraintEqualToAnchor:self.inputContainerView.centerYAnchor],
         [self.sendButton.widthAnchor constraintEqualToConstant:80],
-        [self.sendButton.heightAnchor constraintEqualToConstant:40],
-        
-        // 连接按钮
-        [self.connectButton.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
-        [self.connectButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
-        [self.connectButton.widthAnchor constraintEqualToConstant:120],
-        [self.connectButton.heightAnchor constraintEqualToConstant:40],
-        [self.connectButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
-        
-        // 断开连接按钮
-            [self.disconnectButton.leadingAnchor constraintEqualToAnchor:self.connectButton.trailingAnchor constant:10],
-            [self.disconnectButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
-            [self.disconnectButton.widthAnchor constraintEqualToConstant:120],
-            [self.disconnectButton.heightAnchor constraintEqualToConstant:40],
-            [self.disconnectButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
-            
-        // ACK测试按钮
-            [self.ackTestButton.leadingAnchor constraintEqualToAnchor:self.disconnectButton.trailingAnchor constant:10],
-            [self.ackTestButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
-            [self.ackTestButton.widthAnchor constraintEqualToConstant:120],
-            [self.ackTestButton.heightAnchor constraintEqualToConstant:40],
-            [self.ackTestButton.bottomAnchor constraintEqualToAnchor:self.inputContainerView.topAnchor constant:-10],
+        [self.sendButton.heightAnchor constraintEqualToConstant:40]
     ]];
 }
 
@@ -300,15 +300,21 @@
     CGFloat keyboardHeight = keyboardFrame.size.height;
     CGFloat duration = [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     
-    // 移除所有现有的底部约束
-    for (NSLayoutConstraint *constraint in self.inputContainerView.constraints) {
-        if (constraint.firstAttribute == NSLayoutAttributeBottom) {
-            constraint.active = NO;
+    // 移除所有与inputContainerView相关的底部约束（约束存在于父视图中）
+    NSMutableArray<NSLayoutConstraint *> *constraintsToRemove = [NSMutableArray array];
+    for (NSLayoutConstraint *constraint in self.view.constraints) {
+        // 查找与inputContainerView相关的底部约束
+        BOOL isInputContainerConstraint = 
+            (constraint.firstItem == self.inputContainerView || constraint.secondItem == self.inputContainerView) &&
+            (constraint.firstAttribute == NSLayoutAttributeBottom || constraint.secondAttribute == NSLayoutAttributeBottom);
+        if (isInputContainerConstraint) {
+            [constraintsToRemove addObject:constraint];
         }
     }
+    [NSLayoutConstraint deactivateConstraints:constraintsToRemove];
     
     [UIView animateWithDuration:duration delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{        
-        // 添加新的底部约束
+        // 添加新的底部约束，考虑键盘高度
         [NSLayoutConstraint activateConstraints:@[
             [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-(10 + keyboardHeight)]
         ]];
@@ -318,19 +324,24 @@
 
 - (void)keyboardWillHide:(NSNotification *)notification {
     // 键盘隐藏时，恢复输入容器视图的位置
-    
     NSDictionary *info = [notification userInfo];
     CGFloat duration = [[info objectForKey:UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     
-    // 移除所有现有的底部约束
-    for (NSLayoutConstraint *constraint in self.inputContainerView.constraints) {
-        if (constraint.firstAttribute == NSLayoutAttributeBottom) {
-            constraint.active = NO;
+    // 移除所有与inputContainerView相关的底部约束（约束存在于父视图中）
+    NSMutableArray<NSLayoutConstraint *> *constraintsToRemove = [NSMutableArray array];
+    for (NSLayoutConstraint *constraint in self.view.constraints) {
+        // 查找与inputContainerView相关的底部约束
+        BOOL isInputContainerConstraint = 
+            (constraint.firstItem == self.inputContainerView || constraint.secondItem == self.inputContainerView) &&
+            (constraint.firstAttribute == NSLayoutAttributeBottom || constraint.secondAttribute == NSLayoutAttributeBottom);
+        if (isInputContainerConstraint) {
+            [constraintsToRemove addObject:constraint];
         }
     }
+    [NSLayoutConstraint deactivateConstraints:constraintsToRemove];
     
     [UIView animateWithDuration:duration delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{        
-        // 添加新的底部约束
+        // 恢复原始的底部约束，所有按钮会自动回到底部
         [NSLayoutConstraint activateConstraints:@[
             [self.inputContainerView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-10]
         ]];
@@ -339,7 +350,7 @@
 }
 
 - (void)setupSocket {
-    if (_socket) {
+    if ((_socket != nil)) {
         [_socket disconnect];
     }
     // 使用电脑的实际IP地址连接（HTTP）

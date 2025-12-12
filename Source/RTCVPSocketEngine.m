@@ -98,7 +98,12 @@ NSURLSessionDelegate>
     _engineQueue = dispatch_queue_create("com.socketio.engine.queue", DISPATCH_QUEUE_SERIAL);
     dispatch_set_target_queue(_engineQueue, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
     
+    // 初始化线程安全锁
+    _stateLock = [[NSLock alloc] init];
+    _stateLock.name = @"com.socketio.engine.stateLock";
+    
     // 初始化状态
+    [_stateLock lock];
     _closed = NO;
     _connected = NO;
     _polling = YES;
@@ -108,6 +113,7 @@ NSURLSessionDelegate>
     _fastUpgrade = NO;
     _waitingForPoll = NO;
     _waitingForPost = NO;
+    [_stateLock unlock];
     
     // 初始化数据
     _sid = @"";
@@ -512,35 +518,25 @@ NSURLSessionDelegate>
 }
 
 - (void)disconnect:(NSString *)reason {
-    // 使用 weakSelf 模式避免保留环和崩溃
-    __weak typeof(self) weakSelf = self;
-    
-    // 获取 engineQueue 引用，避免 self 被释放后访问 nil
-    dispatch_queue_t engineQueue = self.engineQueue;
-    if (!engineQueue) {
-        [self log:[NSString stringWithFormat:@"Disconnect: engineQueue is nil, reason: %@", reason] level:RTCLogLevelWarning];
-        return;
-    }
-    
-    dispatch_async(engineQueue, ^{ 
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (!strongSelf) {
-            return;
-        }
-        [strongSelf _disconnect:reason]; 
-    }); 
+    [self _disconnect:reason];
 }
 
 - (void)_disconnect:(NSString *)reason {
-    if (!self.connected && self.closed) {
+    [self.stateLock lock];
+    BOOL isConnected = self.connected;
+    BOOL isClosed = self.closed;
+    BOOL isWebsocket = self.websocket;
+    [self.stateLock unlock];
+    
+    if (!isConnected && isClosed) {
         return;
     }
     
     [self log:[NSString stringWithFormat:@"Disconnecting: %@", reason] level:RTCLogLevelInfo];
     
     // 发送关闭消息
-    if (self.connected && !self.closed) {
-        if (self.websocket) {
+    if (isConnected && !isClosed) {
+        if (isWebsocket) {
             [self sendWebSocketMessage:@"" withType:RTCVPSocketEnginePacketTypeClose withData:@[]];
         } else {
             [self disconnectPolling];
@@ -745,6 +741,10 @@ NSURLSessionDelegate>
 }
 
 - (void)__sendConnectToServer{
+    // V2 客户端不用发
+    if (_config.protocolVersion < RTCVPSocketIOProtocolVersion3) {
+        return;
+    }
     // 在handleOpen方法末尾添加命名空间加入逻辑
     // 发送命名空间加入请求（Socket.IO connect packet）
     // 格式：Engine.IO消息类型4 + Socket.IO连接类型0
@@ -1199,7 +1199,11 @@ NSURLSessionDelegate>
 
 
 - (void)closeOutEngine:(NSString *)reason {
-    if (self.closed) {
+    [self.stateLock lock];
+    BOOL isClosed = self.closed;
+    [self.stateLock unlock];
+    
+    if (isClosed) {
         return;
     }
     
@@ -1210,9 +1214,13 @@ NSURLSessionDelegate>
     [self cancelProbeTimeout];
     [self cancelConnectionTimeout];
     
+    // 保护状态变量修改
+    [self.stateLock lock];
     self.closed = YES;
     self.connected = NO;
     self.invalidated = YES;
+    self.pongsMissed = 0;
+    [self.stateLock unlock];
     
     // 清理资源
     if (self.ws) {
@@ -1225,9 +1233,6 @@ NSURLSessionDelegate>
         [self.session invalidateAndCancel];
         self.session = nil;
     }
-    
-    // 停止心跳
-    self.pongsMissed = 0;
     
     // 清理缓冲区
     [self.postWait removeAllObjects];
