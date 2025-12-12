@@ -263,7 +263,7 @@
 
 - (void)setupSocket {
     // 使用电脑的实际IP地址连接（HTTP）
-    NSString *urlString = @"http://192.168.141.149:3000";
+    NSString *urlString = @"https://192.168.141.149:3443";
     
     // 连接参数
     NSDictionary *connectParams = @{
