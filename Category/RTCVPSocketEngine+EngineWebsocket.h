@@ -10,7 +10,8 @@
 #import "RTCVPSocketEngine+Private.h"
 
 @interface RTCVPSocketEngine (EngineWebsocket) <RTCJFRWebSocketDelegate>
--(void) sendWebSocketMessage:(NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)datas;
+
+-(void)sendWebSocketMessage:(NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)datas;
 
 /// 探测WebSocket连接
 - (void)probeWebSocket;

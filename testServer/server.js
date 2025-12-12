@@ -1,3 +1,6 @@
+// 启用Socket.IO调试日志
+process.env.DEBUG = 'socket.io:*';
+
 const http = require('http');
 const https = require('https');
 const { Server } = require('socket.io');
@@ -95,7 +98,25 @@ io.engine.on('connection', (conn) => {
     console.log('传输方式:', conn.transport.name);
     console.log('连接时间:', new Date().toISOString());
     console.log('远程地址:', conn.remoteAddress);
+    console.log('Engine.IO版本:', conn.protocol); // 显示Engine.IO版本
     console.log('=== 连接信息结束 ===');
+    
+    // 监听连接关闭
+    conn.on('close', (reason) => {
+        console.log('=== 底层连接关闭 ===');
+        console.log('连接ID:', conn.id);
+        console.log('关闭原因:', reason);
+        console.log('关闭时间:', new Date().toISOString());
+        console.log('=== 关闭信息结束 ===');
+    });
+    
+    // 监听连接错误
+    conn.on('error', (error) => {
+        console.error('=== 连接错误 ===');
+        console.error('连接ID:', conn.id);
+        console.error('错误:', error);
+        console.error('=== 错误信息结束 ===');
+    });
 });
 
 // 添加连接错误处理
@@ -106,16 +127,20 @@ io.engine.on('connection_error', (error) => {
     if (error.context) {
         console.error('错误上下文:', error.context);
     }
+    if (error.code) {
+        console.error('错误代码:', error.code);
+    }
     console.error('=== 错误信息结束 ===');
 });
 
-// 添加连接事件监听
+// 添加详细的Socket.IO事件监听
 io.on('connection', (socket) => {
-    console.log('=== 新客户端连接 ===');
-    console.log('客户端ID:', socket.id);
+    console.log('=== 新Socket.IO连接 ===');
+    console.log('Socket ID:', socket.id);
     console.log('连接时间:', new Date().toISOString());
     console.log('传输方式:', socket.conn.transport.name);
-    console.log('=== 连接信息结束 ===');
+    console.log('Engine.IO版本:', socket.conn.protocol); // 显示Engine.IO版本
+    console.log('=== Socket.IO连接信息结束 ===');
     
     // 发送欢迎消息
     socket.emit('welcome', { message: 'Welcome to Socket.IO server!', socketId: socket.id });
@@ -140,13 +165,6 @@ io.on('connection', (socket) => {
     });
   });
   
-  // 监听断开连接事件
-  socket.on('disconnect', (reason) => {
-    console.log('Client disconnected:', socket.id, 'Reason:', reason);
-    // 广播用户断开连接事件给所有客户端
-    io.emit('userDisconnected', { socketId: socket.id, reason: reason, timestamp: new Date().toISOString() });
-  });
-  
   // 监听自定义事件
   socket.on('customEvent', (data, callback) => {
     console.log('Custom event:', data);
@@ -164,10 +182,35 @@ io.on('connection', (socket) => {
     socket.emit('heartbeat', { timestamp: new Date().toISOString() });
   }, 5000);
   
-  // 清理定时器
-  socket.on('disconnect', () => {
-    clearInterval(interval);
-  });
+    // 监听断开连接
+    socket.on('disconnect', (reason) => {
+        clearInterval(interval);
+        console.log('=== Socket.IO断开连接 ===');
+        console.log('Socket ID:', socket.id);
+        console.log('断开原因:', reason);
+        console.log('断开时间:', new Date().toISOString());
+        console.log('=== 断开连接结束 ===');
+        // 广播用户断开连接事件给所有客户端
+        io.emit('userDisconnected', { socketId: socket.id, reason: reason, timestamp: new Date().toISOString() });
+    });
+    
+    // 监听断开连接原因
+    socket.on('disconnecting', (reason) => {
+        console.log('=== Socket.IO正在断开连接 ===');
+        console.log('Socket ID:', socket.id);
+        console.log('断开原因:', reason);
+        console.log('断开时间:', new Date().toISOString());
+        console.log('=== 正在断开连接结束 ===');
+    });
+    
+    // 监听连接错误
+    socket.on('error', (error) => {
+        console.error('=== Socket.IO错误 ===');
+        console.error('Socket ID:', socket.id);
+        console.error('错误:', error);
+        console.error('错误时间:', new Date().toISOString());
+        console.error('=== 错误信息结束 ===');
+    });
 });
 
 // 启动服务器

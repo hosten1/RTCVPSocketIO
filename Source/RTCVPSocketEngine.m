@@ -326,7 +326,11 @@ NSURLSessionDelegate>
     
     // 同时发送WebSocket协议心跳（如果使用WebSocket）
     if (self.websocket && self.ws && [self.ws isConnected]) {
-        [self.ws writePing:nil]; // 发送空的WebSocket Ping
+        if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
+            pingMessage = [NSString stringWithFormat:@"%@%@",@(RTCVPSocketEnginePacketTypePing),pingMessage]; // Engine.IO 4.x ping
+        }
+        
+        [self.ws writePing:[NSData dataWithBytes:[pingMessage UTF8String] length:[pingMessage length]]]; // 发送空的WebSocket Ping
     }
 }
 
@@ -964,7 +968,7 @@ NSURLSessionDelegate>
         return;
     }
     
-    [self log:[NSString stringWithFormat:@"Got message: %@", message] level:RTCLogLevelDebug];
+    [self log:[NSString stringWithFormat:@"parseEngineMessage Got message: %@", message] level:RTCLogLevelDebug];
     
     // 检查是否为二进制消息前缀
     if ([message hasPrefix:@"b4"]) {
@@ -994,8 +998,15 @@ NSURLSessionDelegate>
                     [self handleClose:content];
                     break;
                 case RTCVPSocketEnginePacketTypePing:
-                    // 服务器发送的 ping，需要回复 pong
-                    [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
+                    if (self.protocolVersion == RTCVPSocketIOProtocolVersion2) {
+                        // 服务器发送的 ping，需要回复 pong
+                        [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
+                        break;
+                    }
+                    //Engine.IO v4 协议要求 ：客户端收到 2 (ping) 后 必须立即回复 3 (pong) ，否则服务器直接断开连接
+                    [self log:@"Received Engine.IO ping, sending pong immediately" level:RTCLogLevelDebug];
+                    // 直接同步发送 pong 响应，不使用异步队列
+                    [self sendWebSocketMessage:@"3" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
                     break;
                 case RTCVPSocketEnginePacketTypePong:
                     [self handlePong:content];

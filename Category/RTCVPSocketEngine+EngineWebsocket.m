@@ -80,38 +80,91 @@
     return components.URL;
 }
 
-- (void)sendWebSocketMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
+/**
+ * 发送 WebSocket 消息（Engine.IO / Socket.IO 协议）
+ *
+ * WebSocket 最终发送的内容分两类：
+ *  1. 文本帧：用于 Engine.IO 字符包、Socket.IO JSON 包
+ *  2. 二进制帧：用于传输二进制 payload（engine v3 与 v4 规则不同）
+ *
+ * Engine.IO / Socket.IO 消息格式说明：
+ *
+ * 【文本消息格式】（Engine.IO 文本帧）
+ *   [EngineType][Payload]
+ *   EngineType：单字符数字，如：
+ *      0 open
+ *      1 close
+ *      2 ping
+ *      3 pong
+ *      4 message
+ *      5 upgrade
+ *      6 noop
+ *
+ *   Payload：通常是 JSON（Socket.IO）或字符串
+ *   示例："42["chat","hello"]"
+ *       4  -> Engine.IO type: message
+ *       2  -> Socket.IO packet type: event
+ *       ["chat","hello"] -> event payload
+ *
+ *
+ * 【二进制消息格式】
+ *   Engine.IO v3：
+ *       0x04 + <binary payload>
+ *       0x04 为 Engine.IO 二进制包类型前缀
+ *
+ *   Engine.IO v4：
+ *       直接发送纯二进制 WebSocket 帧，不需要前缀
+ *
+ */
+- (void)sendWebSocketMessage:(NSString *)message
+                    withType:(RTCVPSocketEnginePacketType)type
+                    withData:(NSArray<NSData *> *)data {
+
+    // 1. 确保 WebSocket 已建立
     if (!self.ws || ![self.ws isConnected]) {
         [self log:@"WebSocket not connected, cannot send message" level:RTCLogLevelWarning];
         return;
     }
-    
-    // 构建完整消息：类型 + 消息内容
+
+    // 2. 构建 Engine.IO 文本消息格式
+    //    格式：[EngineType][Payload]
+    //    例如：@"4{\"msg\":\"hello\"}"
     NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
-    
-    [self log:[NSString stringWithFormat:@"Sending WebSocket message: %@", fullMessage] level:RTCLogLevelDebug];
-    
-    // 发送文本消息
+
+    [self log:[NSString stringWithFormat:@"Sending WebSocket text message: %@", fullMessage]
+         level:RTCLogLevelDebug];
+
+    // 3. 发送文本帧
+    //    文本帧用于 Socket.IO/Engine.IO 的主控制消息
     [self.ws writeString:fullMessage];
-    
-    // 发送二进制数据（如果需要）
+
+    // 4. 若附带二进制数据，则逐个发送二进制帧
     if (self.config.enableBinary && data.count > 0) {
+
         for (NSData *binaryData in data) {
-            // Engine.IO 4.x 使用原生二进制
             NSData *packetData = binaryData;
-            
-            // Engine.IO 3.x 需要添加前缀
+
+            // Engine.IO v3 需要加前缀 0x04
+            // 0x04 表示 binary message（engine binary packet）
             if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
                 const Byte binaryPrefix = 0x04;
+
+                // 构建 [0x04][binary payload]
                 NSMutableData *mutableData = [NSMutableData dataWithBytes:&binaryPrefix length:1];
                 [mutableData appendData:binaryData];
+
                 packetData = mutableData;
             }
-            
+
+            [self log:@"Sending WebSocket binary packet" level:RTCLogLevelDebug];
+
+            // Engine.IO v4：发送纯二进制帧
+            // Engine.IO v3：发送 0x04 + payload
             [self.ws writeData:packetData];
         }
     }
 }
+
 
 - (void)probeWebSocket {
     if (!self.ws || ![self.ws isConnected] || self.probing || self.websocket) {

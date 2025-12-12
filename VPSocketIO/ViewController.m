@@ -34,6 +34,12 @@
 @property(nonatomic, strong) UIButton *ackTestButton;
 @property(nonatomic, strong) UIView *inputContainerView;
 
+@property(nonatomic, strong)UIColor *connBtnBC;
+@property(nonatomic, strong)UIColor *disconnectBtnBC ;
+@property(nonatomic, strong)UIColor *sendBtnBC ;
+@property(nonatomic, strong)UIColor *inputTFBC;
+@property(nonatomic, strong)UIColor *ackTestBtnBC;
+
 @end
 
 @implementation ViewController
@@ -56,6 +62,10 @@
 }
 
 - (void)createUI {
+    self.sendBtnBC = [UIColor systemBlueColor];
+    self.connBtnBC = [UIColor systemGreenColor];
+    self.disconnectBtnBC = [UIColor systemRedColor];
+    self.ackTestBtnBC = [UIColor systemPurpleColor];
     // 状态视图
     self.statusView = [[UIView alloc] initWithFrame:CGRectZero];
     self.statusView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -100,7 +110,7 @@
     self.sendButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.sendButton setTitle:@"Send" forState:UIControlStateNormal];
     [self.sendButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [self.sendButton setBackgroundColor:[UIColor systemBlueColor]];
+    [self.sendButton setBackgroundColor:self.sendBtnBC];
     [self.sendButton addTarget:self action:@selector(sendButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
     self.sendButton.layer.cornerRadius = 8.0;
     self.sendButton.clipsToBounds = YES;
@@ -111,7 +121,7 @@
     self.connectButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.connectButton setTitle:@"Connect" forState:UIControlStateNormal];
     [self.connectButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [self.connectButton setBackgroundColor:[UIColor systemGreenColor]];
+    [self.connectButton setBackgroundColor:_connBtnBC];
     [self.connectButton addTarget:self action:@selector(connectButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
     self.connectButton.layer.cornerRadius = 8.0;
     self.connectButton.clipsToBounds = YES;
@@ -121,7 +131,7 @@
     self.disconnectButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.disconnectButton setTitle:@"Disconnect" forState:UIControlStateNormal];
     [self.disconnectButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [self.disconnectButton setBackgroundColor:[UIColor systemRedColor]];
+    [self.disconnectButton setBackgroundColor:_disconnectBtnBC];
     [self.disconnectButton addTarget:self action:@selector(disconnectButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
     self.disconnectButton.layer.cornerRadius = 8.0;
     self.disconnectButton.clipsToBounds = YES;
@@ -132,7 +142,7 @@
     self.ackTestButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.ackTestButton setTitle:@"ACK Test" forState:UIControlStateNormal];
     [self.ackTestButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    [self.ackTestButton setBackgroundColor:[UIColor systemPurpleColor]];
+    [self.ackTestButton setBackgroundColor:_ackTestBtnBC];
     [self.ackTestButton addTarget:self action:@selector(ackTestButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
     self.ackTestButton.layer.cornerRadius = 8.0;
     self.ackTestButton.clipsToBounds = YES;
@@ -148,6 +158,7 @@
     [self.view addSubview:self.connectButton];
     [self.view addSubview:self.disconnectButton];
     [self.view addSubview:self.ackTestButton];
+
     
     // 设置约束
     [NSLayoutConstraint activateConstraints:@[
@@ -285,7 +296,7 @@
         config.loggingEnabled = YES;
         config.reconnectionEnabled = YES;
         config.reconnectionAttempts = 3;
-        config.secure = NO;
+        config.secure = YES;
         config.forceNewConnection = YES;
         config.allowSelfSignedCertificates = YES;
         config.ignoreSSLErrors = NO;
@@ -392,6 +403,20 @@
     }];
 }
 
+-(void)updateBtnsBackColor:(BOOL)isConnected{
+    self.connectButton.enabled = !isConnected;
+    self.disconnectButton.enabled = isConnected;
+    self.sendButton.enabled = isConnected;
+    self.inputTextField.enabled = isConnected;
+    self.ackTestButton.enabled = isConnected;
+    
+    self.connectButton.backgroundColor = !isConnected?[UIColor grayColor] : self.connBtnBC;
+    self.disconnectButton.backgroundColor = isConnected?[UIColor grayColor] : self.disconnectBtnBC;
+    self.sendButton.backgroundColor = isConnected?[UIColor grayColor] : self.sendBtnBC;
+    self.inputTextField.backgroundColor = isConnected?[UIColor grayColor] : self.inputTFBC;
+    self.ackTestButton.backgroundColor = isConnected?[UIColor grayColor] : self.ackTestBtnBC;
+}
+
 - (void)updateStatus:(BOOL)connected {
     dispatch_async(dispatch_get_main_queue(), ^{        
         // 直接检查socket的实际状态，确保按钮状态与真实连接状态一致
@@ -399,11 +424,7 @@
                            (self.socket.status == RTCVPSocketIOClientStatusConnected || 
                             self.socket.status == RTCVPSocketIOClientStatusOpened));
         
-        self.connectButton.enabled = !isConnected;
-        self.disconnectButton.enabled = isConnected;
-        self.sendButton.enabled = isConnected;
-        self.inputTextField.enabled = isConnected;
-        self.ackTestButton.enabled = isConnected;
+        [self updateBtnsBackColor:isConnected];
         
         if (isConnected) {
             self.statusLabel.text = @"已连接";
@@ -441,7 +462,7 @@
     // 连接到服务器
     NSLog(@"📞 连接按钮点击，开始连接到服务器");
     [self addMessage:@"🔄 正在连接服务器..." type:@"system"];
-    
+  
     // 立即更新按钮状态，避免等待事件
     dispatch_async(dispatch_get_main_queue(), ^{        
         self.connectButton.enabled = NO;
@@ -449,6 +470,12 @@
         self.sendButton.enabled = NO;
         self.inputTextField.enabled = NO;
         self.ackTestButton.enabled = NO;
+        
+        self.connectButton.backgroundColor = [UIColor grayColor];
+        self.disconnectButton.backgroundColor = [UIColor grayColor];
+        self.sendButton.backgroundColor = [UIColor grayColor];
+        self.inputTextField.backgroundColor = [UIColor grayColor];
+        self.ackTestButton.backgroundColor = [UIColor grayColor];
         
         self.statusLabel.text = @"连接中...";
         self.statusView.backgroundColor = [UIColor systemYellowColor];
@@ -461,9 +488,11 @@
         
         // 连接超时后更新状态
         dispatch_async(dispatch_get_main_queue(), ^{        
-            self.connectButton.enabled = YES;
-            self.disconnectButton.enabled = NO;
+            [self updateBtnsBackColor:NO];
             self.statusLabel.text = @"未连接";
+            
+            self.connectButton.backgroundColor = self.connBtnBC;
+            
             self.statusView.backgroundColor = [UIColor systemRedColor];
         });
     }];
@@ -480,13 +509,17 @@
         self.inputTextField.enabled = NO;
         self.ackTestButton.enabled = NO;
         
+        [self updateBtnsBackColor:NO];
+        
         self.statusLabel.text = @"断开中...";
         self.statusView.backgroundColor = [UIColor systemYellowColor];
     });
-    
-    // 断开连接
-    [self.socket disconnect];
     [self addMessage:@"🔄 正在断开连接..." type:@"system"];
+
+    // 断开连接
+    [self.socket disconnectWithHandler:^{
+        [self addMessage:@"❌ 断开连接 blockcb" type:@"system"];
+    }];
 }
 
 - (void)ackTestButtonTapped:(id)sender {
