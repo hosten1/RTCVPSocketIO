@@ -1,11 +1,11 @@
 const http = require('http');
-const socketIo = require('socket.io');
+const https = require('https');
+const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 
-// 创建HTTP服务器
-const httpServer = http.createServer((req, res) => {
-  // 处理静态文件请求
+// 处理静态文件请求的通用处理函数
+const handleRequest = (req, res) => {
   let filePath = '.' + req.url;
   if (filePath === './') {
     filePath = './test.html';
@@ -26,7 +26,8 @@ const httpServer = http.createServer((req, res) => {
     '.woff': 'application/font-woff',
     '.ttf': 'application/font-ttf',
     '.eot': 'application/vnd.ms-fontobject',
-    '.otf': 'application/font-otf'
+    '.otf': 'application/font-otf',
+    '.wasm': 'application/wasm'
   }[extname] || 'application/octet-stream';
 
   fs.readFile(filePath, (error, content) => {
@@ -43,13 +44,69 @@ const httpServer = http.createServer((req, res) => {
       res.end(content, 'utf-8');
     }
   });
-});
+};
+
+// 创建HTTP服务器
+const httpServer = http.createServer(handleRequest);
+
+// 检查证书文件是否存在
+let httpsServer = null;
+let hasHttpsCert = false;
+
+try {
+  // 检查证书文件是否存在
+  fs.accessSync('./key.pem', fs.constants.F_OK);
+  fs.accessSync('./cert.pem', fs.constants.F_OK);
+  hasHttpsCert = true;
+} catch (err) {
+  console.warn('⚠️  HTTPS certificate files not found, HTTPS server will not be started');
+}
 
 // 创建Socket.IO服务器，支持跨域和所有传输方式
-const io = socketIo(httpServer, {
-  origins: '*:*',
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
   transports: ['websocket', 'polling'],
   allowEIO3: true
+});
+
+// 如果有证书，创建HTTPS服务器
+if (hasHttpsCert) {
+  // 创建HTTPS服务器选项
+  const httpsOptions = {
+    key: fs.readFileSync('./key.pem'),
+    cert: fs.readFileSync('./cert.pem')
+  };
+  
+  // 创建HTTPS服务器
+  httpsServer = https.createServer(httpsOptions, handleRequest);
+  
+  // 将Socket.IO附加到HTTPS服务器
+  io.attach(httpsServer);
+}
+
+// 添加底层连接事件监听
+io.engine.on('connection', (conn) => {
+    console.log('=== 底层连接建立 ===');
+    console.log('连接ID:', conn.id);
+    console.log('传输方式:', conn.transport.name);
+    console.log('连接时间:', new Date().toISOString());
+    console.log('远程地址:', conn.remoteAddress);
+    console.log('=== 连接信息结束 ===');
+});
+
+// 添加连接错误处理
+io.engine.on('connection_error', (error) => {
+    console.error('=== 连接错误 ===');
+    console.error('错误类型:', error.type);
+    console.error('错误消息:', error.message);
+    if (error.context) {
+        console.error('错误上下文:', error.context);
+    }
+    console.error('=== 错误信息结束 ===');
 });
 
 // 添加连接事件监听
@@ -96,7 +153,7 @@ io.on('connection', (socket) => {
     
     // 检查callback是否为函数
     if (typeof callback === 'function') {
-      callback({ success: true, response: 'Processed: ' + JSON.stringify(data) });
+      callback({ success: true, response: `Processed: ${JSON.stringify(data)}` });
     } else {
       console.log('No callback provided for customEvent');
     }
@@ -114,9 +171,23 @@ io.on('connection', (socket) => {
 });
 
 // 启动服务器
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`Socket.IO server running at http://0.0.0.0:${PORT}`);
-  console.log(`WebSocket endpoint: ws://0.0.0.0:${PORT}`);
-  console.log(`Accessible at: http://localhost:${PORT} and http://127.0.0.1:${PORT}`);
+const HTTP_PORT = process.env.HTTP_PORT || 3000;
+const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
+
+// 启动HTTP服务器
+httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
+  console.log(`=== HTTP服务器已启动 ===`);
+  console.log(`Socket.IO HTTP server running at http://0.0.0.0:${HTTP_PORT}`);
+  console.log(`WebSocket HTTP endpoint: ws://0.0.0.0:${HTTP_PORT}`);
+  console.log(`HTTP Accessible at: http://localhost:${HTTP_PORT} and http://127.0.0.1:${HTTP_PORT}`);
 });
+
+// 启动HTTPS服务器（如果有证书）
+if (httpsServer) {
+  httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+    console.log(`=== HTTPS服务器已启动 ===`);
+    console.log(`Socket.IO HTTPS server running at https://0.0.0.0:${HTTPS_PORT}`);
+    console.log(`WebSocket HTTPS endpoint: wss://0.0.0.0:${HTTPS_PORT}`);
+    console.log(`HTTPS Accessible at: https://localhost:${HTTPS_PORT} and https://127.0.0.1:${HTTPS_PORT}`);
+  });
+}

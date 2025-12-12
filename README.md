@@ -6,7 +6,7 @@
 Socket.IO client for iOS. Supports socket.io 2.0+ and 3.0+
 
 ## 协议支持
-- Socket.IO 2.0 (Engine.IO 3.x) - 默认支持
+- Socket.IO 2.0 (Engine.IO 3.x) - 默认支持 （服务端建议nodejs ^2.5.0）
 - Socket.IO 3.0 (Engine.IO 4.x) - 新增支持，通过配置协议版本开启
 
 ## 主要差异
@@ -23,6 +23,35 @@ Socket.IO client for iOS. Supports socket.io 2.0+ and 3.0+
 It's based on a official Swift library from here: [SocketIO-Client-Swift](https://github.com/socketio/socket.io-client-swift)
 
 It uses Jetfire [Jetfire](https://github.com/acmacalister/jetfire)
+
+# 架构设计
+```text
+┌─────────────────────────────────────────────────┐
+│          应用层 (Application Layer)              │
+│  • 事件处理 (Event Handlers)                     │
+│  • 业务逻辑                                      │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│          Socket.IO协议层 (Protocol Layer)        │
+│  • RTCVPSocketIOProtocolParser                  │
+│  • 消息编解码 (JSON/二进制)                        │
+│  • ACK管理                                       │
+│  • 命名空间管理                                   │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│          传输层 (Transport Layer)                │
+│  • RTCVPSocketEngine (Engine.IO)                │
+│  • WebSocket/HTTP轮询管理                        │
+│  • 心跳/重连                                     │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│          网络层 (Network Layer)                  │
+│  • RTCJFRWebSocket / NSURLSession               │
+│  • 网络状态监控                                   │
+└─────────────────────────────────────────────────┘
+
+```
+
 # 引入项目 
  ## 源码直接引入
   <img width="165" alt="image" src="https://user-images.githubusercontent.com/19199389/158535755-7fc138df-4dd0-4ec2-bd4e-e7916dac7e2a.png">
