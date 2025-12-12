@@ -307,7 +307,7 @@
         config.logger = logger;
         config.handleQueue = self->_currentEngineProtooQueue;
         // 使用轮询传输，避免WebSocket控制帧碎片问题
-        config.protocolVersion = RTCVPSocketIOProtocolVersion2; // Socket.IO 2.x
+        config.protocolVersion = RTCVPSocketIOProtocolVersion3; // Socket.IO 2.x
         config.transport = RTCVPSocketIOTransportWebSocket; // 直接指定轮询传输，无需额外配置
     }];
     

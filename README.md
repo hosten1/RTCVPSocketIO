@@ -174,5 +174,12 @@ Run `carthage update --platform ios,macosx`.
 }];
 ```
 
+关于v3支持：
+1. Socket.IO v4协议要求 ：客户端必须显式请求加入命名空间，即使是默认命名空间 /,格式：Engine.IO消息类型4 + Socket.IO连接类型0,([4][0][namespace]);否则服务端等待一定你超时时间会报错：
+```log
+  socket.io:client no namespace joined yet, close the client +19m
+  socket.io:client forcing transport close +0ms
+```
+
 ## License
 MIT

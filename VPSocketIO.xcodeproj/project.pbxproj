@@ -40,6 +40,8 @@
 		1BC443E52EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */; };
 		1BC443E82EEA53E600C8E846 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BC443E72EEA53E600C8E846 /* RTCVPACKManager.m */; };
 		1BC443E92EEA53E600C8E846 /* RTCVPACKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BC443E62EEA53E600C8E846 /* RTCVPACKManager.h */; };
+		1BE37A742EEBC2AD003ABC59 /* RTCVPACKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */; };
+		1BE37A752EEBC2AD003ABC59 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */; };
 		F06B19321F71466D003E81B1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19311F71466D003E81B1 /* main.m */; };
 		F06B19351F71466D003E81B1 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19341F71466D003E81B1 /* AppDelegate.m */; };
 		F06B19381F71466D003E81B1 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19371F71466D003E81B1 /* ViewController.m */; };
@@ -114,6 +116,8 @@
 		1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOProtocolVersion.h; sourceTree = "<group>"; };
 		1BC443E62EEA53E600C8E846 /* RTCVPACKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPACKManager.h; sourceTree = "<group>"; };
 		1BC443E72EEA53E600C8E846 /* RTCVPACKManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPACKManager.m; sourceTree = "<group>"; };
+		1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPACKManager.h; sourceTree = "<group>"; };
+		1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPACKManager.m; sourceTree = "<group>"; };
 		F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPSocketIOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06B19311F71466D003E81B1 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		F06B19331F71466D003E81B1 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -175,6 +179,8 @@
 				1BC443EA2EEA5F6D00C8E846 /* utils */,
 				1B364D422829FF3F00CCC820 /* RTCVPSocketAckManager.h */,
 				1B364D372829FF3F00CCC820 /* RTCVPSocketAckManager.m */,
+				1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */,
+				1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */,
 				1B364D3B2829FF3F00CCC820 /* RTCVPSocketEngine.h */,
 				1B364D2A2829FF3F00CCC820 /* RTCVPSocketEngine.m */,
 				1B364D3C2829FF3F00CCC820 /* RTCVPSocketEngine+Private.h */,
@@ -301,6 +307,7 @@
 				1BAA0A2F2EE95D1100DB39A2 /* RTCVPSocketIOConfig.h in Headers */,
 				1B364D632829FF3F00CCC820 /* RTCVPSocketEngine+Private.h in Headers */,
 				1B364D5D2829FF3F00CCC820 /* RTCVPStringReader.h in Headers */,
+				1BE37A742EEBC2AD003ABC59 /* RTCVPACKManager.h in Headers */,
 				1B364D622829FF3F00CCC820 /* RTCVPSocketEngine.h in Headers */,
 				1B364D542829FF3F00CCC820 /* RTCVPSocketPacket.h in Headers */,
 				1B364D6D2829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.h in Headers */,
@@ -468,6 +475,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1B364D512829FF3F00CCC820 /* RTCVPSocketEngine.m in Sources */,
+				1BE37A752EEBC2AD003ABC59 /* RTCVPACKManager.m in Sources */,
 				1BC443E82EEA53E600C8E846 /* RTCVPACKManager.m in Sources */,
 				1B364D6A2829FF3F00CCC820 /* RTCVPStringReader.m in Sources */,
 				1B364D672829FF3F00CCC820 /* RTCVPSocketLogger.m in Sources */,

@@ -272,6 +272,7 @@ NSURLSessionDelegate>
 
 #pragma mark - 心跳管理
 
+// 修复 startPingTimer 方法，不再发送ping，只用于跟踪pong超时
 - (void)startPingTimer {
     if (self.pingInterval <= 0 || !self.connected || self.closed) {
         return;
@@ -280,19 +281,24 @@ NSURLSessionDelegate>
     // 停止现有的心跳定时器
     [self stopPingTimer];
     
-    // 创建新的心跳定时器
+    // 创建新的心跳定时器 - 只用于检测pong超时，不主动发送ping
     __weak typeof(self) weakSelf = self;
     self.pingTimer = [RTCVPTimer timerWithTimeInterval:self.pingInterval / 1000.0
                                                repeats:YES
                                                  queue:self.engineQueue
-                                                 block:^{
+                                                 block:^{ 
         __strong typeof(weakSelf) strongSelf = weakSelf;
-        [strongSelf sendPing];
+        // 只检测pong超时，不主动发送ping
+        // Engine.IO协议规定：只有服务器能发送ping，客户端只回复pong
+        if (strongSelf.pongsMissed >= strongSelf.pongsMissedMax) {
+            [strongSelf log:@"Ping timeout (no pong received), closing connection" level:RTCLogLevelError];
+            [strongSelf disconnect:@"ping timeout"];
+        }
     }];
     
     [self.pingTimer start];
     
-    [self log:@"Ping timer started" level:RTCLogLevelDebug];
+    [self log:@"Ping timer started (only for pong timeout detection)" level:RTCLogLevelDebug];
 }
 
 - (void)stopPingTimer {
@@ -303,7 +309,9 @@ NSURLSessionDelegate>
     }
 }
 
-// 修改 sendPing 方法，同时发送两种心跳
+// 删除 sendPing 方法，客户端不应该主动发送ping（Engine.IO协议要求）
+// 只有服务器才能发送ping，客户端只负责回复pong
+/*
 - (void)sendPing {
     if (self.pongsMissed >= self.pongsMissedMax) {
         [self log:@"Ping timeout, closing connection" level:RTCLogLevelError];
@@ -332,7 +340,7 @@ NSURLSessionDelegate>
         
         [self.ws writePing:[NSData dataWithBytes:[pingMessage UTF8String] length:[pingMessage length]]]; // 发送空的WebSocket Ping
     }
-}
+}*/
 
 
 
@@ -708,6 +716,21 @@ NSURLSessionDelegate>
         }
     }
     
+    // 在handleOpen方法末尾添加命名空间加入逻辑
+    // 发送命名空间加入请求（Socket.IO connect packet）
+    // 格式：Engine.IO消息类型4 + Socket.IO连接类型0
+    NSString *namespace = self.config.namespace ?: @"/";
+    if ([namespace isEqualToString:@"/"]) {
+        // 加入默认命名空间，发送Socket.IO connect packet: "0"
+        [self write:@"0" withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
+        [self log:@"📤 已发送默认命名空间加入请求: 0" level:RTCLogLevelInfo];
+    } else {
+        // 加入自定义命名空间，发送Socket.IO connect packet: "0/namespace"
+        NSString *joinMessage = [NSString stringWithFormat:@"0%@", namespace];
+        [self write:joinMessage withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
+        [self log:[NSString stringWithFormat:@"📤 已发送命名空间加入请求: %@", joinMessage] level:RTCLogLevelInfo];
+    }
+    
     // 通知客户端
     if (self.client) {
         [self.client engineDidOpen:@"Connected"];
@@ -998,15 +1021,19 @@ NSURLSessionDelegate>
                     [self handleClose:content];
                     break;
                 case RTCVPSocketEnginePacketTypePing:
-                    if (self.protocolVersion == RTCVPSocketIOProtocolVersion2) {
-                        // 服务器发送的 ping，需要回复 pong
+                    // 服务器发送的 ping，必须立即回复 pong
+                    [self log:[NSString stringWithFormat:@"📩 收到Engine.IO ping消息，立即回复pong"] level:RTCLogLevelInfo];
+                    
+                    // 直接同步发送pong响应，不使用sendWebSocketMessage避免重复添加类型前缀
+                    if (self.websocket && self.ws && [self.ws isConnected]) {
+                        // 直接发送pong消息: "3"，不使用sendWebSocketMessage避免重复添加类型前缀
+                        [self.ws writeString:@"3"];
+                        [self log:@"📤 已立即发送pong响应: 3" level:RTCLogLevelInfo];
+                    } else {
+                        // 异步队列作为后备方案
                         [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
-                        break;
+                        [self log:@"📤 使用异步队列发送pong响应" level:RTCLogLevelInfo];
                     }
-                    //Engine.IO v4 协议要求 ：客户端收到 2 (ping) 后 必须立即回复 3 (pong) ，否则服务器直接断开连接
-                    [self log:@"Received Engine.IO ping, sending pong immediately" level:RTCLogLevelDebug];
-                    // 直接同步发送 pong 响应，不使用异步队列
-                    [self sendWebSocketMessage:@"3" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
                     break;
                 case RTCVPSocketEnginePacketTypePong:
                     [self handlePong:content];
