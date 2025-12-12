@@ -1,5 +1,17 @@
-// 启用Socket.IO调试日志
+// 启用Socket.IO调试日志，并添加时间戳
 process.env.DEBUG = 'engine:*,socket.io*';
+process.env.DEBUG_COLORS = 'true'; // 保留彩色输出
+process.env.DEBUG_FD = '1'; // 输出到stdout
+
+// 自定义DEBUG日志格式，添加时间戳
+const debug = require('debug');
+const oldLog = debug.log;
+debug.log = function() {
+  const timestamp = new Date().toISOString();
+  const args = Array.prototype.slice.call(arguments);
+  args.unshift(`${timestamp} `);
+  oldLog.apply(debug, args);
+};
 
 const http = require('http');
 const https = require('https');

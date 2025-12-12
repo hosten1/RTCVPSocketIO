@@ -15,6 +15,6 @@
 - (void) stopPolling;
 - (void) doLongPoll:(NSURLRequest *)request;
 - (void) disconnectPolling;
-
+- (void) flushWaitingForPost;
 - (void)sendPollMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)array;
 @end

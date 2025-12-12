@@ -122,19 +122,25 @@ NSURLSessionDelegate>
     
     self.reconnectAttempts = 0;
     
-    // 创建 URLSession
-    NSOperationQueue *queue = [[NSOperationQueue alloc] init];
-    queue.underlyingQueue = _engineQueue;
-    queue.maxConcurrentOperationCount = 1;
+    dispatch_queue_t networkQueue = dispatch_queue_create("com.vpsocketio.network", DISPATCH_QUEUE_CONCURRENT);
+    
+    NSOperationQueue *sessionQueue = [[NSOperationQueue alloc] init];
+    sessionQueue.underlyingQueue = networkQueue;
+    sessionQueue.maxConcurrentOperationCount = 2;
+    sessionQueue.name = @"com.vpsocketio.session.queue";
     
     NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-    sessionConfig.HTTPMaximumConnectionsPerHost = 1;
+    sessionConfig.HTTPMaximumConnectionsPerHost = 4;
     sessionConfig.timeoutIntervalForRequest = 30;
     sessionConfig.timeoutIntervalForResource = 300;
+    sessionConfig.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+            sessionConfig.HTTPShouldUsePipelining = YES;
     
     _session = [NSURLSession sessionWithConfiguration:sessionConfig
                                              delegate:self.config.sessionDelegate ?: self
-                                        delegateQueue:queue];
+                                        delegateQueue:sessionQueue];
+    // 4. 确保安全地访问属性
+    dispatch_queue_set_specific(_engineQueue, (__bridge const void *)(_engineQueue), (__bridge void *)(_engineQueue), NULL);
     // 初始化ACK管理器
     _ackManager = [[RTCVPACKManager alloc] init];
     _ackIdCounter = 0;
@@ -703,19 +709,28 @@ NSURLSessionDelegate>
         if (!self.ws || ![self.ws isConnected]) {
             [self createWebSocketAndConnect];
         }
-        
+        [self __sendConnectToServer];
         // 开始心跳
-        [self startPingTimer];
+//        [self startPingTimer];
     } else {
         [self log:@"Using polling transport" level:RTCLogLevelDebug];
+        [self __sendConnectToServer];
         // 开始心跳
-        [self startPingTimer];
+//        [self startPingTimer];
         // 继续轮询
         if (self.polling) {
-            [self doPoll];
+//            [self doPoll];
         }
     }
     
+    
+    // 通知客户端
+    if (self.client) {
+        [self.client engineDidOpen:@"Connected"];
+    }
+}
+
+- (void)__sendConnectToServer{
     // 在handleOpen方法末尾添加命名空间加入逻辑
     // 发送命名空间加入请求（Socket.IO connect packet）
     // 格式：Engine.IO消息类型4 + Socket.IO连接类型0
@@ -729,11 +744,6 @@ NSURLSessionDelegate>
         NSString *joinMessage = [NSString stringWithFormat:@"0%@", namespace];
         [self write:joinMessage withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
         [self log:[NSString stringWithFormat:@"📤 已发送命名空间加入请求: %@", joinMessage] level:RTCLogLevelInfo];
-    }
-    
-    // 通知客户端
-    if (self.client) {
-        [self.client engineDidOpen:@"Connected"];
     }
 }
 
@@ -1030,8 +1040,10 @@ NSURLSessionDelegate>
                         [self.ws writeString:@"3"];
                         [self log:@"📤 已立即发送pong响应: 3" level:RTCLogLevelInfo];
                     } else {
-                        // 异步队列作为后备方案
-                        [self write:@"" withType:RTCVPSocketEnginePacketTypePong withData:@[]];
+                        // 那就是轮训发送消息
+                        [self.postWait addObject:@"3"];
+                        //强制刷星
+                        [self flushWaitingForPost];
                         [self log:@"📤 使用异步队列发送pong响应" level:RTCLogLevelInfo];
                     }
                     break;
@@ -1292,6 +1304,25 @@ NSURLSessionDelegate>
         [self log:@"URLSession became invalid" level:RTCLogLevelError];
         [self didError:error.localizedDescription ?: @"URLSession invalid"];
     }
+}
+-(void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential * _Nullable))completionHandler{
+    // 根据配置决定是否忽略SSL证书验证
+       if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
+           if (self.config.allowSelfSignedCertificates) {
+               // 允许自签名证书（开发环境）
+               SecTrustRef serverTrust = challenge.protectionSpace.serverTrust;
+               NSURLCredential *credential = [NSURLCredential credentialForTrust:serverTrust];
+               [self log:@"忽略SSL证书验证（允许自签名证书）" level:RTCLogLevelDebug];
+               completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+           } else {
+               // 使用默认验证（生产环境）
+               [self log:@"使用默认SSL证书验证" level:RTCLogLevelDebug];
+               completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+           }
+       } else {
+           // 其他类型的认证，使用默认处理
+           completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+       }
 }
 
 #pragma mark - RTCVPSocketEngineProtocol
