@@ -7,24 +7,46 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
-    name: Build and analyse default scheme using xcodebuild command
+  build-ios:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set Default Scheme
+
+      - name: Select Xcode version
+        run: sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Install dependencies (CocoaPods)
         run: |
-          scheme_list=$(xcodebuild -list -json | tr -d "\n")
-          default=$(echo $scheme_list | ruby -e "require 'json'; puts JSON.parse(STDIN.gets)['project']['targets'][0]")
-          echo $default | cat >default
-          echo Using default scheme: $default
-      - name: Build
-        env:
-          scheme: ${{ 'default' }}
+          if [ -f "Podfile" ]; then
+            sudo gem install cocoapods
+            pod install
+          fi
+
+      - name: Build XCFramework
         run: |
-          if [ $scheme = default ]; then scheme=$(cat default); fi
-          if [ "`ls -A | grep -i \\.xcworkspace\$`" ]; then filetype_parameter="workspace" && file_to_build="`ls -A | grep -i \\.xcworkspace\$`"; else filetype_parameter="project" && file_to_build="`ls -A | grep -i \\.xcodeproj\$`"; fi
-          file_to_build=`echo $file_to_build | awk '{$1=$1;print}'`
-          xcodebuild clean build analyze -scheme "$scheme" -"$filetype_parameter" "$file_to_build" | xcpretty && exit ${PIPESTATUS[0]}
+          xcodebuild archive \
+            -scheme RTCVPSocketIO \
+            -destination "generic/platform=iOS" \
+            -archivePath build/iOS \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+          xcodebuild archive \
+            -scheme RTCVPSocketIO \
+            -destination "generic/platform=iOS Simulator" \
+            -archivePath build/iOS-Sim \
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+
+          xcodebuild -create-xcframework \
+            -framework build/iOS.xcarchive/Products/Library/Frameworks/RTCVPSocketIO.framework \
+            -framework build/iOS-Sim.xcarchive/Products/Library/Frameworks/RTCVPSocketIO.framework \
+            -output build/RTCVPSocketIO.xcframework
+
+      - name: Upload XCFramework artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RTCVPSocketIO-xcframework
+          path: build/RTCVPSocketIO.xcframework
