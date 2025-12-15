@@ -4,3 +4,6 @@ VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/
 VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/
 frameworks/
 testServer/node_modules/
+VPSocketIO.xcodeproj/xcuserdata/
+build/
+build.log
