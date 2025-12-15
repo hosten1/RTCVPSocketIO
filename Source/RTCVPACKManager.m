@@ -97,10 +97,53 @@
 
 - (NSInteger)activeACKCount {
     __block NSInteger count;
-    dispatch_sync(_queue, ^{
-        count = self->_callbacks.count;
-    });
+    dispatch_sync(_queue, ^{ count = self->_callbacks.count; });
     return count;
+}
+
+- (void)addAck:(int)ack callback:(RTCVPScoketAckArrayCallback)callback {
+    if (!callback) return;
+    // 将旧回调类型转换为新回调类型
+    RTCVPACKCallback newCallback = ^(NSArray *response) {
+        callback(response);
+    };
+    [self addCallback:newCallback forId:ack];
+}
+
+- (void)executeAck:(int)ack withItems:(NSArray *)items onQueue:(dispatch_queue_t)queue {
+    dispatch_async(_queue, ^{
+        NSNumber *key = @(ack);
+        RTCVPACKCallback callback = self->_callbacks[key];
+        
+        if (callback) {
+            dispatch_async(queue ?: dispatch_get_main_queue(), ^{
+                callback(items ?: @[]);
+            });
+            [self->_callbacks removeObjectForKey:key];
+        } else {
+            NSLog(@"No callback found for ACK id: %d", ack);
+        }
+    });
+}
+
+- (void)timeoutAck:(int)ack onQueue:(dispatch_queue_t)queue {
+    dispatch_async(_queue, ^{
+        NSNumber *key = @(ack);
+        RTCVPACKCallback callback = self->_callbacks[key];
+        
+        if (callback) {
+            dispatch_async(queue ?: dispatch_get_main_queue(), ^{
+                callback(@[@"NO ACK"]);
+            });
+            [self->_callbacks removeObjectForKey:key];
+        } else {
+            NSLog(@"No callback found for ACK id: %d", ack);
+        }
+    });
+}
+
+- (void)removeAllAcks {
+    [self removeAllCallbacks];
 }
 
 @end

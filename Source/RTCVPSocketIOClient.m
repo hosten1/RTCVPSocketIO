@@ -10,7 +10,7 @@
 #import "RTCVPSocketIOClient.h"
 #import "RTCVPSocketEngine.h"
 #import "RTCVPSocketPacket.h"
-#import "RTCVPSocketAckManager.h"
+#import "RTCVPACKManager.h"
 #import "RTCDefaultSocketLogger.h"
 #import "RTCVPStringReader.h"
 #import "NSString+RTCVPSocketIO.h"
@@ -141,7 +141,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 @property (nonatomic, assign) RTCVPAFNetworkReachabilityStatus currentNetworkStatus;
 @property (nonatomic, strong) NSMutableArray<RTCVPSocketIOClientCacheData *> *dataCache;
 @property (nonatomic, assign) NSInteger currentReconnectAttempt;
-@property (nonatomic, strong) RTCVPSocketAckManager *ackHandlers;
+@property (nonatomic, strong) RTCVPACKManager *ackHandlers;
 
 @end
 
@@ -223,7 +223,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     reconnecting = NO;
     currentAck = -1;
     
-    _ackHandlers = [[RTCVPSocketAckManager alloc] init];
+    _ackHandlers = [[RTCVPACKManager alloc] init];
     _handlers = [[NSMutableArray alloc] init];
     _waitingPackets = [[NSMutableArray alloc] init];
     _dataCache = [[NSMutableArray alloc] init];
