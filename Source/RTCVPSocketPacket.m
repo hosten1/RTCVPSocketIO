@@ -457,16 +457,13 @@
                 // EVENT / BINARY_EVENT
                 if (type == RTCVPPacketTypeEvent ||
                     type == RTCVPPacketTypeBinaryEvent) {
-
-                    if (jsonArray.count > 1) {
-                        data = [jsonArray subarrayWithRange:NSMakeRange(1, jsonArray.count - 1)];
-                    }
-
+                    // 对于事件类型，将整个jsonArray赋值给data，
+                    // 这样event getter返回_data[0]（事件名称），args getter返回_data[1..n]（事件参数）
+                    data = jsonArray;
                 }
                 // ACK / BINARY_ACK
                 else if (type == RTCVPPacketTypeAck ||
                          type == RTCVPPacketTypeBinaryAck) {
-
                     data = jsonArray;
                 }
             }
