@@ -7,31 +7,14 @@
 //
 
 #import "RTCVPACKManager.h"
-#import "RTCVPTimer.h"
-
-// ACK项内部类
-@interface RTCVPACKItem : NSObject
-
-@property (nonatomic, assign) NSInteger ackId;
-@property (nonatomic, copy) RTCVPACKCallback callback;
-@property (nonatomic, copy) RTCVPACKErrorCallback errorCallback;
-@property (nonatomic, copy) RTCVPScoketAckArrayCallback legacyCallback;
-@property (nonatomic, strong) RTCVPTimer *timeoutTimer;
-@property (nonatomic, assign) NSTimeInterval timeout;
-@property (nonatomic, assign) NSTimeInterval startTime;
-@property (nonatomic, assign) BOOL hasExecuted;
-@property (nonatomic, assign) BOOL isTimingOut;
-
-@end
-
-@implementation RTCVPACKItem
-@end
+#import "RTCDefaultSocketLogger.h"
 
 @interface RTCVPACKManager ()
 
-@property (nonatomic, strong) NSMutableDictionary<NSNumber *, RTCVPACKItem *> *ackItems;
-@property (nonatomic, assign) NSInteger currentACKId;
-@property (nonatomic, strong) dispatch_queue_t queue;
+@property (nonatomic, strong) NSMutableDictionary<NSNumber *, RTCVPSocketPacket *> *pendingPackets;
+@property (nonatomic, strong) dispatch_queue_t managerQueue;
+@property (nonatomic, strong) dispatch_source_t timeoutCheckTimer;
+@property (nonatomic, assign) BOOL isCheckingTimeouts;
 
 @end
 
@@ -39,429 +22,309 @@
 
 #pragma mark - 初始化
 
-- (instancetype)init {
-    return [self initWithDefaultTimeout:10.0];
-}
-
 - (instancetype)initWithDefaultTimeout:(NSTimeInterval)timeout {
     self = [super init];
     if (self) {
-        _ackItems = [NSMutableDictionary dictionary];
-        _currentACKId = 0;
-        _defaultTimeout = timeout;
-        _maxPendingAcks = 100;
-        _queue = dispatch_queue_create("com.socketio.ackmanager.queue", DISPATCH_QUEUE_SERIAL);
+        _pendingPackets = [NSMutableDictionary dictionary];
+        _defaultTimeout = timeout > 0 ? timeout : 10.0;
+        _maxPendingPackets = 100;
+        _managerQueue = dispatch_queue_create("com.socketio.ackmanager.queue", DISPATCH_QUEUE_SERIAL);
+        
+        [RTCDefaultSocketLogger.logger log:@"ACK管理器已初始化" type:@"ACKManager"];
     }
     return self;
 }
 
-#pragma mark - ACK ID 生成
-
-- (NSInteger)generateACKId {
-    __block NSInteger ackId;
-    dispatch_sync(_queue, ^{
-        ackId = self->_currentACKId;
-        self->_currentACKId = (self->_currentACKId + 1) % 1000;
-    });
-    return ackId;
+- (void)dealloc {
+    [self stopPeriodicTimeoutCheck];
+    [self removeAllPackets];
+    
+    [RTCDefaultSocketLogger.logger log:@"ACK管理器已释放" type:@"ACKManager"];
 }
 
-#pragma mark - 添加ACK回调（修复死锁问题）
+#pragma mark - 包管理
 
-- (NSInteger)addErrorCallback:(RTCVPACKErrorCallback)callback
-                      timeout:(NSTimeInterval)timeout {
-    
-    if (!callback) {
-        return -1;
+- (void)registerPacket:(RTCVPSocketPacket *)packet {
+    if (!packet || packet.packetId < 0) {
+        return;
     }
     
-    NSInteger ackId = [self generateACKId];
-    NSTimeInterval actualTimeout = timeout > 0 ? timeout : self.defaultTimeout;
+    __weak typeof(self) weakSelf = self;
     
-    // 异步执行，避免阻塞调用线程
-    dispatch_async(_queue, ^{
+    dispatch_async(_managerQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
         // 检查是否达到最大限制
-        if (self->_ackItems.count >= self.maxPendingAcks) {
-            NSLog(@"ACK管理器已达到最大容量，清理旧的ACK");
-            [self cleanupOldestAcks:10];
+        if (strongSelf.pendingPackets.count >= strongSelf.maxPendingPackets) {
+            [strongSelf cleanupOldestPackets:5];
         }
         
-        RTCVPACKItem *item = [[RTCVPACKItem alloc] init];
-        item.ackId = ackId;
-        item.errorCallback = [callback copy];
-        item.timeout = actualTimeout;
-        item.startTime = [[NSDate date] timeIntervalSince1970];
-        item.hasExecuted = NO;
-        item.isTimingOut = NO;
+        NSNumber *packetIdKey = @(packet.packetId);
         
-        // 使用 weak/strong 引用来避免循环引用
-        __weak typeof(self) weakSelf = self;
-        __weak RTCVPACKItem *weakItem = item;
+        // 检查是否已存在相同ID的包
+        if (strongSelf.pendingPackets[packetIdKey]) {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"已存在相同ID的包: %ld", (long)packet.packetId]
+                                          type:@"ACKManager"];
+            return;
+        }
         
-        // 注意：定时器已经在 _queue 队列上，所以回调也会在 _queue 上
-        item.timeoutTimer = [RTCVPTimer after:actualTimeout
-                                        queue:self.queue
-                                        block:^{
-            __strong typeof(weakSelf) strongSelf = weakSelf;
-            __strong RTCVPACKItem *strongItem = weakItem;
-            
-            if (strongSelf && strongItem && !strongItem.hasExecuted && !strongItem.isTimingOut) {
-                strongItem.isTimingOut = YES;
-                [strongSelf safeHandleTimeoutForAckId:strongItem.ackId];
-            }
-        }];
+        // 设置默认超时时间
+        if (packet.timeoutInterval <= 0) {
+            packet.timeoutInterval = strongSelf.defaultTimeout;
+        }
         
-        self->_ackItems[@(ackId)] = item;
+        // 存储包
+        strongSelf.pendingPackets[packetIdKey] = packet;
         
-        NSLog(@"添加ACK回调 ID: %ld, 超时: %.1fs", (long)ackId, actualTimeout);
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"注册包: packetId=%ld", (long)packet.packetId]
+                                      type:@"ACKManager"];
     });
-    
-    return ackId;
 }
 
-#pragma mark - 安全的超时处理方法（避免死锁）
-
-- (void)safeHandleTimeoutForAckId:(NSInteger)ackId {
-    // 这个方法会被定时器回调调用，已经在 _queue 上
-    // 所以我们不需要再使用 dispatch_sync 或 dispatch_async
+- (BOOL)acknowledgePacketWithId:(NSInteger)packetId data:(nullable NSArray *)data {
+    __block BOOL acknowledged = NO;
     
-    NSNumber *key = @(ackId);
-    RTCVPACKItem *item = self->_ackItems[key];
-    
-    if (item && !item.hasExecuted && item.isTimingOut) {
-        item.hasExecuted = YES;
+    dispatch_sync(_managerQueue, ^{
+        NSNumber *packetIdKey = @(packetId);
+        RTCVPSocketPacket *packet = self.pendingPackets[packetIdKey];
         
-        NSLog(@"ACK超时 ID: %ld", (long)ackId);
-        
-        // 保存回调的引用，因为在移除 item 后就不能再访问了
-        RTCVPACKErrorCallback errorCallback = item.errorCallback;
-        RTCVPACKCallback callback = item.callback;
-        RTCVPScoketAckArrayCallback legacyCallback = item.legacyCallback;
-        
-        // 从字典中移除（在调用回调之前移除，避免重复执行）
-        [self->_ackItems removeObjectForKey:key];
-        
-        // 在主线程执行回调
-        if (errorCallback) {
-            NSError *timeoutError = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
-                                                        code:-2
-                                                    userInfo:@{NSLocalizedDescriptionKey: @"ACK timeout"}];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                errorCallback(nil, timeoutError);
-            });
-        } else if (callback) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                callback(@[@"NO ACK"]);
-            });
-        } else if (legacyCallback) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                legacyCallback(@[@"NO ACK"]);
-            });
-        }
-    } else {
-        NSLog(@"ACK超时处理失败：未找到 item 或已执行，ACK ID: %ld", (long)ackId);
-    }
-}
-
-#pragma mark - 执行ACK回调（修复死锁问题）
-
-- (BOOL)executeErrorCallbackForId:(NSInteger)ackId
-                         withData:(nullable NSArray *)data
-                            error:(nullable NSError *)error {
-    
-    __block BOOL executed = NO;
-    
-    // 使用 dispatch_sync 确保在返回前完成执行
-    dispatch_sync(_queue, ^{
-        NSNumber *key = @(ackId);
-        RTCVPACKItem *item = self->_ackItems[key];
-        
-        if (item && !item.hasExecuted) {
-            item.hasExecuted = YES;
+        if (packet) {
+            [packet acknowledgeWithData:data];
+            [self.pendingPackets removeObjectForKey:packetIdKey];
+            acknowledged = YES;
             
-            // 取消超时定时器
-            [item.timeoutTimer cancel];
-            
-            // 保存回调引用
-            RTCVPACKErrorCallback errorCallback = item.errorCallback;
-            RTCVPACKCallback callback = item.callback;
-            RTCVPScoketAckArrayCallback legacyCallback = item.legacyCallback;
-            
-            // 从字典中移除
-            [self->_ackItems removeObjectForKey:key];
-            
-            // 执行回调
-            if (errorCallback) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    errorCallback(data, error);
-                });
-                executed = YES;
-            } else if (callback && !error) {
-                // 只有没有错误时才执行普通回调
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    callback(data ?: @[]);
-                });
-                executed = YES;
-            } else if (legacyCallback && !error) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    legacyCallback(data ?: @[]);
-                });
-                executed = YES;
-            }
-            
-            NSLog(@"执行ACK回调 ID: %ld, 错误: %@", (long)ackId, error ?: @"无");
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"包已确认: packetId=%ld", (long)packetId]
+                                          type:@"ACKManager"];
         } else {
-            NSLog(@"未找到ACK回调 ID: %ld 或已执行", (long)ackId);
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"未找到待确认的包: packetId=%ld", (long)packetId]
+                                          type:@"ACKManager"];
         }
     });
     
-    return executed;
+    return acknowledged;
 }
 
-#pragma mark - 其他方法也需要修复
-
-- (void)executeAck:(NSInteger)ack withItems:(nullable NSArray *)items onQueue:(dispatch_queue_t)queue {
-    dispatch_async(_queue, ^{
-        NSNumber *key = @(ack);
-        RTCVPACKItem *item = self->_ackItems[key];
-        
-        if (item && !item.hasExecuted) {
-            item.hasExecuted = YES;
-            
-            // 取消超时定时器
-            [item.timeoutTimer cancel];
-            
-            // 保存回调引用
-            RTCVPScoketAckArrayCallback legacyCallback = item.legacyCallback;
-            RTCVPACKCallback callback = item.callback;
-            RTCVPACKErrorCallback errorCallback = item.errorCallback;
-            
-            // 从字典中移除
-            [self->_ackItems removeObjectForKey:key];
-            
-            // 执行回调
-            dispatch_queue_t targetQueue = queue ?: dispatch_get_main_queue();
-            
-            if (legacyCallback) {
-                dispatch_async(targetQueue, ^{
-                    legacyCallback(items ?: @[]);
-                });
-            } else if (callback) {
-                dispatch_async(targetQueue, ^{
-                    callback(items ?: @[]);
-                });
-            } else if (errorCallback) {
-                // 对于错误回调，如果没有错误，传递成功
-                dispatch_async(targetQueue, ^{
-                    errorCallback(items ?: @[], nil);
-                });
-            }
-            
-            NSLog(@"执行旧式ACK回调 ID: %@", @(ack));
-        } else {
-            NSLog(@"未找到ACK回调 ID: %@ 或已执行", @(ack));
-        }
-    });
-}
-
-#pragma mark - 辅助方法
-
-- (void)cleanupOldestAcks:(NSInteger)count {
-    // 这里已经在 _queue 上，所以可以直接访问
-    NSArray<RTCVPACKItem *> *sortedItems = [self->_ackItems.allValues
-        sortedArrayUsingComparator:^NSComparisonResult(RTCVPACKItem *item1, RTCVPACKItem *item2) {
-            return [@(item1.startTime) compare:@(item2.startTime)];
-        }];
+- (BOOL)failPacketWithId:(NSInteger)packetId error:(nullable NSError *)error {
+    __block BOOL failed = NO;
     
-    NSInteger cleanupCount = MIN(count, sortedItems.count);
-    for (NSInteger i = 0; i < cleanupCount; i++) {
-        RTCVPACKItem *item = sortedItems[i];
-        [item.timeoutTimer cancel];
-        [self->_ackItems removeObjectForKey:@(item.ackId)];
-        NSLog(@"清理旧ACK ID: %ld", (long)item.ackId);
+    dispatch_sync(_managerQueue, ^{
+        NSNumber *packetIdKey = @(packetId);
+        RTCVPSocketPacket *packet = self.pendingPackets[packetIdKey];
         
-        // 执行超时回调
-        if (item.errorCallback) {
-            NSError *timeoutError = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
-                                                        code:-3
-                                                    userInfo:@{NSLocalizedDescriptionKey: @"ACK清理（因达到最大数量）"}];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                item.errorCallback(nil, timeoutError);
-            });
-        }
-    }
-}
-
-#pragma mark - 线程安全的字典操作辅助方法
-
-- (nullable RTCVPACKItem *)itemForAckId:(NSInteger)ackId {
-    __block RTCVPACKItem *item = nil;
-    dispatch_sync(_queue, ^{
-        item = self->_ackItems[@(ackId)];
-    });
-    return item;
-}
-
-- (void)removeItemForAckId:(NSInteger)ackId {
-    dispatch_async(_queue, ^{
-        RTCVPACKItem *item = self->_ackItems[@(ackId)];
-        if (item) {
-            [item.timeoutTimer cancel];
-            [self->_ackItems removeObjectForKey:@(ackId)];
-            NSLog(@"移除ACK项 ID: %ld", (long)ackId);
+        if (packet) {
+            [packet failWithError:error];
+            [self.pendingPackets removeObjectForKey:packetIdKey];
+            failed = YES;
+            
+            NSString *errorMsg = error ? error.localizedDescription : @"未知错误";
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"包失败: packetId=%ld, error=%@", (long)packetId, errorMsg]
+                                          type:@"ACKManager"];
         }
     });
-}
-
-- (void)addCallback:(RTCVPACKCallback)callback forId:(NSInteger)ackId {
-    if (!callback) {
-        return;
-    }
     
-    dispatch_async(_queue, ^{
-        NSNumber *key = @(ackId);
+    return failed;
+}
+
+- (void)removePacketWithId:(NSInteger)packetId {
+    dispatch_async(_managerQueue, ^{
+        NSNumber *packetIdKey = @(packetId);
+        RTCVPSocketPacket *packet = self.pendingPackets[packetIdKey];
         
-        // 如果已存在，先移除旧的
-        RTCVPACKItem *oldItem = self->_ackItems[key];
-        if (oldItem) {
-            [oldItem.timeoutTimer cancel];
+        if (packet) {
+            [packet cancel];
+            [self.pendingPackets removeObjectForKey:packetIdKey];
+            
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"包已移除: packetId=%ld", (long)packetId]
+                                          type:@"ACKManager"];
+        }
+    });
+}
+
+- (void)removeAllPackets {
+    dispatch_async(_managerQueue, ^{
+        if (self.pendingPackets) {
+            return;
+        }
+        for (RTCVPSocketPacket *packet in self.pendingPackets.allValues) {
+            [packet cancel];
         }
         
-        RTCVPACKItem *item = [[RTCVPACKItem alloc] init];
-        item.ackId = ackId;
-        item.callback = [callback copy];
-        item.startTime = [[NSDate date] timeIntervalSince1970];
-        item.hasExecuted = NO;
-        item.isTimingOut = NO;
+        [self.pendingPackets removeAllObjects];
         
-        // 设置默认超时
-        item.timeout = self.defaultTimeout;
+        [RTCDefaultSocketLogger.logger log:@"所有包已移除" type:@"ACKManager"];
+    });
+}
+
+#pragma mark - 查询
+
+- (nullable RTCVPSocketPacket *)packetForId:(NSInteger)packetId {
+    __block RTCVPSocketPacket *packet = nil;
+    
+    dispatch_sync(_managerQueue, ^{
+        packet = self.pendingPackets[@(packetId)];
+    });
+    
+    return packet;
+}
+
+- (NSInteger)activePacketCount {
+    __block NSInteger count = 0;
+    
+    dispatch_sync(_managerQueue, ^{
+        count = self.pendingPackets.count;
+    });
+    
+    return count;
+}
+
+- (NSArray<NSNumber *> *)allPacketIds {
+    __block NSArray<NSNumber *> *ids = nil;
+    
+    dispatch_sync(_managerQueue, ^{
+        ids = self.pendingPackets.allKeys;
+    });
+    
+    return ids;
+}
+
+#pragma mark - 超时检查
+
+- (void)checkTimeouts {
+    dispatch_async(_managerQueue, ^{
+        if (self.isCheckingTimeouts) {
+            return;
+        }
         
-        // 设置超时定时器
-        __weak typeof(self) weakSelf = self;
-        __weak RTCVPACKItem *weakItem = item;
-        item.timeoutTimer = [RTCVPTimer after:self.defaultTimeout
-                                        queue:self.queue
-                                        block:^{
-            __strong typeof(weakSelf) strongSelf = weakSelf;
-            __strong RTCVPACKItem *strongItem = weakItem;
-            if (strongSelf && strongItem && !strongItem.hasExecuted && !strongItem.isTimingOut) {
-                strongItem.isTimingOut = YES;
-                [strongSelf safeHandleTimeoutForAckId:strongItem.ackId];
+        self.isCheckingTimeouts = YES;
+        
+        NSDate *now = [NSDate date];
+        NSMutableArray<NSNumber *> *timeoutPacketIds = [NSMutableArray array];
+        
+        // 找出所有超时的包
+        [self.pendingPackets enumerateKeysAndObjectsUsingBlock:^(NSNumber *packetId, RTCVPSocketPacket *packet, BOOL *stop) {
+            if (packet.timeoutInterval > 0) {
+                NSTimeInterval elapsed = [now timeIntervalSinceDate:packet.creationDate];
+                if (elapsed > packet.timeoutInterval && packet.isPending) {
+                    [timeoutPacketIds addObject:packetId];
+                }
             }
         }];
         
-        self->_ackItems[key] = item;
-        
-        NSLog(@"添加ACK回调 ID: %ld", (long)ackId);
-    });
-}
-
-- (void)addAck:(NSInteger)ack callback:(RTCVPScoketAckArrayCallback)callback {
-    if (!callback) {
-        return;
-    }
-    
-    dispatch_async(_queue, ^{
-        NSNumber *key = @(ack);
-        
-        // 如果已存在，先移除旧的
-        RTCVPACKItem *oldItem = self->_ackItems[key];
-        if (oldItem) {
-            [oldItem.timeoutTimer cancel];
-        }
-        
-        RTCVPACKItem *item = [[RTCVPACKItem alloc] init];
-        item.ackId = ack;
-        item.legacyCallback = [callback copy];
-        item.startTime = [[NSDate date] timeIntervalSince1970];
-        item.hasExecuted = NO;
-        item.isTimingOut = NO;
-        
-        // 设置默认超时
-        item.timeout = self.defaultTimeout;
-        
-        // 设置超时定时器
-        __weak typeof(self) weakSelf = self;
-        __weak RTCVPACKItem *weakItem = item;
-        item.timeoutTimer = [RTCVPTimer after:self.defaultTimeout
-                                        queue:self.queue
-                                        block:^{
-            __strong typeof(weakSelf) strongSelf = weakSelf;
-            __strong RTCVPACKItem *strongItem = weakItem;
-            if (strongSelf && strongItem && !strongItem.hasExecuted && !strongItem.isTimingOut) {
-                strongItem.isTimingOut = YES;
-                [strongSelf safeHandleTimeoutForAckId:strongItem.ackId];
-            }
-        }];
-        
-        self->_ackItems[key] = item;
-        
-        NSLog(@"添加旧式ACK回调 ID: %@", @(ack));
-    });
-}
-
-- (void)executeCallbackForId:(NSInteger)ackId withData:(nullable NSArray *)data {
-    // 调用错误回调版本，传递nil错误表示成功
-    [self executeErrorCallbackForId:ackId withData:data error:nil];
-}
-
-- (void)timeoutAck:(NSInteger)ack onQueue:(dispatch_queue_t)queue {
-    // 使用我们现有的超时处理逻辑
-    dispatch_async(_queue, ^{
-        NSNumber *key = @(ack);
-        RTCVPACKItem *item = self->_ackItems[key];
-        
-        if (item && !item.hasExecuted) {
-            item.hasExecuted = YES;
-            
-            NSLog(@"ACK超时 ID: %ld", (long)ack);
-            
-            // 保存回调引用
-            RTCVPScoketAckArrayCallback legacyCallback = item.legacyCallback;
-            RTCVPACKCallback callback = item.callback;
-            RTCVPACKErrorCallback errorCallback = item.errorCallback;
-            
-            // 从字典中移除
-            [self->_ackItems removeObjectForKey:key];
-            
-            // 执行回调
-            dispatch_queue_t targetQueue = queue ?: dispatch_get_main_queue();
-            
-            if (legacyCallback) {
-                dispatch_async(targetQueue, ^{
-                    legacyCallback(@[@"NO ACK"]);
-                });
-            } else if (callback) {
-                dispatch_async(targetQueue, ^{
-                    callback(@[@"NO ACK"]);
-                });
-            } else if (errorCallback) {
+        // 处理超时的包
+        for (NSNumber *packetId in timeoutPacketIds) {
+            RTCVPSocketPacket *packet = self.pendingPackets[packetId];
+            if (packet) {
                 NSError *timeoutError = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
-                                                            code:-2
+                                                            code:-1
                                                         userInfo:@{NSLocalizedDescriptionKey: @"ACK timeout"}];
-                dispatch_async(targetQueue, ^{
-                    errorCallback(nil, timeoutError);
-                });
+                [packet failWithError:timeoutError];
+                [self.pendingPackets removeObjectForKey:packetId];
+                
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"包超时: packetId=%ld", (long)packetId.integerValue]
+                                              type:@"ACKManager"];
             }
-        } else {
-            NSLog(@"未找到ACK回调 ID: %@ 或已执行", @(ack));
         }
+        
+        if (timeoutPacketIds.count > 0) {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"超时检查: 发现 %ld 个超时的包", (long)timeoutPacketIds.count]
+                                          type:@"ACKManager"];
+        }
+        
+        self.isCheckingTimeouts = NO;
     });
 }
 
-- (void)removeAllAcks {
-    [self removeAllCallbacks];
+- (void)startPeriodicTimeoutCheckWithInterval:(NSTimeInterval)interval {
+    [self stopPeriodicTimeoutCheck];
+    
+    if (interval <= 0) {
+        interval = 1.0; // 默认1秒检查一次
+    }
+    
+    __weak typeof(self) weakSelf = self;
+    
+    _timeoutCheckTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _managerQueue);
+    dispatch_source_set_timer(_timeoutCheckTimer,
+                              dispatch_time(DISPATCH_TIME_NOW, interval * NSEC_PER_SEC),
+                              interval * NSEC_PER_SEC,
+                              0.1 * NSEC_PER_SEC);
+    
+    dispatch_source_set_event_handler(_timeoutCheckTimer, ^{
+        [weakSelf checkTimeouts];
+    });
+    
+    dispatch_resume(_timeoutCheckTimer);
+    
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"启动定期超时检查，间隔: %.1f秒", interval]
+                                  type:@"ACKManager"];
 }
 
-- (void)removeAllCallbacks {
+- (void)stopPeriodicTimeoutCheck {
+    if (_timeoutCheckTimer) {
+        dispatch_source_cancel(_timeoutCheckTimer);
+        _timeoutCheckTimer = nil;
+        
+        [RTCDefaultSocketLogger.logger log:@"停止定期超时检查" type:@"ACKManager"];
+    }
 }
 
-- (void)removeCallbackForId:(NSInteger)ackId {
+#pragma mark - 清理旧包
+
+- (void)cleanupOldestPackets:(NSInteger)count {
+    if (count <= 0) return;
+    
+    // 按创建时间排序
+    NSArray<RTCVPSocketPacket *> *sortedPackets = [self.pendingPackets.allValues
+        sortedArrayUsingComparator:^NSComparisonResult(RTCVPSocketPacket *packet1, RTCVPSocketPacket *packet2) {
+            return [packet1.creationDate compare:packet2.creationDate];
+        }];
+    
+    NSInteger cleanupCount = MIN(count, sortedPackets.count);
+    for (NSInteger i = 0; i < cleanupCount; i++) {
+        RTCVPSocketPacket *packet = sortedPackets[i];
+        NSNumber *packetId = @(packet.packetId);
+        
+        // 通知包已因清理而失败
+        NSError *cleanupError = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
+                                                    code:-2
+                                                userInfo:@{NSLocalizedDescriptionKey: @"包因管理器容量限制被清理"}];
+        [packet failWithError:cleanupError];
+        
+        [self.pendingPackets removeObjectForKey:packetId];
+        
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"清理旧包: packetId=%ld", (long)packet.packetId]
+                                      type:@"ACKManager"];
+    }
 }
 
-- (NSInteger)activeACKCount {
-    return _ackItems.count;
+#pragma mark - 调试信息
+
+- (NSString *)debugDescription {
+    __block NSString *description = nil;
+    
+    dispatch_sync(_managerQueue, ^{
+        NSMutableString *debug = [NSMutableString stringWithString:@"RTCVPACKManager {\n"];
+        [debug appendFormat:@"  defaultTimeout: %.1f,\n", self.defaultTimeout];
+        [debug appendFormat:@"  maxPendingPackets: %ld,\n", (long)self.maxPendingPackets];
+        [debug appendFormat:@"  pendingPacketsCount: %ld,\n", (long)self.pendingPackets.count];
+        [debug appendString:@"  packets: ["];
+        
+        for (RTCVPSocketPacket *packet in self.pendingPackets.allValues) {
+            [debug appendFormat:@"\n    {id: %ld, state: %lu, event: %@}",
+             (long)packet.packetId, (unsigned long)packet.state, packet.event];
+        }
+        
+        if (self.pendingPackets.count > 0) {
+            [debug appendString:@"\n  "];
+        }
+        
+        [debug appendString:@"]\n}"];
+        
+        description = [debug copy];
+    });
+    
+    return description;
 }
 
 @end

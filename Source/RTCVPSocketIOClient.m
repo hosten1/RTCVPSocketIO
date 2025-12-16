@@ -213,7 +213,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     [RTCDefaultSocketLogger.logger log:@"Client is being released" type:self.logType];
     [self.engine disconnect:@"Client Deinit"];
     [self stopNetworkMonitoring];
-    [self.ackHandlers removeAllCallbacks];
+    [self.ackHandlers removeAllPackets];
 }
 
 #pragma mark - 初始化配置
@@ -230,11 +230,14 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     _reconnecting = NO;
     _currentAck = -1;
     
-    // 使用增强的ACK管理器
+    // 使用新的ACK管理器
     _ackHandlers = [[RTCVPACKManager alloc] initWithDefaultTimeout:10.0];
     _handlers = [[NSMutableArray alloc] init];
     _waitingPackets = [[NSMutableArray alloc] init];
     _dataCache = [[NSMutableArray alloc] init];
+    
+    // 启动定期超时检查
+    [_ackHandlers startPeriodicTimeoutCheckWithInterval:1.0];
 }
 
 #pragma mark - 映射字典懒加载
@@ -394,28 +397,35 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     }
 }
 
+#pragma mark - 断开连接处理
+
 - (void)didDisconnect:(NSString *)reason {
     if (_status != RTCVPSocketIOClientStatusDisconnected) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"断开连接: %@", reason]
-                                      type:self.logType];
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"断开连接: %@", reason] type:self.logType];
         
         _reconnecting = NO;
         self.status = RTCVPSocketIOClientStatusDisconnected;
         
-        // 清理ACK回调
-        [self.ackHandlers removeAllCallbacks];
+        // 清理所有ACK包
+        [self.ackHandlers removeAllPackets];
         
-        // 确保引擎真正关闭
+        // 确保引擎关闭
         [self.engine disconnect:reason];
         [self handleClientEvent:RTCVPSocketEventDisconnect withData:@[reason]];
     }
 }
 
-// 添加ACK统计监控方法（可选）
+#pragma mark - 工具方法
 - (void)printACKStatistics {
-    NSInteger activeCount = [self.ackHandlers activeACKCount];
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"活跃ACK数量: %ld", (long)activeCount]
+    NSInteger activeCount = [self.ackHandlers activePacketCount];
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"活跃包数量: %ld", (long)activeCount]
                                   type:self.logType];
+    
+    NSArray<NSNumber *> *allPacketIds = [self.ackHandlers allPacketIds];
+    if (allPacketIds.count > 0) {
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"活跃包ID: %@", allPacketIds]
+                                      type:self.logType];
+    }
 }
 
 #pragma mark - ACK管理
@@ -467,11 +477,10 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         [dataArray addObjectsFromArray:items];
     }
     
-    // 允许在连接状态或打开状态发送消息
+    // 如果未连接，缓存事件
     if (_status != RTCVPSocketIOClientStatusConnected && _status != RTCVPSocketIOClientStatusOpened) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Socket not connected, caching event: %@", event] type:self.logType];
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Socket未连接，缓存事件: %@", event] type:self.logType];
         
-        // 缓存事件，连接后发送
         RTCVPSocketIOClientCacheData *cacheData = [[RTCVPSocketIOClientCacheData alloc] init];
         cacheData.ack = ack;
         cacheData.items = [NSArray arrayWithArray:dataArray];
@@ -481,31 +490,37 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         return;
     }
     
-    // 如果有ACK，添加到数组末尾并注册回调
-    if (ack >= 0) {
-        [dataArray addObject:@(ack)];
-        
-        // 注册ACK回调（使用默认超时）
-        __weak typeof(self)weakSelf = self;
-        [self.ackHandlers addAck:ack callback:^(NSArray *response) {
-            __strong __typeof(weakSelf)strongSelf = weakSelf;
-
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"ACK回调执行: %@, 响应: %@", @(ack), response] type:strongSelf.logType];
-        }];
-    }
+    // 创建包
+    RTCVPSocketPacket *packet = [RTCVPSocketPacket eventPacketWithEvent:event
+                                                                  items:items
+                                                               packetId:ack
+                                                                    nsp:self.nsp
+                                                            requiresAck:(ack >= 0)];
     
-    // 创建Socket.IO包
-    RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromEmit:dataArray
-                                                               ID:ack
-                                                              nsp:self.nsp
-                                                              ack:ack >= 0
-                                                          isEvent:YES];
+    // 如果需要ACK，设置回调
+    if (ack >= 0) {
+        __weak typeof(self) weakSelf = self;
+        [packet setupAckCallbacksWithSuccess:^(NSArray * _Nullable response) {
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"ACK回调执行: %@, 响应: %@", @(ack), response]
+                                          type:strongSelf.logType];
+        } error:^(NSError * _Nullable error) {
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+            if (error) {
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"ACK错误: %@, 错误: %@", @(ack), error.localizedDescription]
+                                              type:strongSelf.logType];
+            }
+        } timeout:10.0];
+        
+        // 注册到ACK管理器
+        [self.ackHandlers registerPacket:packet];
+    }
     
     NSString *str = packet.packetString;
     
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Emitting: %@", str] type:self.logType];
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送事件: %@", str] type:self.logType];
     
-    // 发送消息（通过引擎）
+    // 发送消息
     [self.engine send:str withData:packet.binary];
 }
 
@@ -520,13 +535,23 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
            ackBlock:(void(^)(NSArray * _Nullable data, NSError * _Nullable error))ackBlock
             timeout:(NSTimeInterval)timeout {
     
-    if (!event || _status != RTCVPSocketIOClientStatusConnected) {
+    if (!event) {
         if (ackBlock) {
             NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
                                                  code:-1
-                                             userInfo:@{NSLocalizedDescriptionKey:
-                                                         _status != RTCVPSocketIOClientStatusConnected ?
-                                                         @"Socket not connected" : @"Event name cannot be nil"}];
+                                             userInfo:@{NSLocalizedDescriptionKey: @"事件名不能为空"}];
+            dispatch_async(self.handleQueue, ^{
+                ackBlock(nil, error);
+            });
+        }
+        return;
+    }
+    
+    if (_status != RTCVPSocketIOClientStatusConnected) {
+        if (ackBlock) {
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
+                                                 code:-2
+                                             userInfo:@{NSLocalizedDescriptionKey: @"Socket未连接"}];
             dispatch_async(self.handleQueue, ^{
                 ackBlock(nil, error);
             });
@@ -537,49 +562,40 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     // 生成ACK ID
     NSInteger ackId = [self generateNextAck];
     
-    // 构建事件数据数组 - 注意格式
-    NSMutableArray *dataArray = [NSMutableArray array];
-    [dataArray addObject:event];
+    // 创建需要ACK的包
+    RTCVPSocketPacket *packet = [RTCVPSocketPacket eventPacketWithEvent:event
+                                                                  items:items
+                                                               packetId:ackId
+                                                                    nsp:self.nsp
+                                                            requiresAck:YES];
     
-    if (items && items.count > 0) {
-        [dataArray addObjectsFromArray:items];
-    }
-    
-//    // 将ACK ID添加到数组末尾
-//    [dataArray addObject:@(ackId)];
-    
-    // 使用ACK管理器注册回调（带超时）
+    // 设置回调
     __weak typeof(self) weakSelf = self;
-    [self.ackHandlers addErrorCallback:^(NSArray * _Nullable data, NSError * _Nullable error) {
+    [packet setupAckCallbacksWithSuccess:^(NSArray * _Nullable response) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (strongSelf) {
-            if (error) {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"ACK超时或错误 ID: %@, 错误: %@",
-                                                  @(ackId), error.localizedDescription]
-                                              type:strongSelf.logType];
-            } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到ACK响应 ID: %@", @(ackId)]
-                                              type:strongSelf.logType];
-            }
-            
-            ackBlock(data, error);
+        if (strongSelf && ackBlock) {
+            dispatch_async(strongSelf.handleQueue, ^{
+                ackBlock(response, nil);
+            });
+        }
+    } error:^(NSError * _Nullable error) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf && ackBlock) {
+            dispatch_async(strongSelf.handleQueue, ^{
+                ackBlock(nil, error);
+            });
         }
     } timeout:timeout];
     
-    // 创建Socket.IO包
-    // 对于需要ACK的事件，ack参数应该是YES
-    RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromEmit:dataArray
-                                                               ID:ackId
-                                                              nsp:self.nsp
-                                                              ack:YES  // 这里应该是YES
-                                                          isEvent:YES];
+    // 注册到ACK管理器
+    [self.ackHandlers registerPacket:packet];
     
     NSString *str = packet.packetString;
     
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送带ACK的事件: %@ (ackId: %@)", str, @(ackId)]
                                   type:self.logType];
     
-    // 发送消息 - 注意：这里发送的是Socket.IO消息，Engine.IO会加上类型前缀4
+    // 发送消息
     [self.engine send:str withData:packet.binary];
 }
 
@@ -587,11 +603,16 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 
 - (void)handleAck:(NSInteger)ack withData:(NSArray *)data {
     if (_status == RTCVPSocketIOClientStatusConnected) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"处理ACK: %@, 数据: %@", @(ack), data]
-                                  type:self.logType];
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"处理ACK响应: %@, 数据: %@", @(ack), data]
+                                      type:self.logType];
         
         // 使用ACK管理器处理ACK响应
-        [self.ackHandlers executeAck:ack withItems:data onQueue:self.handleQueue];
+        BOOL handled = [self.ackHandlers acknowledgePacketWithId:ack data:data];
+        
+        if (!handled) {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"未找到对应的ACK包: %@", @(ack)]
+                                          type:self.logType];
+        }
     }
 }
 
@@ -599,30 +620,19 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 
 - (void)sendAck:(NSInteger)ackId withData:(NSArray *)data {
     if (_status != RTCVPSocketIOClientStatusConnected) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Cannot send ACK %@, socket not connected",@(ackId)] type:self.logType];
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"无法发送ACK %@，Socket未连接", @(ackId)] type:self.logType];
         return;
     }
     
-    // 构建ACK响应数组
-    NSMutableArray *ackArray = [NSMutableArray array];
-    [ackArray addObject:@(ackId)];
-    
-    if (data && data.count > 0) {
-        [ackArray addObjectsFromArray:data];
-    }
-    
-    // 创建ACK包
-    RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromEmit:ackArray
-                                                               ID:ackId
-                                                              nsp:self.nsp
-                                                              ack:YES
-                                                          isEvent:NO];
+    // 创建ACK响应包
+    RTCVPSocketPacket *packet = [RTCVPSocketPacket ackPacketWithId:ackId items:data nsp:self.nsp];
     
     NSString *str = packet.packetString;
     
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送ACK响应: %@ (ackId: %@)", str, @(ackId)] type:self.logType];
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送ACK响应: %@ (ackId: %@)", str, @(ackId)]
+                                  type:self.logType];
     
-    // 通过引擎发送ACK响应
+    // 发送ACK响应
     [self.engine send:str withData:packet.binary];
 }
 
@@ -911,14 +921,19 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 }
 
 - (void)didConnect:(NSString *)namespace {
-    [RTCDefaultSocketLogger.logger log:@"Socket connected" type:self.logType];
+    [RTCDefaultSocketLogger.logger log:@"Socket已连接" type:self.logType];
     self.status = RTCVPSocketIOClientStatusConnected;
     
     // 发送缓存的数据
     if (self.dataCache.count > 0) {
         NSArray *tempArr = [NSArray arrayWithArray:self.dataCache];
         for (RTCVPSocketIOClientCacheData *cacheData in tempArr) {
-            [self emitAck:cacheData.ack withItems:cacheData.items isEvent:cacheData.isEvent];
+            // 重构缓存数据的发送逻辑
+            if (cacheData.isEvent && cacheData.items.count > 0) {
+                NSString *event = cacheData.items.firstObject;
+                NSArray *items = cacheData.items.count > 1 ? [cacheData.items subarrayWithRange:NSMakeRange(1, cacheData.items.count - 1)] : @[];
+                [self emit:event items:items ack:cacheData.ack];
+            }
             [self.dataCache removeObject:cacheData];
         }
     }
@@ -1006,17 +1021,17 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 
 - (void)parseSocketMessage:(NSString *)message {
     if (message.length > 0) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Parsing %@", message]
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析消息: %@", message]
                                       type:@"SocketParser"];
         
-        // 使用新的类方法解析
+        // 使用新的包解析方法
         RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromString:message];
         if (packet) {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Decoded packet as: %@", packet.description]
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析为包: %@", packet.description]
                                           type:@"SocketParser"];
             [self handlePacket:packet];
         } else {
-            [RTCDefaultSocketLogger.logger error:@"Invalid packet type" type:@"SocketParser"];
+            [RTCDefaultSocketLogger.logger error:@"无效的消息格式" type:@"SocketParser"];
         }
     }
 }
@@ -1024,22 +1039,21 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 - (void)parseBinaryData:(NSData *)data {
     if (self.waitingPackets.count > 0) {
         RTCVPSocketPacket *lastPacket = self.waitingPackets.lastObject;
-        BOOL success = [lastPacket addData:data];
+        BOOL success = [lastPacket addBinaryData:data];
         if (success) {
             [self.waitingPackets removeLastObject];
             
-            if (lastPacket.type != RTCVPPacketTypeBinaryAck) {
+            if (lastPacket.type == RTCVPPacketTypeBinaryEvent) {
                 [self handleEvent:lastPacket.event
                          withData:lastPacket.args
                 isInternalMessage:NO
-                          withAck:lastPacket.ID];
-            } else {
-                [self handleAck:lastPacket.ID withData:lastPacket.args];
+                          withAck:lastPacket.packetId];
+            } else if (lastPacket.type == RTCVPPacketTypeBinaryAck) {
+                [self handleAck:lastPacket.packetId withData:lastPacket.args];
             }
         }
     } else {
-        [RTCDefaultSocketLogger.logger error:@"Got data when not remaking packet"
-                                        type:@"SocketParser"];
+        [RTCDefaultSocketLogger.logger error:@"收到二进制数据但没有等待中的包" type:@"SocketParser"];
     }
 }
 
@@ -1049,46 +1063,66 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 
 - (void)handlePacket:(RTCVPSocketPacket *)packet {
     switch (packet.type) {
-        case RTCVPPacketTypeEvent:
+        case RTCVPPacketTypeEvent: {
             if ([self isCorrectNamespace:packet.nsp]) {
-                [self handleEvent:packet.event withData:packet.args isInternalMessage:NO withAck:packet.ID];
+                [self handleEvent:packet.event
+                         withData:packet.args
+                isInternalMessage:NO
+                          withAck:packet.packetId];
             } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got invalid packet: %@", packet.description]
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"命名空间不匹配的包: %@", packet.description]
                                               type:@"SocketParser"];
             }
             break;
-        case RTCVPPacketTypeAck:
+        }
+            
+        case RTCVPPacketTypeAck: {
             if ([self isCorrectNamespace:packet.nsp]) {
-                [self handleAck:packet.ID withData:packet.data];
+                [self handleAck:packet.packetId withData:packet.args];
             } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got invalid packet: %@", packet.description]
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"命名空间不匹配的ACK包: %@", packet.description]
                                               type:@"SocketParser"];
             }
             break;
+        }
+            
         case RTCVPPacketTypeBinaryEvent:
-        case RTCVPPacketTypeBinaryAck:
+        case RTCVPPacketTypeBinaryAck: {
             if ([self isCorrectNamespace:packet.nsp]) {
                 [self.waitingPackets addObject:packet];
             } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got invalid packet: %@", packet.description]
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"命名空间不匹配的二进制包: %@", packet.description]
                                               type:@"SocketParser"];
             }
             break;
-        case RTCVPPacketTypeConnect:
+        }
+            
+        case RTCVPPacketTypeConnect: {
             [self handleConnect:packet.nsp];
             break;
-        case RTCVPPacketTypeDisconnect:
-            [self didDisconnect:@"Got Disconnect"];
+        }
+            
+        case RTCVPPacketTypeDisconnect: {
+            [self didDisconnect:@"收到断开连接包"];
             break;
-        case RTCVPPacketTypeError:
-            [self handleEvent:RTCVPSocketEventError withData:packet.data isInternalMessage:YES withAck:packet.ID];
+        }
+            
+        case RTCVPPacketTypeError: {
+            [self handleEvent:RTCVPSocketEventError
+                     withData:packet.data
+            isInternalMessage:YES
+                      withAck:packet.packetId];
             break;
-        default:
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got invalid packet: %@", packet.description]
+        }
+            
+        default: {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"未知类型的包: %@", packet.description]
                                           type:@"SocketParser"];
             break;
+        }
     }
 }
+
 
 - (void)handleConnect:(NSString *)packetNamespace {
     if ([packetNamespace isEqualToString:@"/"] && ![self.nsp isEqualToString:@"/"]) {

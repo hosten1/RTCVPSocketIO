@@ -6,323 +6,422 @@
 //  Copyright © 2017 Vasily Popov. All rights reserved.
 //
 
+// RTCVPSocketPacket.m
 #import "RTCVPSocketPacket.h"
 #import "RTCDefaultSocketLogger.h"
 
-
-// 辅助扩展
-@interface NSArray (RTCVPJSON)
-- (NSData *)toJSON:(NSError **)error;
-@end
-
-@interface NSMutableArray (RTCVPJSON)
-- (void)addJSONObject:(id)object error:(NSError **)error;
-@end
-
-@implementation NSArray (RTCVPJSON)
-- (NSData *)toJSON:(NSError **)error {
-    return [NSJSONSerialization dataWithJSONObject:self options:0 error:error];
-}
-@end
-
-@implementation NSMutableArray (RTCVPJSON)
-- (void)addJSONObject:(id)object error:(NSError **)error {
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:object options:0 error:error];
-    if (jsonData && !*error) {
-        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        if (jsonString) {
-            [self addObject:jsonString];
-        }
-    }
-}
-@end
-
-
 @interface RTCVPSocketPacket()
-{
-    int placeholders;
-    NSDictionary*packetStrings;
-}
 
-@property (nonatomic, strong, readonly) NSString* logType;
+@property (nonatomic, strong) NSDictionary *packetStrings;
+@property (nonatomic, assign) int placeholders;
+@property (nonatomic, assign) RTCVPPacketState packetState;
+@property (nonatomic, strong) NSDate *internalCreationDate;
 
-@end
-
-
-@interface NSArray (JSON)
-
--(NSData*)toJSON:(NSError**)error;
-
-@end
-
-@implementation NSArray (JSON)
-
--(NSData*)toJSON:(NSError**)error
-{
-    return [NSJSONSerialization dataWithJSONObject:self options:0 error:error];
-}
+// 线程安全
+@property (nonatomic, strong) dispatch_queue_t stateQueue;
 
 @end
 
 @implementation RTCVPSocketPacket
 
--(NSString *)description
-{
-    return [NSString stringWithFormat:@"SocketPacket {type:%@; data: %@; id: %@; placeholders: %d; nsp: %@}", packetStrings[@(_type)], _data, @(_ID), placeholders, _nsp];
-}
+#pragma mark - 初始化
 
-
--(NSString *)logType {
-    return @"RTCVPSocketPacket";
-}
+- (instancetype)initWithType:(RTCVPPacketType)type
+                         nsp:(NSString *)namespace
+                placeholders:(int)placeholders {
+    
+    self = [super init];
+    if (self) {
+        _type = type;
+        _nsp = [namespace copy] ?: @"/";
+        _placeholders = placeholders;
+        _packetState = RTCVPPacketStatePending;
+        _internalCreationDate = [NSDate date];
+        _stateQueue = dispatch_queue_create("com.socketio.packet.state", DISPATCH_QUEUE_SERIAL);
         
--(NSArray *)args {
-    if((_type == RTCVPPacketTypeEvent || _type == RTCVPPacketTypeBinaryEvent) && _data.count !=0 ) {
-        return [_data subarrayWithRange:NSMakeRange(1, _data.count -1)];
-    }
-    else {
-        return _data;
-    }
-}
-
--(NSString *)event {
-    return [NSString stringWithFormat:@"%@", _data[0]];
-}
-
--(NSString *)packetString {
-    return [self createPacketString];
-}
-
--(instancetype)init:(RTCVPPacketType)type
-               nsp:(NSString*)namespace
-       placeholders:(int)_placeholders
-{
-    self = [super init];
-    if(self) {
-        _type = type;
-        _nsp = namespace;
-        placeholders = _placeholders;
-         [self setupData];
-    }
-    return self;
-}
-- (instancetype)init:(RTCVPPacketType)type data:(NSArray *)data ID:(NSInteger)ID nsp:(NSString *)nsp placeholders:(int)plholders binary:(NSArray *)binary{
-    self = [super init];
-    if(self) {
-        _type = type;
-        _data = [data mutableCopy];
-        _ID = ID;
-        _nsp = nsp;
-        placeholders = plholders;
-        _binary = [binary mutableCopy];
         [self setupData];
     }
     return self;
 }
 
--(void)setupData
-{
-    packetStrings =@{ @(RTCVPPacketTypeConnect) : @"connect",
-                      @(RTCVPPacketTypeDisconnect) : @"disconnect",
-                      @(RTCVPPacketTypeEvent) : @"event",
-                      @(RTCVPPacketTypeAck) : @"ack",
-                      @(RTCVPPacketTypeError) : @"error",
-                      @(RTCVPPacketTypeBinaryEvent) : @"binaryEvent",
-                      @(RTCVPPacketTypeBinaryAck) : @"binaryAck"
-                      };
+- (instancetype)initWithType:(RTCVPPacketType)type
+                        data:(NSArray *)data
+                    packetId:(NSInteger)packetId
+                         nsp:(NSString *)nsp
+                placeholders:(int)placeholders
+                      binary:(NSArray *)binary {
+    
+    self = [super init];
+    if (self) {
+        _type = type;
+        _data = [data mutableCopy];
+        _packetId = packetId;
+        _nsp = [nsp copy] ?: @"/";
+        _placeholders = placeholders;
+        _binary = [binary mutableCopy];
+        _packetState = RTCVPPacketStatePending;
+        _internalCreationDate = [NSDate date];
+        _stateQueue = dispatch_queue_create("com.socketio.packet.state", DISPATCH_QUEUE_SERIAL);
+        
+        [self setupData];
+    }
+    return self;
 }
 
--(BOOL)addData:(NSData*)data {
-    if(placeholders == _binary.count) {
-        return YES;
+#pragma mark - 工厂方法
+
++ (instancetype)eventPacketWithEvent:(NSString *)event
+                                items:(NSArray *)items
+                             packetId:(NSInteger)packetId
+                                  nsp:(NSString *)nsp
+                          requiresAck:(BOOL)requiresAck {
+    
+    // 构建数据数组
+    NSMutableArray *dataArray = [NSMutableArray array];
+    [dataArray addObject:event];
+    
+    if (items && items.count > 0) {
+        [dataArray addObjectsFromArray:items];
     }
-    NSMutableArray *arrmut = [[NSMutableArray alloc]initWithArray:_binary];
-    [arrmut addObject:data];
-    _binary = arrmut;
-    if(placeholders == _binary.count) {
-        [self fillInPlaceholders];
-        return YES;
+    
+//    // 如果需要ACK，将packetId添加到数组末尾
+//    if (requiresAck) {
+//        [dataArray addObject:@(packetId)];
+//    }
+    
+    // 检查是否有二进制数据
+    NSMutableArray *binary = [NSMutableArray array];
+    NSArray *parsedData = [self parseItems:dataArray toBinary:binary];
+    
+    // 确定包类型
+    RTCVPPacketType packetType;
+    if (binary.count > 0) {
+        packetType = requiresAck ? RTCVPPacketTypeBinaryAck : RTCVPPacketTypeBinaryEvent;
+    } else {
+        packetType = requiresAck ? RTCVPPacketTypeEvent : RTCVPPacketTypeEvent;
     }
-    else {
+    
+    RTCVPSocketPacket *packet = [[self alloc] initWithType:packetType
+                                                      data:parsedData
+                                                  packetId:packetId
+                                                       nsp:nsp
+                                              placeholders:(int)binary.count
+                                                    binary:binary];
+    packet->_requiresAck = requiresAck;
+    
+    return packet;
+}
+
++ (instancetype)ackPacketWithId:(NSInteger)ackId
+                          items:(NSArray *)items
+                            nsp:(NSString *)nsp {
+    
+    NSMutableArray *dataArray = [NSMutableArray array];
+    [dataArray addObject:@(ackId)];
+    
+    if (items && items.count > 0) {
+        [dataArray addObjectsFromArray:items];
+    }
+    
+    NSMutableArray *binary = [NSMutableArray array];
+    NSArray *parsedData = [self parseItems:dataArray toBinary:binary];
+    
+    RTCVPPacketType packetType;
+    if (binary.count > 0) {
+        packetType = RTCVPPacketTypeBinaryAck;
+    } else {
+        packetType = RTCVPPacketTypeAck;
+    }
+    
+    return [[self alloc] initWithType:packetType
+                                 data:parsedData
+                             packetId:ackId
+                                  nsp:nsp
+                         placeholders:(int)binary.count
+                               binary:binary];
+}
+
+#pragma mark - 设置ACK回调
+
+- (void)setupAckCallbacksWithSuccess:(nullable RTCVPPacketSuccessCallback)success
+                               error:(nullable RTCVPPacketErrorCallback)error
+                             timeout:(NSTimeInterval)timeout {
+    
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(_stateQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
+            return;
+        }
+        
+        strongSelf.successCallback = [success copy];
+        strongSelf.errorCallback = [error copy];
+        strongSelf.timeoutInterval = timeout;
+        
+        // 设置超时定时器
+        if (timeout > 0) {
+            [strongSelf startTimeoutTimer];
+        }
+    });
+}
+
+- (void)startTimeoutTimer {
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) return;
+        
+        [strongSelf.timeoutTimer invalidate];
+        strongSelf.timeoutTimer = [NSTimer scheduledTimerWithTimeInterval:strongSelf.timeoutInterval
+                                                                  repeats:NO
+                                                                    block:^(NSTimer * _Nonnull timer) {
+            [strongSelf handleTimeout];
+        }];
+    });
+}
+
+- (void)handleTimeout {
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(_stateQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
+            return;
+        }
+        
+        strongSelf.packetState = RTCVPPacketStateTimeout;
+        
+        NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
+                                             code:-1
+                                         userInfo:@{NSLocalizedDescriptionKey: @"ACK timeout"}];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (strongSelf.errorCallback) {
+                strongSelf.errorCallback(error);
+            }
+            
+            [strongSelf.timeoutTimer invalidate];
+            strongSelf.timeoutTimer = nil;
+        });
+        
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"包超时: packetId=%ld", (long)strongSelf.packetId]
+                                      type:@"SocketPacket"];
+    });
+}
+
+#pragma mark - ACK处理
+
+- (void)acknowledgeWithData:(nullable NSArray *)data {
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(_stateQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
+            return;
+        }
+        
+        strongSelf.packetState = RTCVPPacketStateAcknowledged;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [strongSelf.timeoutTimer invalidate];
+            strongSelf.timeoutTimer = nil;
+            
+            if (strongSelf.successCallback) {
+                strongSelf.successCallback(data);
+            }
+        });
+        
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"包已确认: packetId=%ld", (long)strongSelf.packetId]
+                                      type:@"SocketPacket"];
+    });
+}
+
+- (void)failWithError:(nullable NSError *)error {
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(_stateQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
+            return;
+        }
+        
+        strongSelf.packetState = RTCVPPacketStateCancelled;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [strongSelf.timeoutTimer invalidate];
+            strongSelf.timeoutTimer = nil;
+            
+            if (strongSelf.errorCallback) {
+                strongSelf.errorCallback(error);
+            }
+        });
+    });
+}
+
+- (void)cancel {
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(_stateQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
+            return;
+        }
+        
+        strongSelf.packetState = RTCVPPacketStateCancelled;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [strongSelf.timeoutTimer invalidate];
+            strongSelf.timeoutTimer = nil;
+        });
+    });
+}
+
+#pragma mark - 二进制数据处理
+
+- (BOOL)addBinaryData:(NSData *)data {
+    if (!data) return NO;
+    
+    @synchronized (self) {
+        if (!_binary) {
+            _binary = [NSMutableArray array];
+        }
+        
+        [_binary addObject:data];
+        
+        // 检查是否已接收所有二进制数据
+        if (_binary.count == _placeholders) {
+            [self fillInPlaceholders];
+            return YES;
+        }
         return NO;
     }
 }
 
+#pragma mark - 数据包构建
 
--(NSString*)completeMessage:(NSString*)message
-{
-    if(_data.count > 0) {
+- (void)setupData {
+    _packetStrings = @{
+        @(RTCVPPacketTypeConnect): @"connect",
+        @(RTCVPPacketTypeDisconnect): @"disconnect",
+        @(RTCVPPacketTypeEvent): @"event",
+        @(RTCVPPacketTypeAck): @"ack",
+        @(RTCVPPacketTypeError): @"error",
+        @(RTCVPPacketTypeBinaryEvent): @"binaryEvent",
+        @(RTCVPPacketTypeBinaryAck): @"binaryAck"
+    };
+}
+
+- (NSString *)packetString {
+    return [self createPacketString];
+}
+
+- (NSString *)event {
+    if (_data.count > 0 && (_type == RTCVPPacketTypeEvent || _type == RTCVPPacketTypeBinaryEvent)) {
+        id firstItem = _data.firstObject;
+        if ([firstItem isKindOfClass:[NSString class]]) {
+            return (NSString *)firstItem;
+        }
+    }
+    return @"";
+}
+
+- (NSArray *)args {
+    if ((_type == RTCVPPacketTypeEvent || _type == RTCVPPacketTypeBinaryEvent) && _data.count > 1) {
+        if (_type == RTCVPPacketTypeEvent) {
+            return _data;
+        }
+        return [_data subarrayWithRange:NSMakeRange(1, _data.count - 1)];
+    } else if (_type == RTCVPPacketTypeAck || _type == RTCVPPacketTypeBinaryAck) {
+        if (_type == RTCVPPacketTypeAck) {
+            return _data;
+        }
+        if (_data.count >= 1) {
+            return [_data subarrayWithRange:NSMakeRange(1, _data.count - 1)];
+        }
+    }
+    return @[];
+}
+
+- (NSString *)createPacketString {
+    // 构建包字符串
+    NSMutableString *result = [NSMutableString string];
+    
+    // 1. 包类型
+    [result appendFormat:@"%d", (int)_type];
+    
+    // 2. 二进制计数（如果是二进制包）
+    if (_type == RTCVPPacketTypeBinaryEvent || _type == RTCVPPacketTypeBinaryAck) {
+        [result appendFormat:@"%lu-", (unsigned long)_binary.count];
+    }
+    
+    // 3. 命名空间（如果不是根命名空间）
+    if (![_nsp isEqualToString:@"/"]) {
+        [result appendString:_nsp];
+        [result appendString:@","];
+    }
+    
+    // 4. Packet ID（如果有）
+    if (_packetId >= 0) {
+        [result appendString:[NSString stringWithFormat:@"%ld", (long)_packetId]];
+    }
+    
+    // 5. 数据
+    [result appendString:[self completeMessage:@""]];
+    
+    return result;
+}
+
+- (NSString *)completeMessage:(NSString *)message {
+    if (_data.count > 0) {
         NSError *error = nil;
-        NSString *jsonString = nil;
-        NSData *jsonSend = [_data toJSON:&error];
-        if(jsonSend) {
-            jsonString = [[NSString alloc] initWithData:jsonSend encoding:NSUTF8StringEncoding];
-        }
-        if(jsonSend && jsonString)
-        {
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:_data options:0 error:&error];
+        if (jsonData && !error) {
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
             return [NSString stringWithFormat:@"%@%@", message, jsonString];
-        }
-        else
-        {
-            [RTCDefaultSocketLogger.logger error:@"Error creating JSON object in SocketPacket.completeMessage" type:self.logType];
-            return [NSString stringWithFormat:@"%@[]", message];
+        } else {
+            [RTCDefaultSocketLogger.logger error:@"Error creating JSON in completeMessage" type:@"SocketPacket"];
         }
     }
-    else {
-        return [NSString stringWithFormat:@"%@[]", message];
-    }
-    
+    return [NSString stringWithFormat:@"%@[]", message];
 }
 
+#pragma mark - 占位符处理
 
--(NSString*) createPacketString
-{
-    NSString *typeString = [NSString stringWithFormat:@"%d", (int)_type];
-    NSString *binaryCountString = typeString;
-    
-    // 只对二进制事件添加binary count
-    if(_type == RTCVPPacketTypeBinaryEvent || _type == RTCVPPacketTypeBinaryAck) {
-        NSString *bString = [NSString stringWithFormat:@"%lu-", (unsigned long)_binary.count];
-        binaryCountString = [typeString stringByAppendingString:bString];
-    }
-
-    NSString *nsAddpString = [_nsp isEqualToString:@"/"]? @"": _nsp;
-    NSString *nspString = [binaryCountString stringByAppendingString:nsAddpString];
-    
-    NSString *idString = [nspString stringByAppendingString:(self.ID != -1 ? [NSString stringWithFormat:@"%@", @(self.ID)] : @"")];
-    return [self completeMessage:idString];
-}
-
--(void)fillInPlaceholders {
-    
-    NSMutableArray *fillArray = [NSMutableArray array];
+- (void)fillInPlaceholders {
+    NSMutableArray *filledArray = [NSMutableArray array];
     for (id object in _data) {
-        [fillArray addObject: [self _fillInPlaceholders:object]];
+        [filledArray addObject:[self fillInPlaceholders:object]];
     }
-    
-    _data = fillArray;
+    _data = filledArray;
 }
 
-
--(id) _fillInPlaceholders:(id)object
-{
-    if([object isKindOfClass:[NSDictionary class]])
-    {
+- (id)fillInPlaceholders:(id)object {
+    if ([object isKindOfClass:[NSDictionary class]]) {
         NSDictionary *dict = object;
-        NSNumber *value = dict[@"_placeholder"];
-        if([value isKindOfClass:[NSNumber class]] && value.boolValue) {
+        NSNumber *placeholder = dict[@"_placeholder"];
+        if ([placeholder isKindOfClass:[NSNumber class]] && placeholder.boolValue) {
             NSNumber *num = dict[@"num"];
-            return _binary[num.intValue];
-        }
-        else {
-            NSMutableDictionary *result = [NSMutableDictionary dictionary];
-            for (id key in dict.allKeys) {
-                [result setValue:[self _fillInPlaceholders:dict[key]] forKey:key];
+            if (num && _binary.count > num.integerValue) {
+                return _binary[num.integerValue];
             }
-            return result;
         }
-    }
-    else if ([object isKindOfClass:[NSArray class]])
-    {
-        NSArray *arr = object;
-        NSMutableArray *fillArray = [NSMutableArray array];
-        for (id item in arr) {
-            [fillArray addObject:[self _fillInPlaceholders:item]];
-        }
-        return fillArray;
-    }
-    else {
-        return object;
-    }
-}
-
-
-// RTCVPSocketPacket.m 修改 packetFromEmit 方法
-
-+(RTCVPSocketPacket*)packetFromEmit:(NSArray*)items ID:(NSInteger)ID nsp:(NSString *)nsp ack:(BOOL)ack isEvent:(BOOL)isEvent{
-    
-    NSMutableArray *binary = [NSMutableArray array];
-    NSArray *parsedData = [[self class] parseItems:items toBinary:binary];
-    RTCVPPacketType type;
-    
-    // 正确的类型判断逻辑
-    if (isEvent) {
-        // 事件消息
-        if (binary.count > 0) {
-            type = ack ? RTCVPPacketTypeBinaryAck : RTCVPPacketTypeBinaryEvent;
-        } else {
-            type = ack ? RTCVPPacketTypeEvent : RTCVPPacketTypeEvent;
-            // 注意：对于需要ACK的事件，也是使用RTCVPPacketTypeEvent类型
-            // ACK ID会作为数据的一部分包含在数组中
-        }
-    } else {
-        // ACK响应
-        if (binary.count > 0) {
-            type = RTCVPPacketTypeBinaryAck;
-        } else {
-            type = RTCVPPacketTypeAck;
-        }
-    }
-    
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"创建数据包: type=%d, ack=%d, isEvent=%d",
-                                      (int)type, ack, isEvent]
-                                  type:@"SocketParser"];
-    
-    return [[RTCVPSocketPacket alloc] init:type data:parsedData ID:ID nsp:nsp placeholders:0 binary:binary];
-}
-
-+(RTCVPPacketType) findType:(NSInteger)binCount ack:(BOOL)ack
-{
-    if(binCount == 0)
-    {
-        return RTCVPPacketTypeEvent;//ack?RTCVPPacketTypeAck:RTCVPPacketTypeEvent;
-    }
-    else if(binCount > 0)
-    {
-        return ack?RTCVPPacketTypeBinaryAck:RTCVPPacketTypeBinaryEvent;
-    }
-    return RTCVPPacketTypeError;
-}
-
-
-
-+(NSArray*) parseItems:(NSArray*)items toBinary:(NSMutableArray*)binary {
-    
-    NSMutableArray *parsedData = [NSMutableArray array];
-    for (id item in items) {
-        [parsedData addObject: [[self class] shred:item binary:binary]];
-    }
-    return parsedData;
-}
-
-+(id)shred:(id)data binary:(NSMutableArray*)binary {
-    NSDictionary *placeholder = @{@"_placeholder":@YES, @"num":@(binary.count)};
-    
-    if([data isKindOfClass:[NSData class]])
-    {
-        [binary addObject:data];
-        return placeholder;
-    }
-    else if([data isKindOfClass:[NSArray class]])
-    {
-        NSArray *arr = data;
-        NSMutableArray *fillArray = [NSMutableArray array];
-        for (id item in arr) {
-            [fillArray addObject:[[self class] shred:item binary:binary]];
-        }
-        return fillArray;
         
-    }
-    else if([data isKindOfClass:[NSDictionary class]])
-    {
-        NSDictionary *dict = data;
         NSMutableDictionary *result = [NSMutableDictionary dictionary];
         for (id key in dict.allKeys) {
-            [result setValue:[[self class] shred:dict[key] binary:binary] forKey:key];
+            result[key] = [self fillInPlaceholders:dict[key]];
         }
         return result;
+    } else if ([object isKindOfClass:[NSArray class]]) {
+        NSArray *arr = object;
+        NSMutableArray *filledArray = [NSMutableArray array];
+        for (id item in arr) {
+            [filledArray addObject:[self fillInPlaceholders:item]];
+        }
+        return filledArray;
     }
-    return data;
+    return object;
 }
 
 #pragma mark - 解析方法
@@ -348,7 +447,6 @@
         }
         return nil;
     }
-
     NSUInteger cursor = 0;
 
     // ------------------------------------------------------------------
@@ -469,6 +567,9 @@
             }
             else {
                 data = @[jsonObject];
+
+
+
             }
         }
     }
@@ -485,13 +586,14 @@
     // ------------------------------------------------------------------
     // 7. 构造 packet
     // ------------------------------------------------------------------
-    return [[RTCVPSocketPacket alloc] init:type
-                                      data:data
-                                        ID:packetId
-                                       nsp:nsp
-                              placeholders:(int)placeholders
-                                    binary:binary];
+    return [[self alloc] initWithType:type
+                                     data:data
+                                 packetId:packetId
+                                      nsp:nsp
+                             placeholders:(int)placeholders
+                                   binary:@[]];
 }
+
 
 
 #pragma mark - 辅助解析方法
@@ -573,9 +675,119 @@
         default: {
             *data = jsonArray;
             break;
+
+
         }
+
     }
+
 }
 
+#pragma mark - 辅助方法
+
++ (NSArray *)parseItems:(NSArray *)items toBinary:(NSMutableArray *)binary {
+    NSMutableArray *parsedData = [NSMutableArray array];
+    for (id item in items) {
+        [parsedData addObject:[self shred:item binary:binary]];
+    }
+    return parsedData;
+}
+
++ (id)shred:(id)data binary:(NSMutableArray *)binary {
+    if ([data isKindOfClass:[NSData class]]) {
+        NSDictionary *placeholder = @{@"_placeholder": @YES, @"num": @(binary.count)};
+        [binary addObject:data];
+        return placeholder;
+    } else if ([data isKindOfClass:[NSArray class]]) {
+        NSArray *arr = data;
+        NSMutableArray *result = [NSMutableArray array];
+        for (id item in arr) {
+            [result addObject:[self shred:item binary:binary]];
+        }
+        return result;
+    } else if ([data isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *dict = data;
+        NSMutableDictionary *result = [NSMutableDictionary dictionary];
+        for (id key in dict.allKeys) {
+            result[key] = [self shred:dict[key] binary:binary];
+        }
+        return result;
+    }
+    return data;
+}
+
+#pragma mark - 状态查询
+
+- (BOOL)isPending {
+    __block BOOL result;
+    dispatch_sync(_stateQueue, ^{
+        result = (self.packetState == RTCVPPacketStatePending);
+    });
+    return result;
+}
+
+- (BOOL)isAcknowledged {
+    __block BOOL result;
+    dispatch_sync(_stateQueue, ^{
+        result = (self.packetState == RTCVPPacketStateAcknowledged);
+    });
+    return result;
+}
+
+- (BOOL)isTimedOut {
+    __block BOOL result;
+    dispatch_sync(_stateQueue, ^{
+        result = (self.packetState == RTCVPPacketStateTimeout);
+    });
+    return result;
+}
+
+- (BOOL)isCancelled {
+    __block BOOL result;
+    dispatch_sync(_stateQueue, ^{
+        result = (self.packetState == RTCVPPacketStateCancelled);
+    });
+    return result;
+}
+
+- (RTCVPPacketState)state {
+    __block RTCVPPacketState result;
+    dispatch_sync(_stateQueue, ^{
+        result = self.packetState;
+    });
+    return result;
+}
+
+- (NSDate *)creationDate {
+    return _internalCreationDate;
+}
+
+#pragma mark - 调试信息
+
+- (NSString *)debugDescription {
+    return [NSString stringWithFormat:@"RTCVPSocketPacket {\n"
+            "  type: %@,\n"
+            "  packetId: %ld,\n"
+            "  event: %@,\n"
+            "  nsp: %@,\n"
+            "  requiresAck: %@,\n"
+            "  state: %lu,\n"
+            "  timeout: %.1f,\n"
+            "  creationDate: %@\n"
+            "}",
+            self.packetStrings[@(_type)],
+            (long)_packetId,
+            self.event,
+            _nsp,
+            _requiresAck ? @"YES" : @"NO",
+            (unsigned long)_packetState,
+            _timeoutInterval,
+            _internalCreationDate];
+}
+
+- (NSString *)description {
+    return [NSString stringWithFormat:@"<RTCVPSocketPacket: %p> type=%d, packetId=%ld, event=%@",
+            self, (int)_type, (long)_packetId, self.event];
+}
 
 @end
