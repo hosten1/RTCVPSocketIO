@@ -190,13 +190,13 @@ io.on('connection', (socket) => {
   });
   
   // 定期发送心跳消息
-  const interval = setInterval(() => {
-    socket.emit('heartbeat', { timestamp: new Date().toISOString() });
-  }, 5000);
+  // const interval = setInterval(() => {
+  //   socket.emit('heartbeat', { timestamp: new Date().toISOString() });
+  // }, 5000);
   
     // 监听断开连接
     socket.on('disconnect', (reason) => {
-        clearInterval(interval);
+        // clearInterval(interval);
         console.log('=== Socket.IO断开连接 ===');
         console.log('Socket ID:', socket.id);
         console.log('断开原因:', reason);
