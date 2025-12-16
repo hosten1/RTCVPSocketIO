@@ -189,6 +189,96 @@ io.on('connection', (socket) => {
     }
   });
   
+  // 监听二进制消息
+  socket.on('binaryEvent', (data, callback) => {
+    console.log('Binary event received from', socket.id, ':', data);
+    
+    // 检查是否包含二进制数据
+    let binaryData = null;
+    let textData = null;
+    
+    if (typeof data === 'object' && data !== null) {
+      // 检查是否有二进制属性
+      if (data.binaryData) {
+        binaryData = data.binaryData;
+        textData = data.text;
+        console.log('Binary data size:', binaryData.length, 'bytes');
+      } else {
+        // 直接发送的二进制数据
+        binaryData = data;
+        console.log('Direct binary data size:', binaryData.length, 'bytes');
+      }
+    }
+    
+    // 回复ACK - 确保只返回简单的JSON数据，不包含二进制数据
+    if (typeof callback === 'function') {
+      console.log('Sending ACK for binaryEvent');
+      // 只返回简单的确认信息，不包含二进制数据
+      let response = {
+        success: true,
+        timestamp: new Date().toISOString(),
+        message: 'Binary data received successfully',
+        receivedSize: binaryData ? binaryData.length : 0,
+        sender: socket.id
+      };
+      
+      try {
+        callback(response);
+        console.log('ACK sent successfully');
+      } catch (error) {
+        console.error('Error sending ACK:', error);
+      }
+    }
+    
+    // 广播二进制消息给所有客户端，确保二进制数据完整传递
+    io.emit('binaryEvent', {
+      sender: socket.id,
+      binaryData: binaryData,
+      text: textData,
+      timestamp: new Date().toISOString()
+    });
+  });
+  
+  // 监听二进制ACK测试
+  socket.on('binaryAckTest', (data, callback) => {
+    console.log('Binary ACK test received:', data);
+    
+    // 检查是否包含二进制数据
+    let binaryData = null;
+    let textData = null;
+    
+    if (typeof data === 'object' && data !== null) {
+      // 检查是否有二进制属性
+      if (data.binaryData) {
+        binaryData = data.binaryData;
+        textData = data.text;
+        console.log('Binary data size:', binaryData.length, 'bytes');
+      }
+    }
+    
+    // 模拟处理二进制数据 - 只返回元数据，不包含原始二进制数据
+    let processedData = {
+      receivedSize: binaryData ? binaryData.length : 0,
+      text: textData,
+      processedAt: new Date().toISOString(),
+      result: 'success',
+      checksum: Math.random().toString(36).substring(7)
+    };
+    
+    // 返回ACK
+    if (callback) {
+      callback(processedData);
+    }
+  });
+  
+  // 监听心跳消息（可选）
+  socket.on('heartbeat', (data) => {
+    console.log('Heartbeat from', socket.id, ':', data);
+    
+    // 直接回复心跳ACK
+    socket.emit('heartbeat', { received: true, timestamp: new Date().toISOString() });
+  });
+  
   // 定期发送心跳消息
   // const interval = setInterval(() => {
   //   socket.emit('heartbeat', { timestamp: new Date().toISOString() });

@@ -46,6 +46,10 @@
 @property(nonatomic, strong)UIColor *inputTFBC;
 @property(nonatomic, strong)UIColor *ackTestBtnBC;
 
+// 新增的二进制相关按钮
+@property(nonatomic, strong)UIButton *sendBinaryButton;
+@property(nonatomic, strong)UIButton *binaryAckTestButton;
+
 @end
 
 @implementation ViewController
@@ -186,6 +190,28 @@
     self.ackTestButton.clipsToBounds = YES;
     self.ackTestButton.enabled = NO;
     
+    // 发送二进制消息按钮
+    self.sendBinaryButton = [[UIButton alloc] initWithFrame:CGRectZero];
+    self.sendBinaryButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.sendBinaryButton setTitle:@"Send Binary" forState:UIControlStateNormal];
+    [self.sendBinaryButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [self.sendBinaryButton setBackgroundColor:[UIColor systemTealColor]];
+    [self.sendBinaryButton addTarget:self action:@selector(sendBinaryButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+    self.sendBinaryButton.layer.cornerRadius = 8.0;
+    self.sendBinaryButton.clipsToBounds = YES;
+    self.sendBinaryButton.enabled = NO;
+    
+    // 二进制ACK测试按钮
+    self.binaryAckTestButton = [[UIButton alloc] initWithFrame:CGRectZero];
+    self.binaryAckTestButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.binaryAckTestButton setTitle:@"Binary ACK" forState:UIControlStateNormal];
+    [self.binaryAckTestButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [self.binaryAckTestButton setBackgroundColor:[UIColor systemOrangeColor]];
+    [self.binaryAckTestButton addTarget:self action:@selector(binaryAckTestButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+    self.binaryAckTestButton.layer.cornerRadius = 8.0;
+    self.binaryAckTestButton.clipsToBounds = YES;
+    self.binaryAckTestButton.enabled = NO;
+    
     // 添加子视图
     [self.inputContainerView addSubview:self.inputTextField];
     [self.inputContainerView addSubview:self.sendButton];
@@ -200,6 +226,8 @@
     [self.view addSubview:self.connectButton];
     [self.view addSubview:self.disconnectButton];
     [self.view addSubview:self.ackTestButton];
+    [self.view addSubview:self.sendBinaryButton];
+    [self.view addSubview:self.binaryAckTestButton];
 
     
     // 设置约束
@@ -254,10 +282,22 @@
         
         // ACK测试按钮 - 右侧
         [self.ackTestButton.leadingAnchor constraintEqualToAnchor:self.disconnectButton.trailingAnchor constant:10],
-        [self.ackTestButton.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
         [self.ackTestButton.topAnchor constraintEqualToAnchor:self.messageTextView.bottomAnchor constant:10],
         [self.ackTestButton.widthAnchor constraintEqualToConstant:120],
         [self.ackTestButton.heightAnchor constraintEqualToConstant:40],
+        
+        // 发送二进制消息按钮 - 第二行左侧
+        [self.sendBinaryButton.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
+        [self.sendBinaryButton.topAnchor constraintEqualToAnchor:self.ackTestButton.bottomAnchor constant:10],
+        [self.sendBinaryButton.widthAnchor constraintEqualToConstant:120],
+        [self.sendBinaryButton.heightAnchor constraintEqualToConstant:40],
+        
+        // 二进制ACK测试按钮 - 第二行右侧
+        [self.binaryAckTestButton.leadingAnchor constraintEqualToAnchor:self.sendBinaryButton.trailingAnchor constant:10],
+        [self.binaryAckTestButton.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor constant:-10],
+        [self.binaryAckTestButton.topAnchor constraintEqualToAnchor:self.ackTestButton.bottomAnchor constant:10],
+        [self.binaryAckTestButton.widthAnchor constraintEqualToConstant:120],
+        [self.binaryAckTestButton.heightAnchor constraintEqualToConstant:40],
         
         // 输入容器视图 - 位于按钮下方，固定位置
         [self.inputContainerView.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor constant:10],
@@ -449,6 +489,7 @@
                 [strongSelf addMessage:[NSString stringWithFormat:@"📩 欢迎: %@", welcomeData[@"message"]] type:@"received"];
             }
         }
+        
     }];
     
     // 监听用户连接事件
@@ -501,7 +542,63 @@
     // 监听心跳消息
     [_socket on:@"heartbeat" callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         // 心跳消息不显示在UI上
-//        NSLog(@"💓 收到心跳消息: %@", array);
+        //        NSLog(@"💓 收到心跳消息: %@", array);
+    }];
+    
+    // 监听二进制消息
+    [_socket on:@"binaryEvent" callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+        STRONGSELF
+        if (array.count > 0) {
+            id data = array.firstObject;
+            if ([data isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *binaryData = (NSDictionary *)data;
+                NSString *sender = binaryData[@"sender"];
+                NSString *text = binaryData[@"text"];
+                NSData *binary = binaryData[@"binaryData"];
+                
+                NSString *message = [NSString stringWithFormat:@"📥 二进制消息来自: %@, 文本: %@, 大小: %lu字节", 
+                                  sender, text ?: @"无文本", (unsigned long)[binary length]];
+                [strongSelf addMessage:message type:@"received"];
+                
+                // 比较二进制数据
+                if (text && [text containsString:@"testData"]) {
+                    // 这是用于比较的测试数据
+                    [strongSelf addMessage:@"🔍 开始比较二进制数据..." type:@"system"];
+                    
+                    // 创建相同的测试数据用于比较
+                    NSMutableData *expectedData = [NSMutableData data];
+                    for (int i = 0; i < 1024; i++) {
+                        uint8_t byte = (uint8_t)(i % 256);
+                        [expectedData appendBytes:&byte length:1];
+                    }
+                    
+                    // 比较收到的数据与预期数据
+                    BOOL isEqual = NO;
+                    if (binary.length == expectedData.length) {
+                        isEqual = [binary isEqualToData:expectedData];
+                    }
+                    
+                    if (isEqual) {
+                        [strongSelf addMessage:@"✅ 二进制数据完全匹配！" type:@"system"];
+                    } else {
+                        [strongSelf addMessage:[NSString stringWithFormat:@"❌ 二进制数据不匹配！预期大小: %lu bytes, 实际大小: %lu bytes", 
+                                            (unsigned long)expectedData.length, (unsigned long)binary.length] type:@"system"];
+                    }
+                }
+            }
+        }
+    }];
+    
+    // 监听二进制ACK测试响应
+    [_socket on:@"binaryAckTest" callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+        STRONGSELF
+        if (array.count > 0) {
+            id data = array.firstObject;
+            if ([data isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *ackData = (NSDictionary *)data;
+                [strongSelf addMessage:[NSString stringWithFormat:@"📤 二进制ACK测试响应: %@", ackData] type:@"system"];
+            }
+        }
     }];
 }
 
@@ -511,12 +608,16 @@
     self.sendButton.enabled = isConnected;
     self.inputTextField.enabled = isConnected;
     self.ackTestButton.enabled = isConnected;
+    self.sendBinaryButton.enabled = isConnected;
+    self.binaryAckTestButton.enabled = isConnected;
     
     self.connectButton.backgroundColor = isConnected?[UIColor grayColor] : self.connBtnBC;
     self.disconnectButton.backgroundColor = !isConnected?[UIColor grayColor] : self.disconnectBtnBC;
     self.sendButton.backgroundColor = !isConnected?[UIColor grayColor] : self.sendBtnBC;
     self.inputTextField.backgroundColor = !isConnected?[UIColor grayColor] : self.inputTFBC;
     self.ackTestButton.backgroundColor = !isConnected?[UIColor grayColor] : self.ackTestBtnBC;
+    self.sendBinaryButton.backgroundColor = !isConnected?[UIColor grayColor] : [UIColor systemTealColor];
+    self.binaryAckTestButton.backgroundColor = !isConnected?[UIColor grayColor] : [UIColor systemOrangeColor];
 }
 
 - (void)updateStatus:(BOOL)connected {
@@ -701,6 +802,88 @@
         NSLog(@"📤 发送消息: %@", messageData);
         
         [self.socket emit:@"chatMessage" items:@[messageData]];
+        
+    } else {
+        [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
+    }
+}
+
+// 发送二进制消息按钮点击事件
+- (void)sendBinaryButtonTapped:(id)sender {
+    // 确保Socket已连接
+    if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
+        // 创建模拟二进制数据
+        NSMutableData *binaryData = [NSMutableData data];
+        for (int i = 0; i < 1024; i++) {
+            // 填充简单数据：0-255循环
+            uint8_t byte = (uint8_t)(i % 256);
+            [binaryData appendBytes:&byte length:1];
+        }
+        
+        NSString *text = @"iOS客户端发送的二进制测试数据";
+        
+        // 构造发送数据
+        NSDictionary *sendData = @{
+            @"binaryData": binaryData,
+            @"text": @"testData: iOS客户端发送的二进制测试数据",
+            @"timestamp": @([NSDate date].timeIntervalSince1970)
+        };
+        
+        [self addMessage:[NSString stringWithFormat:@"📤 发送二进制数据: 大小 %lu 字节, 文本: %@", (unsigned long)binaryData.length, text] type:@"sent"];
+        
+        // 发送二进制消息
+        [self.socket emitWithAck:@"binaryEvent" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+            if (error) {
+                [self addMessage:[NSString stringWithFormat:@"❌ 二进制消息发送失败: %@", error.localizedDescription] type:@"system"];
+            } else {
+                [self addMessage:[NSString stringWithFormat:@"✅ 二进制消息发送成功, ACK: %@", data] type:@"system"];
+            }
+        } timeout:10.0];
+        
+    } else {
+        [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
+    }
+}
+
+// 二进制ACK测试按钮点击事件
+- (void)binaryAckTestButtonTapped:(id)sender {
+    // 确保Socket已连接
+    if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
+        [self addMessage:@"🔄 开始二进制ACK测试..." type:@"system"];
+        
+        // 创建模拟二进制数据
+        NSMutableData *binaryData = [NSMutableData data];
+        for (int i = 0; i < 512; i++) {
+            // 填充随机数据
+            uint8_t randomByte = (uint8_t)(arc4random_uniform(256));
+            [binaryData appendBytes:&randomByte length:1];
+        }
+        
+        // 构造发送数据
+        NSDictionary *sendData = @{
+            @"binaryData": binaryData,
+            @"text": @"iOS二进制ACK测试",
+            @"timestamp": @([NSDate date].timeIntervalSince1970)
+        };
+        
+        // 发送带ACK的二进制消息
+        [self.socket emitWithAck:@"binaryAckTest" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+            if (error) {
+                [self addMessage:[NSString stringWithFormat:@"❌ 二进制ACK测试失败: %@", error.localizedDescription] type:@"system"];
+            } else {
+                if (data && data.count > 0) {
+                    id ackData = data.firstObject;
+                    if ([ackData isKindOfClass:[NSDictionary class]]) {
+                        NSDictionary *ackDict = (NSDictionary *)ackData;
+                        [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", ackDict] type:@"system"];
+                    } else {
+                        [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", data] type:@"system"];
+                    }
+                } else {
+                    [self addMessage:@"✅ 二进制ACK测试成功, 但未返回数据" type:@"system"];
+                }
+            }
+        } timeout:15.0]; // 增加超时时间到15秒
         
     } else {
         [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
