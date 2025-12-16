@@ -7,3 +7,4 @@ testServer/node_modules/
 VPSocketIO.xcodeproj/xcuserdata/
 build/
 build.log
+testServer/logs/

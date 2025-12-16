@@ -6,7 +6,6 @@
 //  Copyright © 2017 Vasily Popov. All rights reserved.
 //
 
-// RTCVPSocketIOClient.m
 #import "RTCVPSocketIOClient.h"
 #import "RTCVPSocketEngine.h"
 #import "RTCVPSocketPacket.h"
@@ -16,26 +15,25 @@
 #import "NSString+RTCVPSocketIO.h"
 #import "RTCVPAFNetworkReachabilityManager.h"
 #import "RTCVPTimer.h"
+#import "RTCVPSocketIOConfig.h"
 
-// 事件类型
-typedef enum : NSUInteger {
-    RTCVPSocketClientEventConnect = 0x0,
-    RTCVPSocketClientEventDisconnect,
-    RTCVPSocketClientEventError,
-    RTCVPSocketClientEventReconnect,
-    RTCVPSocketClientEventReconnectAttempt,
-    RTCVPSocketClientEventStatusChange,
-} RTCVPSocketClientEvent;
+#pragma mark - 常量定义
 
-// 事件字符串常量
-NSString *const kSocketEventConnect            = @"connect";
-NSString *const kSocketEventDisconnect         = @"disconnect";
-NSString *const kSocketEventError              = @"error";
-NSString *const kSocketEventReconnect          = @"reconnect";
-NSString *const kSocketEventReconnectAttempt   = @"reconnectAttempt";
-NSString *const kSocketEventStatusChange       = @"statusChange";
+NSString *const RTCVPSocketEventConnect = @"connect";
+NSString *const RTCVPSocketEventDisconnect = @"disconnect";
+NSString *const RTCVPSocketEventError = @"error";
+NSString *const RTCVPSocketEventReconnect = @"reconnect";
+NSString *const RTCVPSocketEventReconnectAttempt = @"reconnectAttempt";
+NSString *const RTCVPSocketEventStatusChange = @"statusChange";
 
-// 事件处理器类
+NSString *const RTCVPSocketStatusNotConnected = @"notconnected";
+NSString *const RTCVPSocketStatusDisconnected = @"disconnected";
+NSString *const RTCVPSocketStatusConnecting = @"connecting";
+NSString *const RTCVPSocketStatusOpened = @"opened";
+NSString *const RTCVPSocketStatusConnected = @"connected";
+
+#pragma mark - 事件处理器类
+
 @interface RTCVPSocketEventHandler : NSObject
 @property (nonatomic, strong) NSString *event;
 @property (nonatomic, strong) NSUUID *uuid;
@@ -65,7 +63,8 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 
 @end
 
-// ACK发射器类
+#pragma mark - ACK发射器类
+
 @interface RTCVPSocketAckEmitter : NSObject
 @property (nonatomic, assign) int ackId;
 @property (nonatomic, copy) void (^emitBlock)(NSArray *items);
@@ -93,7 +92,8 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 
 @end
 
-// 全局事件类
+#pragma mark - 全局事件类
+
 @interface RTCVPSocketAnyEvent : NSObject
 @property (nonatomic, strong) NSString *event;
 @property (nonatomic, strong) NSArray *items;
@@ -114,7 +114,8 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 
 @end
 
-// 缓存数据模型
+#pragma mark - 缓存数据模型
+
 @interface RTCVPSocketIOClientCacheData : NSObject
 @property (nonatomic, assign) int ack;
 @property (nonatomic, strong) NSArray *items;
@@ -124,16 +125,15 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 @implementation RTCVPSocketIOClientCacheData
 @end
 
-// 私有接口
+#pragma mark - 客户端私有接口
+
 @interface RTCVPSocketIOClient() <RTCVPSocketEngineClient> {
-    int currentAck;
-    BOOL reconnecting;
-    RTCVPSocketAnyEventHandler anyHandler;
-    NSDictionary *eventStrings;
-    NSDictionary *statusStrings;
+    BOOL _reconnecting;
+    int _currentAck;
+    RTCVPSocketAnyEventHandler _anyHandler;
 }
 
-@property (nonatomic, strong, readonly) NSString* logType;
+@property (nonatomic, strong) NSString *logType;
 @property (nonatomic, strong) RTCVPSocketEngine *engine;
 @property (nonatomic, strong) NSMutableArray<RTCVPSocketEventHandler *> *handlers;
 @property (nonatomic, strong) NSMutableArray<RTCVPSocketPacket *> *waitingPackets;
@@ -143,7 +143,14 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 @property (nonatomic, assign) NSInteger currentReconnectAttempt;
 @property (nonatomic, strong) RTCVPACKManager *ackHandlers;
 
+// 事件映射字典
+@property (nonatomic, strong, readonly) NSDictionary *eventMap;
+// 状态映射字典
+@property (nonatomic, strong, readonly) NSDictionary *statusMap;
+
 @end
+
+#pragma mark - 客户端实现
 
 @implementation RTCVPSocketIOClient
 
@@ -220,59 +227,89 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     _reconnectWait = 10;
     _reconnectAttempts = -1;
     _currentReconnectAttempt = 0;
-    reconnecting = NO;
-    currentAck = -1;
+    _reconnecting = NO;
+    _currentAck = -1;
     
     _ackHandlers = [[RTCVPACKManager alloc] init];
     _handlers = [[NSMutableArray alloc] init];
     _waitingPackets = [[NSMutableArray alloc] init];
     _dataCache = [[NSMutableArray alloc] init];
-    
-    eventStrings = @{
-        @(RTCVPSocketClientEventConnect)          : kSocketEventConnect,
-        @(RTCVPSocketClientEventDisconnect)       : kSocketEventDisconnect,
-        @(RTCVPSocketClientEventError)            : kSocketEventError,
-        @(RTCVPSocketClientEventReconnect)        : kSocketEventReconnect,
-        @(RTCVPSocketClientEventReconnectAttempt) : kSocketEventReconnectAttempt,
-        @(RTCVPSocketClientEventStatusChange)     : kSocketEventStatusChange
-    };
-    
-    statusStrings = @{
-        @(RTCVPSocketIOClientStatusNotConnected)  : @"notconnected",
-        @(RTCVPSocketIOClientStatusDisconnected)  : @"disconnected",
-        @(RTCVPSocketIOClientStatusConnecting)    : @"connecting",
-        @(RTCVPSocketIOClientStatusOpened)        : @"opened",
-        @(RTCVPSocketIOClientStatusConnected)     : @"connected"
-    };
+}
+
+#pragma mark - 映射字典懒加载
+
+- (NSDictionary *)eventMap {
+    static NSDictionary *_eventMap = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _eventMap = @{
+            @(RTCVPSocketClientEventConnect): RTCVPSocketEventConnect,
+            @(RTCVPSocketClientEventDisconnect): RTCVPSocketEventDisconnect,
+            @(RTCVPSocketClientEventError): RTCVPSocketEventError,
+            @(RTCVPSocketClientEventReconnect): RTCVPSocketEventReconnect,
+            @(RTCVPSocketClientEventReconnectAttempt): RTCVPSocketEventReconnectAttempt,
+            @(RTCVPSocketClientEventStatusChange): RTCVPSocketEventStatusChange
+        };
+    });
+    return _eventMap;
+}
+
+- (NSDictionary *)statusMap {
+    static NSDictionary *_statusMap = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _statusMap = @{
+            @(RTCVPSocketIOClientStatusNotConnected): RTCVPSocketStatusNotConnected,
+            @(RTCVPSocketIOClientStatusDisconnected): RTCVPSocketStatusDisconnected,
+            @(RTCVPSocketIOClientStatusConnecting): RTCVPSocketStatusConnecting,
+            @(RTCVPSocketIOClientStatusOpened): RTCVPSocketStatusOpened,
+            @(RTCVPSocketIOClientStatusConnected): RTCVPSocketStatusConnected
+        };
+    });
+    return _statusMap;
 }
 
 #pragma mark - 属性
 
 - (void)setStatus:(RTCVPSocketIOClientStatus)status {
-    _status = status;
-    
-    switch (status) {
-        case RTCVPSocketIOClientStatusConnected:
-            reconnecting = NO;
-            _currentReconnectAttempt = 0;
-            break;
-        default:
-            break;
+    if (_status != status) {
+        _status = status;
+        
+        switch (status) {
+            case RTCVPSocketIOClientStatusConnected:
+                _reconnecting = NO;
+                _currentReconnectAttempt = 0;
+                break;
+            default:
+                break;
+        }
+        
+        NSString *statusString = self.statusMap[@(status)];
+        if (statusString) {
+            [self handleClientEvent:RTCVPSocketEventStatusChange withData:@[statusString]];
+        }
     }
-    
-    [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventStatusChange)]
-                   withData:@[statusStrings[@(status)]]];
 }
 
 - (NSString *)logType {
     return @"RTCVPSocketIOClient";
 }
 
+#pragma mark - 工具方法
+
+- (NSString *)eventStringForEvent:(RTCVPSocketClientEvent)event {
+    return self.eventMap[@(event)];
+}
+
+- (NSString *)statusStringForStatus:(RTCVPSocketIOClientStatus)status {
+    return self.statusMap[@(status)];
+}
+
 #pragma mark - 连接管理
 
 - (void)connect {
     [self connectWithTimeoutAfter:0 withHandler:^{
-        
+        // 默认空处理器
     }];
 }
 
@@ -321,7 +358,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 }
 
 - (void)reconnect {
-    if (!reconnecting) {
+    if (!_reconnecting) {
         [self tryReconnect:@"manual reconnect"];
     }
 }
@@ -361,25 +398,25 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Disconnected: %@", reason]
                                       type:self.logType];
         
-        reconnecting = NO;
+        _reconnecting = NO;
         self.status = RTCVPSocketIOClientStatusDisconnected;
         
         // 确保引擎真正关闭
         [self.engine disconnect:reason];
-        [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventDisconnect)]
-                       withData:@[reason]];
+        [self handleClientEvent:RTCVPSocketEventDisconnect withData:@[reason]];
     }
 }
 
 #pragma mark - ACK管理
 
 - (int)generateNextAck {
-    currentAck += 1;
-    if (currentAck >= 1000) { // 循环使用，避免溢出
-        currentAck = 0;
+    _currentAck += 1;
+    if (_currentAck >= 1000) { // 循环使用，避免溢出
+        _currentAck = 0;
     }
-    return currentAck;
+    return _currentAck;
 }
+
 #pragma mark - 事件发射
 
 - (void)emit:(NSString *)event {
@@ -597,8 +634,6 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     [self.engine send:str withData:packet.binary];
 }
 
-#pragma mark - 处理服务器消息中的ACK请求
-
 #pragma mark - RTCVPSocketIOClientProtocol
 
 - (void)handleEvent:(NSString *)event
@@ -611,21 +646,20 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     [self handleEvent:event withData:data isInternalMessage:YES];
 }
 
-
 - (void)handleEvent:(NSString *)event
            withData:(NSArray *)data
   isInternalMessage:(BOOL)internalMessage
             withAck:(int)ack {
     
     if (_status == RTCVPSocketIOClientStatusConnected || internalMessage) {
-        if ([event isEqualToString:kSocketEventError]) {
+        if ([event isEqualToString:RTCVPSocketEventError]) {
             [RTCDefaultSocketLogger.logger error:data.firstObject type:self.logType];
         } else {
             [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Handling event: %@ with data: %@, ack: %d", event, data, ack] type:self.logType];
         }
         
-        if (anyHandler) {
-            anyHandler([[RTCVPSocketAnyEvent alloc] initWithEvent:event andItems:data]);
+        if (_anyHandler) {
+            _anyHandler([[RTCVPSocketAnyEvent alloc] initWithEvent:event andItems:data]);
         }
         
         NSArray<RTCVPSocketEventHandler *> *handlersCopy = [NSArray arrayWithArray:self.handlers];
@@ -736,7 +770,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 }
 
 - (void)onAny:(RTCVPSocketAnyEventHandler)handler {
-    anyHandler = handler;
+    _anyHandler = handler;
 }
 
 - (void)off:(NSString *)event {
@@ -757,34 +791,33 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 
 - (void)removeAllHandlers {
     [self.handlers removeAllObjects];
-    anyHandler = nil;
+    _anyHandler = nil;
 }
 
 #pragma mark - 重连管理
 
 - (void)tryReconnect:(NSString *)reason {
-    if (!reconnecting) {
+    if (!_reconnecting) {
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Starting reconnect: %@", reason] type:self.logType];
-        [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventReconnect)]
-                       withData:@[reason]];
-        reconnecting = YES;
+        [self handleClientEvent:RTCVPSocketEventReconnect withData:@[reason]];
+        _reconnecting = YES;
         self.currentReconnectAttempt = 0;
         [self _tryReconnect];
     }
 }
 
 - (void)_tryReconnect {
-    if (self.reconnects && reconnecting && _status != RTCVPSocketIOClientStatusDisconnected) {
+    if (self.reconnects && _reconnecting && _status != RTCVPSocketIOClientStatusDisconnected) {
         if (self.reconnectAttempts != -1 && self.currentReconnectAttempt >= self.reconnectAttempts) {
             [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Reconnect failed after %ld attempts", (long)self.currentReconnectAttempt] type:self.logType];
             return [self didDisconnect:@"Reconnect Failed"];
         } else {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Trying to reconnect (attempt %ld/%ld)", 
-                                                (long)self.currentReconnectAttempt + 1, 
-                                                self.reconnectAttempts == -1 ? LONG_MAX : (long)self.reconnectAttempts] 
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Trying to reconnect (attempt %ld/%ld)",
+                                                (long)self.currentReconnectAttempt + 1,
+                                                self.reconnectAttempts == -1 ? LONG_MAX : (long)self.reconnectAttempts]
                                       type:self.logType];
             
-            [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventReconnectAttempt)]
+            [self handleClientEvent:RTCVPSocketEventReconnectAttempt
                            withData:@[@(self.currentReconnectAttempt + 1)]];
             
             self.currentReconnectAttempt += 1;
@@ -807,12 +840,12 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
                   self.handleQueue, ^{
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
-            if (strongSelf.reconnects && reconnecting) {
+            if (strongSelf.reconnects && strongSelf->_reconnecting) {
                 if (strongSelf.status != RTCVPSocketIOClientStatusConnected) {
                     [strongSelf _tryReconnect];
                 } else {
                     [RTCDefaultSocketLogger.logger log:@"Reconnect timer fired but already connected" type:self.logType];
-                    strongSelf->reconnecting = NO;
+                    strongSelf->_reconnecting = NO;
                 }
             } else {
                 [RTCDefaultSocketLogger.logger log:@"Reconnect timer fired but reconnect is disabled" type:self.logType];
@@ -876,7 +909,6 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
     self.currentNetworkStatus = status;
 }
 
-
 - (void)emitAck:(int)ack withItems:(NSArray *)items isEvent:(BOOL)isEvent {
     if (items && items.count > 0) {
         // 第一个元素是事件名
@@ -899,12 +931,11 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         }
     }
     
-    [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventConnect)]
-                   withData:@[namespace]];
+    [self handleClientEvent:RTCVPSocketEventConnect withData:@[namespace]];
 }
 
 - (void)didError:(NSString *)reason {
-    [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventError)] withData:@[reason]];
+    [self handleClientEvent:RTCVPSocketEventError withData:@[reason]];
 }
 
 #pragma mark - RTCVPSocketEngineClient
@@ -920,13 +951,12 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 }
 
 - (void)_engineDidError:(NSString *)reason {
-    [self handleClientEvent:eventStrings[@(RTCVPSocketClientEventError)]
-                   withData:@[reason]];
+    [self handleClientEvent:RTCVPSocketEventError withData:@[reason]];
 }
 
 - (void)engineDidOpen:(NSString *)reason {
     self.status = RTCVPSocketIOClientStatusOpened;
-    [self handleClientEvent:kSocketEventConnect withData:@[reason]];
+    [self handleClientEvent:RTCVPSocketEventConnect withData:@[reason]];
 }
 
 - (void)engineDidClose:(NSString *)reason {
@@ -945,8 +975,8 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
         [self didDisconnect:reason];
     } else {
         self.status = RTCVPSocketIOClientStatusNotConnected;
-        if (!reconnecting) {
-            reconnecting = YES;
+        if (!_reconnecting) {
+            _reconnecting = YES;
             [self tryReconnect:reason];
         }
     }
@@ -973,6 +1003,11 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             [strongSelf parseBinaryData:data];
         }
     });
+}
+
+- (void)handleEngineAck:(NSInteger)ackId withData:(nonnull NSArray *)data {
+    // 处理引擎ACK
+    [self handleAck:(int)ackId withData:data];
 }
 
 #pragma mark - 消息解析
@@ -1072,32 +1107,32 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             
             // 创建数据包，直接传递完整的JSON数组作为data
             // 事件名称会从data[0]自动提取
-            RTCVPSocketPacket *packet = [[RTCVPSocketPacket alloc] init:type 
-                                                                   data:jsonArray 
-                                                                     ID:ackId 
-                                                                    nsp:@"/" 
-                                                           placeholders:0 
+            RTCVPSocketPacket *packet = [[RTCVPSocketPacket alloc] init:type
+                                                                   data:jsonArray
+                                                                     ID:ackId
+                                                                    nsp:@"/"
+                                                           placeholders:0
                                                            binary:@[]];
             return packet;
         }
             
         case RTCVPPacketTypeConnect: {
             // 连接消息
-            return [[RTCVPSocketPacket alloc] init:type 
-                                             data:@[] 
-                                               ID:ackId 
-                                              nsp:@"/" 
-                                     placeholders:0 
+            return [[RTCVPSocketPacket alloc] init:type
+                                             data:@[]
+                                               ID:ackId
+                                              nsp:@"/"
+                                     placeholders:0
                                      binary:@[]];
         }
             
         case RTCVPPacketTypeDisconnect: {
             // 断开连接消息
-            return [[RTCVPSocketPacket alloc] init:type 
-                                             data:@[] 
-                                               ID:ackId 
-                                              nsp:@"/" 
-                                     placeholders:0 
+            return [[RTCVPSocketPacket alloc] init:type
+                                             data:@[]
+                                               ID:ackId
+                                              nsp:@"/"
+                                     placeholders:0
                                      binary:@[]];
         }
             
@@ -1111,11 +1146,11 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             }
             
             // 创建数据包，使用解析出的ackId
-            return [[RTCVPSocketPacket alloc] init:type 
-                                             data:jsonArray 
-                                               ID:ackId 
-                                              nsp:@"/" 
-                                     placeholders:0 
+            return [[RTCVPSocketPacket alloc] init:type
+                                             data:jsonArray
+                                               ID:ackId
+                                              nsp:@"/"
+                                     placeholders:0
                                      binary:@[]];
         }
             
@@ -1128,11 +1163,11 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
                 jsonArray = @[];
             }
             
-            return [[RTCVPSocketPacket alloc] init:type 
-                                             data:jsonArray 
-                                               ID:-1 
-                                              nsp:@"/" 
-                                     placeholders:0 
+            return [[RTCVPSocketPacket alloc] init:type
+                                             data:jsonArray
+                                               ID:-1
+                                              nsp:@"/"
+                                     placeholders:0
                                      binary:@[]];
         }
             
@@ -1182,7 +1217,7 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
             [self didDisconnect:@"Got Disconnect"];
             break;
         case RTCVPPacketTypeError:
-            [self handleEvent:@"error" withData:packet.data isInternalMessage:YES withAck:packet.ID];
+            [self handleEvent:RTCVPSocketEventError withData:packet.data isInternalMessage:YES withAck:packet.ID];
             break;
         default:
             [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Got invalid packet: %@", packet.description]
@@ -1200,4 +1235,3 @@ NSString *const kSocketEventStatusChange       = @"statusChange";
 }
 
 @end
-

@@ -417,7 +417,7 @@
    WEAKSELF
     
     // 监听连接事件
-    [_socket on:kSocketEventConnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+    [_socket on:RTCVPSocketEventConnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         STRONGSELF
         [strongSelf updateStatus:YES];
         [strongSelf addMessage:[NSString stringWithFormat:@"✅ 连接成功，协议版本: %@, 传输方式: %@", 
@@ -426,14 +426,14 @@
     }];
     
     // 监听断开连接事件
-    [_socket on:kSocketEventDisconnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+    [_socket on:RTCVPSocketEventDisconnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         STRONGSELF
         [strongSelf updateStatus:NO];
         [strongSelf addMessage:[NSString stringWithFormat:@"❌ 断开连接: %@", array] type:@"system"];
     }];
     
     // 监听错误事件
-    [_socket on:kSocketEventError callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+    [_socket on:RTCVPSocketEventError callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         STRONGSELF
         [strongSelf addMessage:[NSString stringWithFormat:@"⚠️ 连接出错: %@", array] type:@"system"];
     }];
@@ -501,7 +501,7 @@
     // 监听心跳消息
     [_socket on:@"heartbeat" callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
         // 心跳消息不显示在UI上
-        NSLog(@"💓 收到心跳消息: %@", array);
+//        NSLog(@"💓 收到心跳消息: %@", array);
     }];
 }
 
