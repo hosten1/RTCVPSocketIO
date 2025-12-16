@@ -246,8 +246,13 @@
                 });
                 
                 // Welcome message
-                socket.on('welcome', (data) => {
+                socket.on('welcome', (data, callback) => {
                     addMessage(`Welcome message: ${JSON.stringify(data)}`, 'received');
+                    
+                    // 发送ACK响应
+                    if (callback && typeof callback === 'function') {
+                        callback({ success: true, message: 'Welcome received from HTML client', clientId: socket.id });
+                    }
                 });
                 
                 // User connected event

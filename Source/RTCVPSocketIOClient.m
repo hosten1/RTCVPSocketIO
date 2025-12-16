@@ -26,6 +26,10 @@ NSString *const RTCVPSocketEventReconnect = @"reconnect";
 NSString *const RTCVPSocketEventReconnectAttempt = @"reconnectAttempt";
 NSString *const RTCVPSocketEventStatusChange = @"statusChange";
 
+// ACK发射器常量定义
+NSString *const kRTCVPSocketAckEmitterErrorDomain = @"RTCVPSocketAckEmitterErrorDomain";
+NSInteger const kRTCVPSocketAckEmitterErrorSendFailed = 1;
+
 NSString *const RTCVPSocketStatusNotConnected = @"notconnected";
 NSString *const RTCVPSocketStatusDisconnected = @"disconnected";
 NSString *const RTCVPSocketStatusConnecting = @"connecting";
@@ -65,17 +69,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 
 #pragma mark - ACK发射器类
 
-@interface RTCVPSocketAckEmitter : NSObject
-@property (nonatomic, assign) NSInteger ackId;
-@property (nonatomic, copy) void (^emitBlock)(NSArray *items);
-
-- (instancetype)initWithAckId:(NSInteger)ackId emitBlock:(void (^)(NSArray *items))emitBlock;
-- (void)send:(NSArray *)items;
-@end
-
 @implementation RTCVPSocketAckEmitter
 
-- (instancetype)initWithAckId:(NSInteger)ackId emitBlock:(void (^)(NSArray *items))emitBlock {
+- (instancetype)initWithAckId:(NSInteger)ackId emitBlock:(void (^_Nullable)(NSArray *_Nullable items))emitBlock {
     self = [super init];
     if (self) {
         _ackId = ackId;
@@ -84,7 +80,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     return self;
 }
 
-- (void)send:(NSArray *)items {
+- (void)send:(NSArray *_Nullable)items {
     if (self.emitBlock) {
         self.emitBlock(items);
     }

@@ -117,7 +117,6 @@
                             nsp:(NSString *)nsp {
     
     NSMutableArray *dataArray = [NSMutableArray array];
-    [dataArray addObject:@(ackId)];
     
     if (items && items.count > 0) {
         [dataArray addObjectsFromArray:items];

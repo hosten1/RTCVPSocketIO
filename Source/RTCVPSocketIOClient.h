@@ -40,6 +40,32 @@ extern NSString * _Nullable const RTCVPSocketStatusConnected;
 // 全局事件类前向声明
 @class RTCVPSocketAnyEvent;
 
+// ACK发射器类
+extern NSString * _Nonnull const kRTCVPSocketAckEmitterErrorDomain;
+
+extern NSInteger const kRTCVPSocketAckEmitterErrorSendFailed;
+
+@interface RTCVPSocketAckEmitter : NSObject
+
+/// ACK ID
+@property (nonatomic, assign) NSInteger ackId;
+
+/// 初始化方法
+- (instancetype _Nonnull)initWithAckId:(NSInteger)ackId emitBlock:(void (^_Nullable)(NSArray *_Nullable items))emitBlock;
+
+/// 发送ACK响应
+- (void)send:(NSArray *_Nullable)items;
+
+@end
+
+// 类扩展，用于声明私有属性
+@interface RTCVPSocketAckEmitter ()
+
+/// 内部emitBlock
+@property (nonatomic, copy) void (^_Nullable emitBlock)(NSArray *_Nullable items);
+
+@end
+
 // 回调类型定义
 typedef void (^RTCVPSocketIOVoidHandler)(void);
 typedef void (^RTCVPSocketAnyEventHandler)(RTCVPSocketAnyEvent* _Nonnull event);

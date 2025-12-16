@@ -154,8 +154,10 @@ io.on('connection', (socket) => {
     console.log('Engine.IO版本:', socket.conn.protocol); // 显示Engine.IO版本
     console.log('=== Socket.IO连接信息结束 ===');
     
-    // 发送欢迎消息
-    socket.emit('welcome', { message: 'Welcome to Socket.IO server!', socketId: socket.id });
+    // 发送欢迎消息  同时处理ack客户端的返回
+    socket.emit('welcome', { message: 'Welcome to Socket.IO server!', socketId: socket.id }, (ackData) => {
+      console.log('Welcome ACK from client:', ackData);
+    });
     
     // 广播用户连接事件给所有客户端
     io.emit('userConnected', { socketId: socket.id, timestamp: new Date().toISOString() });

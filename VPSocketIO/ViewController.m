@@ -487,9 +487,13 @@
                 NSDictionary *welcomeData = (NSDictionary *)data;
                 strongSelf.clientId = welcomeData[@"socketId"];
                 [strongSelf addMessage:[NSString stringWithFormat:@"📩 欢迎: %@", welcomeData[@"message"]] type:@"received"];
+                
+                // 发送ACK响应
+                if (emitter) {
+                    [emitter send:@[@{@"success": @YES, @"message": @"Welcome received is iOS", @"clientId": strongSelf.clientId}]];
+                }
             }
         }
-        
     }];
     
     // 监听用户连接事件
@@ -501,6 +505,9 @@
                 NSDictionary *userData = (NSDictionary *)data;
                 [strongSelf addMessage:[NSString stringWithFormat:@"👤 用户加入: %@", userData[@"socketId"]] type:@"system"];
             }
+        }
+        if (emitter) {
+            [emitter send:@[@{@"success": @YES, @"message": @"hahah", @"clientId": strongSelf.clientId}]];
         }
     }];
     
