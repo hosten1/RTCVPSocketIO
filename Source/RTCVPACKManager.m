@@ -37,7 +37,14 @@
 
 - (void)dealloc {
     [self stopPeriodicTimeoutCheck];
-    [self removeAllPackets];
+    
+    // 在主线程直接清理，避免dispatch_async导致的竞态条件
+    if (_pendingPackets) {
+        for (RTCVPSocketPacket *packet in _pendingPackets.allValues) {
+            [packet cancel];
+        }
+        [_pendingPackets removeAllObjects];
+    }
     
     [RTCDefaultSocketLogger.logger log:@"ACK管理器已释放" type:@"ACKManager"];
 }
@@ -142,15 +149,17 @@
 }
 
 - (void)removeAllPackets {
-    dispatch_async(_managerQueue, ^{
-        if (self.pendingPackets) {
+    __weak typeof(self) weakSelf = self;
+    dispatch_async(_managerQueue, ^{        
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf || !strongSelf.pendingPackets) {
             return;
         }
-        for (RTCVPSocketPacket *packet in self.pendingPackets.allValues) {
+        for (RTCVPSocketPacket *packet in strongSelf.pendingPackets.allValues) {
             [packet cancel];
         }
         
-        [self.pendingPackets removeAllObjects];
+        [strongSelf.pendingPackets removeAllObjects];
         
         [RTCDefaultSocketLogger.logger log:@"所有包已移除" type:@"ACKManager"];
     });

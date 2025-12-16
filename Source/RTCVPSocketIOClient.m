@@ -655,19 +655,26 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     
     if (_status == RTCVPSocketIOClientStatusConnected || internalMessage) {
         if ([event isEqualToString:RTCVPSocketEventError]) {
-            [RTCDefaultSocketLogger.logger error:data.firstObject type:self.logType];
+            [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"Socket error: %@", data.firstObject]
+                                            type:self.logType];
         } else {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Handling event: %@ with data: %@, ack: %@", event, data, @(ack)] type:self.logType];
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"处理事件: %@, 数据: %@, ack: %@",
+                                                event, data, @(ack)]
+                                          type:self.logType];
         }
         
+        // 调用全局事件处理器
         if (_anyHandler) {
             _anyHandler([[RTCVPSocketAnyEvent alloc] initWithEvent:event andItems:data]);
         }
         
+        // 复制处理程序数组以避免在遍历时修改
         NSArray<RTCVPSocketEventHandler *> *handlersCopy = [NSArray arrayWithArray:self.handlers];
+        
+        // 查找并执行匹配的事件处理器
         for (RTCVPSocketEventHandler *handler in handlersCopy) {
             if ([handler.event isEqualToString:event]) {
-                // 创建ACK发射器
+                // 创建ACK发射器（如果需要ACK）
                 RTCVPSocketAckEmitter *emitter = nil;
                 if (ack >= 0) {
                     __weak typeof(self) weakSelf = self;
@@ -681,6 +688,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
                 [handler executeCallbackWith:data withAck:ack withSocket:self withEmitter:emitter];
             }
         }
+    } else if (!internalMessage) {
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"忽略未连接时的事件: %@", event]
+                                      type:self.logType];
     }
 }
 

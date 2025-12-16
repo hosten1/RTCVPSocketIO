@@ -328,20 +328,79 @@
 }
 
 - (NSArray *)args {
-    if ((_type == RTCVPPacketTypeEvent || _type == RTCVPPacketTypeBinaryEvent) && _data.count > 1) {
-        if (_type == RTCVPPacketTypeEvent) {
-            return _data;
+    if (_data.count == 0) {
+        return @[];
+    }
+    
+    switch (_type) {
+        case RTCVPPacketTypeEvent:
+        case RTCVPPacketTypeBinaryEvent: {
+            // 事件包格式：["eventName", arg1, arg2, ...] 或 ["eventName", arg1, arg2, ..., ackId]
+            
+            // 检查最后一个元素是否是ACK ID
+            BOOL hasAckId = NO;
+            NSInteger ackId = -1;
+            
+            if (_data.count >= 1) {
+                id lastItem = [_data lastObject];
+                if ([lastItem isKindOfClass:[NSNumber class]]) {
+                    ackId = [lastItem integerValue];
+                    // 合理的ACK ID范围是0-999
+                    if (ackId >= 0 && ackId < 1000) {
+                        hasAckId = YES;
+                    }
+                }
+            }
+            
+            // 提取参数
+            if (_data.count == 1) {
+                // 只有事件名，没有参数
+                return @[];
+            } else if (_data.count == 2) {
+                if (hasAckId) {
+                    // ["eventName", ackId]
+                    return @[];
+                } else {
+                    // ["eventName", arg]
+                    // 注意：即使arg是数组，也要原样返回
+                    return @[_data[1]];
+                }
+            } else {
+                // 多个参数
+                if (hasAckId) {
+                    // 排除第一个（事件名）和最后一个（ACK ID）
+                    NSRange range = NSMakeRange(1, _data.count - 2);
+                    return [_data subarrayWithRange:range];
+                } else {
+                    // 排除第一个（事件名）
+                    return [_data subarrayWithRange:NSMakeRange(1, _data.count - 1)];
+                }
+            }
         }
-        return [_data subarrayWithRange:NSMakeRange(1, _data.count - 1)];
-    } else if (_type == RTCVPPacketTypeAck || _type == RTCVPPacketTypeBinaryAck) {
-        if (_type == RTCVPPacketTypeAck) {
-            return _data;
-        }
-        if (_data.count >= 1) {
+            
+        case RTCVPPacketTypeAck:
+        case RTCVPPacketTypeBinaryAck: {
+            // ACK包格式：[ackId, arg1, arg2, ...]
+            if (_data.count < 1) {
+                return @[];
+            }
+            if (_data.count == 1) {
+                return _data;
+            }
+            // 排除第一个元素（ACK ID）
             return [_data subarrayWithRange:NSMakeRange(1, _data.count - 1)];
         }
+            
+        case RTCVPPacketTypeConnect:
+        case RTCVPPacketTypeDisconnect:
+        case RTCVPPacketTypeError: {
+            // 这些包的数据直接就是参数
+            return _data;
+        }
+            
+        default:
+            return @[];
     }
-    return @[];
 }
 
 - (NSString *)createPacketString {
@@ -447,11 +506,12 @@
         }
         return nil;
     }
+
     NSUInteger cursor = 0;
 
     // ------------------------------------------------------------------
     // 1. 解析 packet type（Socket.IO packet type）
-    // 标准格式socket.io格式：例如 32[{"success":true,"response":"Processed: {\"message\":\"ACK Test 2\",\"testIndex\":2,\"timestamp\":1765865549.19959}"}]
+    // 标准格式socket.io格式：例如 42["welcome",{...}] 或 30[{"success":true,...}]
     // ------------------------------------------------------------------
     unichar typeChar = [message characterAtIndex:cursor];
     if (!isdigit(typeChar)) {
@@ -466,6 +526,7 @@
     RTCVPPacketType type = (RTCVPPacketType)(typeChar - '0');
     cursor++;
 
+    // 检查是否为有效包类型
     if (![self _isValidPacketType:type]) {
         if (error) {
             *error = [NSError errorWithDomain:@"RTCVPSocketPacket"
@@ -477,52 +538,50 @@
     }
 
     // ------------------------------------------------------------------
-    // 2. 解析 namespace（可选）
+    // 2. 解析二进制计数（只对二进制包）
+    // ------------------------------------------------------------------
+    int binaryCount = 0;
+    if ((type == RTCVPPacketTypeBinaryEvent || type == RTCVPPacketTypeBinaryAck) &&
+        cursor < message.length && [message characterAtIndex:cursor] != '[') {
+        
+        NSMutableString *countStr = [NSMutableString string];
+        while (cursor < message.length && isdigit([message characterAtIndex:cursor])) {
+            [countStr appendFormat:@"%c", [message characterAtIndex:cursor]];
+            cursor++;
+        }
+        if (cursor < message.length && [message characterAtIndex:cursor] == '-') {
+            cursor++; // 跳过 '-'
+            binaryCount = [countStr intValue];
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 3. 解析命名空间（可选）
     // ------------------------------------------------------------------
     NSString *nsp = @"/";
     if (cursor < message.length && [message characterAtIndex:cursor] == '/') {
         NSUInteger start = cursor;
-        while (cursor < message.length) {
-            unichar c = [message characterAtIndex:cursor];
-            if (c == ',' || c == '[' || c == '#') {
-                break;
-            }
+        while (cursor < message.length && [message characterAtIndex:cursor] != ',') {
             cursor++;
         }
         nsp = [message substringWithRange:NSMakeRange(start, cursor - start)];
         if (cursor < message.length && [message characterAtIndex:cursor] == ',') {
-            cursor++; // skip ','
+            cursor++; // 跳过 ','
         }
     }
 
     // ------------------------------------------------------------------
-    // 3. 解析 packetId（ACK / EVENT+ACK / BINARY_ACK）
-    //    ⚠️ 这是你原来缺失的关键步骤
+    // 4. 解析 packetId（ACK / EVENT+ACK）
     // ------------------------------------------------------------------
     NSInteger packetId = -1;
-    NSUInteger idStart = cursor;
-
-    while (cursor < message.length && isdigit([message characterAtIndex:cursor])) {
-        cursor++;
-    }
-
-    if (cursor > idStart) {
-        NSString *idStr = [message substringWithRange:NSMakeRange(idStart, cursor - idStart)];
-        packetId = [idStr integerValue];
-    }
-
-    // ------------------------------------------------------------------
-    // 4. 解析 binary placeholders（#N）
-    // ------------------------------------------------------------------
-    NSInteger placeholders = 0;
-    if (cursor < message.length && [message characterAtIndex:cursor] == '#') {
-        cursor++; // skip '#'
-        NSUInteger phStart = cursor;
+    
+    if (cursor < message.length && isdigit([message characterAtIndex:cursor])) {
+        NSUInteger start = cursor;
         while (cursor < message.length && isdigit([message characterAtIndex:cursor])) {
             cursor++;
         }
-        NSString *phStr = [message substringWithRange:NSMakeRange(phStart, cursor - phStart)];
-        placeholders = [phStr integerValue];
+        NSString *idStr = [message substringWithRange:NSMakeRange(start, cursor - start)];
+        packetId = [idStr integerValue];
     }
 
     // ------------------------------------------------------------------
@@ -533,10 +592,8 @@
 
     if (cursor < message.length) {
         NSString *jsonPart = [message substringFromIndex:cursor];
-
-        if (jsonPart.length > 0 &&
-            ([jsonPart hasPrefix:@"["] || [jsonPart hasPrefix:@"{"])) {
-
+        
+        if (jsonPart.length > 0 && [jsonPart hasPrefix:@"["]) {
             NSData *jsonData = [jsonPart dataUsingEncoding:NSUTF8StringEncoding];
             NSError *jsonError = nil;
             id jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData
@@ -550,26 +607,40 @@
             }
 
             if ([jsonObject isKindOfClass:[NSArray class]]) {
-                NSArray *jsonArray = (NSArray *)jsonObject;
-
-                // EVENT / BINARY_EVENT
-                if (type == RTCVPPacketTypeEvent ||
-                    type == RTCVPPacketTypeBinaryEvent) {
-                    // 对于事件类型，将整个jsonArray赋值给data，
-                    // 这样event getter返回_data[0]（事件名称），args getter返回_data[1..n]（事件参数）
-                    data = jsonArray;
-                }
-                // ACK / BINARY_ACK
-                else if (type == RTCVPPacketTypeAck ||
-                         type == RTCVPPacketTypeBinaryAck) {
-                    data = jsonArray;
+                data = jsonObject;
+                
+                // 重要：对于ACK包，第一个元素应该是ACK ID
+                // 对于事件包，可能需要检查最后一个元素是否是ACK ID
+                if (type == RTCVPPacketTypeAck || type == RTCVPPacketTypeBinaryAck) {
+                    // ACK包：确保第一个元素是ACK ID
+                    if (data.count > 0 && [data[0] isKindOfClass:[NSNumber class]]) {
+                        // 第一个元素已经是ACK ID，保持原样
+                    }
+                } else if (type == RTCVPPacketTypeEvent || type == RTCVPPacketTypeBinaryEvent) {
+                    // 事件包：检查最后一个元素是否是ACK ID
+                    if (data.count > 1) {
+                        id lastItem = [data lastObject];
+                        if ([lastItem isKindOfClass:[NSNumber class]]) {
+                            NSInteger potentialAckId = [lastItem integerValue];
+                            if (potentialAckId >= 0 && potentialAckId < 1000) {
+                                // 最后一个元素是ACK ID
+                                packetId = potentialAckId;
+                            }
+                        }
+                    }
                 }
             }
-            else {
+        } else if (jsonPart.length > 0 && [jsonPart hasPrefix:@"{"]) {
+            // 单个JSON对象
+            NSData *jsonData = [jsonPart dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *jsonError = nil;
+            id jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&jsonError];
+            
+            if (!jsonError) {
                 data = @[jsonObject];
-
-
-
+            } else {
+                if (error) *error = jsonError;
+                return nil;
             }
         }
     }
@@ -579,22 +650,20 @@
     // ------------------------------------------------------------------
     [RTCDefaultSocketLogger.logger log:
      [NSString stringWithFormat:
-      @"Socket.IO packet parsed: type=%d, nsp=%@, id=%ld, placeholders=%ld, data=%@",
-      (int)type, nsp, (long)packetId, (long)placeholders, data]
+      @"Socket.IO packet parsed: type=%d, nsp=%@, id=%ld, placeholders=%d, data=%@",
+      (int)type, nsp, (long)packetId, binaryCount, data]
                                   type:@"SocketParser"];
 
     // ------------------------------------------------------------------
     // 7. 构造 packet
     // ------------------------------------------------------------------
     return [[self alloc] initWithType:type
-                                     data:data
-                                 packetId:packetId
-                                      nsp:nsp
-                             placeholders:(int)placeholders
-                                   binary:@[]];
+                                 data:data
+                             packetId:packetId
+                                  nsp:nsp
+                         placeholders:(int)binaryCount
+                               binary:@[]];
 }
-
-
 
 #pragma mark - 辅助解析方法
 
