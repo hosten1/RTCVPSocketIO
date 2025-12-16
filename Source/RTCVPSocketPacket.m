@@ -93,13 +93,15 @@
     NSMutableArray *binary = [NSMutableArray array];
     NSArray *parsedData = [self parseItems:dataArray toBinary:binary];
     
-    // 确定包类型
-    RTCVPPacketType packetType;
-    if (binary.count > 0) {
-        packetType = requiresAck ? RTCVPPacketTypeBinaryAck : RTCVPPacketTypeBinaryEvent;
-    } else {
-        packetType = requiresAck ? RTCVPPacketTypeEvent : RTCVPPacketTypeEvent;
-    }
+    // 确定包类型 - 修复这里
+        RTCVPPacketType packetType;
+        if (binary.count > 0) {
+            // 重要：无论是否需要ACK，二进制事件都应该使用 RTCVPPacketTypeBinaryEvent
+            // ACK由服务器返回，客户端不应该发送ACK包类型
+            packetType = RTCVPPacketTypeBinaryEvent;
+        } else {
+            packetType = requiresAck ? RTCVPPacketTypeEvent : RTCVPPacketTypeEvent;
+        }
     
     RTCVPSocketPacket *packet = [[self alloc] initWithType:packetType
                                                       data:parsedData
@@ -411,7 +413,12 @@
     
     // 2. 二进制计数（如果是二进制包）
     if (_type == RTCVPPacketTypeBinaryEvent || _type == RTCVPPacketTypeBinaryAck) {
-        [result appendFormat:@"%lu-", (unsigned long)_binary.count];
+        // 修复：确保这里有"-"分隔符
+        if (_binary.count > 0) {
+            [result appendFormat:@"%lu-", (unsigned long)_binary.count];
+        } else {
+            [result appendString:@"0-"]; // 即使没有二进制数据也要有0-
+        }
     }
     
     // 3. 命名空间（如果不是根命名空间）

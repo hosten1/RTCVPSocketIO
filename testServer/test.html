@@ -256,8 +256,13 @@
                 });
                 
                 // User connected event
-                socket.on('userConnected', (data) => {
+                socket.on('userConnected', (data, callback) => {
                     addMessage(`User joined: ${data.socketId}`, 'system');
+                    
+                    // 发送ACK响应
+                    if (callback && typeof callback === 'function') {
+                        callback({ success: true, message: 'UserConnected received from HTML client', clientId: socket.id });
+                    }
                 });
                 
                 // User disconnected event
