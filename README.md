@@ -4,6 +4,26 @@
 
 Socket.IO client for iOS. Supports Socket.IO 2.0+ and 3.0+ with a clean architecture and robust message handling.
 
+## 版本变更记录
+
+### v3.2 (2025-12-17)
+- 修复了二进制消息接收问题
+- 支持在主线程返回回调
+- 修复了发送二进制失败问题
+- 完成了ack回调测试
+- 支持二进制数据测试
+- 优化了socket.io消息处理
+- 修复了监听event错误
+- 重构了socket.io消息解析位置
+
+### v3.1 (2025-12-11)
+- 完成了v2及v3协议的轮询和WebSocket测试
+
+### v3.0 (2025-12-11)
+- 支持Socket.IO 3.0协议
+- 优化了WebSocket调试
+- 美化了demo界面
+
 ## 协议支持
 - **Socket.IO 2.0 (Engine.IO 3.x)** - 默认支持（服务端建议 Node.js ^2.5.0）
 - **Socket.IO 3.0 (Engine.IO 4.x)** - 新增支持，通过配置协议版本开启
@@ -181,7 +201,7 @@ Socket.IO client for iOS. Supports Socket.IO 2.0+ and 3.0+ with a clean architec
 ### 4.1 基本使用
 
 ```objective-c
-#import "RTCVPSocketIO.h"
+#import <VPSocketIO/RTCVPSocketIO.h>
 
 // 1. 创建日志配置
 RTCVPSocketLogger *logger = [[RTCVPSocketLogger alloc] init];
@@ -198,37 +218,47 @@ NSDictionary *connectParams = @{
     @"resolution": @"1820*1080"
 };
 
-// 3. 创建配置对象
-RTCVPSocketIOConfig *config = [RTCVPSocketIOConfig configWithBlock:^(RTCVPSocketIOConfig *config) {
-    config.loggingEnabled = YES;
-    config.reconnectionEnabled = YES;
-    config.reconnectionAttempts = 3;
-    config.secure = YES;
-    config.forceNewConnection = YES;
-    config.allowSelfSignedCertificates = YES;
-    config.connectTimeout = 15;
-    config.namespace = @"/";
-    config.connectParams = connectParams;
-    config.logger = logger;
-    config.protocolVersion = RTCVPSocketIOProtocolVersion3; // 使用Socket.IO 3.0
-    config.transport = RTCVPSocketIOTransportWebSocket; // 使用WebSocket传输
-}];
+// 3. 获取协议版本和传输方式
+RTCVPSocketIOProtocolVersion protocolVersion = RTCVPSocketIOProtocolVersion3; // Socket.IO 3.0
+RTCVPSocketIOTransport transport = RTCVPSocketIOTransportWebSocket; // WebSocket
 
-// 4. 创建Socket客户端
-NSURL *url = [NSURL URLWithString:@"https://localhost:3443"];
-RTCVPSocketIOClient *socket = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+// 4. 创建配置对象
+RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+config.loggingEnabled = YES;
+config.reconnectionEnabled = YES;
+config.reconnectionAttempts = 3;
+config.secure = YES;
+config.forceNewConnection = YES;
+config.allowSelfSignedCertificates = YES;
+config.ignoreSSLErrors = NO;
+config.reconnectionDelay = 2;
+config.connectTimeout = 15;
+config.namespace = @"/";
+config.connectParams = connectParams;
+config.logger = logger;
+config.protocolVersion = protocolVersion;
+config.transport = transport;
 
-// 5. 监听连接事件
-[socket on:kSocketEventConnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+// 5. 创建Socket客户端
+NSString *urlString = @"https://localhost:3443";
+RTCVPSocketIOClient *socket = [[RTCVPSocketIOClient alloc] initWithSocketURL:[NSURL URLWithString:urlString] config:config];
+
+// 6. 监听连接事件
+[socket on:RTCVPSocketEventConnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
     NSLog(@"✅ 连接成功");
 }];
 
-// 6. 监听断开连接事件
-[socket on:kSocketEventDisconnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+// 7. 监听断开连接事件
+[socket on:RTCVPSocketEventDisconnect callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
     NSLog(@"❌ 断开连接: %@", array);
 }];
 
-// 7. 监听自定义事件
+// 8. 监听错误事件
+[socket on:RTCVPSocketEventError callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+    NSLog(@"⚠️ 连接出错: %@", array);
+}];
+
+// 9. 监听自定义事件
 [socket on:@"chatMessage" callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
     if (array.count > 0) {
         NSDictionary *messageData = array.firstObject;
@@ -236,14 +266,75 @@ RTCVPSocketIOClient *socket = [[RTCVPSocketIOClient alloc] initWithSocketURL:url
     }
 }];
 
-// 8. 连接服务器
-[socket connect];
+// 10. 监听二进制消息事件
+[socket on:@"binaryEvent" callback:^(NSArray *array, RTCVPSocketAckEmitter *emitter) {
+    if (array.count > 0) {
+        NSDictionary *binaryData = array.firstObject;
+        NSString *sender = binaryData[@"sender"];
+        NSString *text = binaryData[@"text"];
+        NSData *binary = binaryData[@"binaryData"];
+        
+        NSLog(@"📥 二进制消息来自: %@, 文本: %@, 大小: %lu字节", 
+              sender, text ?: @"无文本", (unsigned long)[binary length]);
+    }
+}];
 
-// 9. 断开连接
+// 11. 连接服务器
+[socket connectWithTimeoutAfter:15 withHandler:^{        
+    NSLog(@"⏱️ 连接超时");
+}];
+
+// 12. 断开连接
 // [socket disconnect];
 ```
 
-### 4.2 带ACK的消息发送
+### 4.2 发送文本消息
+
+```objective-c
+// 确保Socket已连接
+if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
+    // 发送消息
+    NSDictionary *messageData = @{        
+        @"message": @"Hello, World!",
+        @"timestamp": @([NSDate date].timeIntervalSince1970)
+    };
+    
+    [self.socket emit:@"chatMessage" items:@[messageData]];
+}
+```
+
+### 4.3 发送二进制消息
+
+```objective-c
+// 确保Socket已连接
+if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
+    // 创建模拟二进制数据
+    NSMutableData *binaryData = [NSMutableData data];
+    for (int i = 0; i < 1024; i++) {
+        // 填充简单数据：0-255循环
+        uint8_t byte = (uint8_t)(i % 256);
+        [binaryData appendBytes:&byte length:1];
+    }
+    
+    // 构造发送数据
+    NSDictionary *sendData = @{
+        @"binaryData": binaryData,
+        @"text": @"testData: iOS客户端发送的二进制测试数据",
+        @"timestamp": @([NSDate date].timeIntervalSince1970)
+    };
+    
+    // 发送带ACK的二进制消息
+    [self.socket emitWithAck:@"binaryEvent" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"❌ 二进制消息发送失败: %@", error.localizedDescription);
+        } else {
+            NSLog(@"✅ 二进制消息发送成功, ACK: %@", data);
+        }
+    } timeout:10.0];
+}
+```
+
+### 4.4 带ACK的消息发送
 
 ```objective-c
 // 发送带确认的消息
@@ -252,7 +343,7 @@ NSDictionary *messageData = @{
     @"timestamp": @([NSDate date].timeIntervalSince1970)
 };
 
-[socket emitWithAck:@"chatMessage" items:@[messageData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+[self.socket emitWithAck:@"chatMessage" items:@[messageData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
     if (error) {
         NSLog(@"⚠️ 发送失败: %@", error.localizedDescription);
     } else {
@@ -261,27 +352,46 @@ NSDictionary *messageData = @{
 } timeout:10.0];
 ```
 
-### 4.3 协议版本和传输方式选择
+### 4.5 并发ACK测试
 
 ```objective-c
-// 获取当前选中的协议版本和传输方式
-RTCVPSocketIOProtocolVersion protocolVersion;
-if (self.protocolSegment.selectedSegmentIndex == 0) {
-    protocolVersion = RTCVPSocketIOProtocolVersion2; // Socket.IO 2.0
-} else {
-    protocolVersion = RTCVPSocketIOProtocolVersion3; // Socket.IO 3.0
-}
+// 测试参数
+const NSInteger testCount = 10; // 测试10个并发ACK
+__block NSInteger completedCount = 0;
+__block NSInteger successCount = 0;
+__block NSInteger failureCount = 0;
 
-RTCVPSocketIOTransport transport;
-if (self.transportSegment.selectedSegmentIndex == 0) {
-    transport = RTCVPSocketIOTransportPolling; // 轮询
-} else {
-    transport = RTCVPSocketIOTransportWebSocket; // WebSocket
+for (NSInteger i = 0; i < testCount; i++) {
+    NSInteger testIndex = i;
+    
+    // 发送带ACK的自定义事件
+    [self.socket emitWithAck:@"customEvent" 
+                     items:@[@{        
+                         @"testIndex": @(testIndex),
+                         @"message": [NSString stringWithFormat:@"ACK Test %ld", (long)testIndex],
+                         @"timestamp": @([NSDate date].timeIntervalSince1970)
+                     }] 
+                  ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+        completedCount++;
+        
+        if (error) {
+            failureCount++;
+            NSLog(@"❌ ACK %ld 失败: %@", (long)testIndex, error.localizedDescription);
+        } else {
+            successCount++;
+            NSLog(@"✅ ACK %ld 成功: %@", (long)testIndex, data);
+        }
+        
+        // 所有测试完成，显示结果
+        if (completedCount == testCount) {
+            NSLog(@"📊 并发ACK测试完成: 总请求 %ld, 成功 %ld, 失败 %ld", 
+                  (long)testCount, (long)successCount, (long)failureCount);
+        }
+    } timeout:10.0];
+    
+    // 添加小延迟避免请求过于集中
+    usleep(5000); // 5ms延迟
 }
-
-// 在配置中使用
-config.protocolVersion = protocolVersion;
-config.transport = transport;
 ```
 
 ## 5. 配置选项
@@ -396,7 +506,70 @@ MIT License
 - 基于 [SocketIO-Client-Swift](https://github.com/socketio/socket.io-client-swift) 开发
 - 使用 [Jetfire](https://github.com/acmacalister/jetfire) 作为WebSocket库
 
-## 14. 联系方式
+## 14. 测试服务器使用指南
+
+### 14.1 安装依赖
+
+```bash
+cd ${PWD}/RTCVPSocketIO/testServer
+npm install
+```
+
+### 14.2 启动服务器
+
+```bash
+npm start
+```
+
+服务器将在以下地址运行：
+- HTTP服务：http://localhost:3000
+- HTTPS服务：https://localhost:3443
+- WebSocket端点：ws://localhost:3000 和 wss://localhost:3443
+
+### 14.3 端口占用排查
+
+如果启动服务器时遇到"Address already in use"错误，说明端口已被占用。可以使用以下命令排查：
+
+```bash
+# 查看占用3000端口的进程
+lsof -i :3000 | grep LISTEN
+
+# 查看占用3443端口的进程
+lsof -i :3443 | grep LISTEN
+```
+
+### 14.4 终止占用端口的进程
+
+如果发现端口被占用，可以使用以下命令终止占用端口的进程：
+
+```bash
+# 终止占用3000端口的进程
+kill -9 $(lsof -t -i :3000)
+
+# 终止占用3443端口的进程
+kill -9 $(lsof -t -i :3443)
+```
+
+### 14.5 测试流程
+
+1. **启动服务器**：按照上述步骤启动测试服务器
+2. **打开HTML测试页面**：直接在浏览器中打开 `http://localhost:3000/index.html` 或 `https://localhost:3443/index.html`
+3. **运行iOS Demo**：打开 `VPSocketIO.xcodeproj`，运行Demo应用
+4. **测试连接**：在iOS Demo或HTML页面中点击"Connect"按钮连接服务器
+5. **发送消息**：测试文本消息和二进制消息的发送与接收
+6. **测试ACK**：使用ACK测试按钮测试带确认的消息
+
+### 14.6 测试功能
+
+测试服务器支持以下功能：
+- 连接/断开连接事件
+- 聊天消息广播
+- 自定义事件处理
+- 二进制消息传输
+- 定期心跳消息
+- ACK响应机制
+
+## 15. 联系方式
 
 如有问题，请提交Issue或联系维护者。
 
