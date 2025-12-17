@@ -24,6 +24,9 @@ Socket.IO client for iOS. Supports Socket.IO 2.0+ and 3.0+ with a clean architec
 - 优化了WebSocket调试
 - 美化了demo界面
 
+## 未来计划
+底层的线程和数据处理打算替换成WebRTC的base库；以及日志部分
+
 ## 协议支持
 - **Socket.IO 2.0 (Engine.IO 3.x)** - 默认支持（服务端建议 Node.js ^2.5.0）
 - **Socket.IO 3.0 (Engine.IO 4.x)** - 新增支持，通过配置协议版本开启
