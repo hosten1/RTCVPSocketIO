@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Test Client</title>
+    <link rel="stylesheet" href="test.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Socket.IO Test Client</h1>
+
+        <div class="status" id="status">Disconnected</div>
+
+        <div class="controls">
+            <button id="connect">Connect to Server</button>
+            <button id="disconnect" disabled>Disconnect</button>
+            <button id="sendCustomEvent">Send Custom Event</button>
+            <button id="testAck" disabled>ACK Test</button>
+            <button id="sendBinary" disabled>Send Binary</button>
+            <button id="testBinaryAck" disabled>Binary ACK Test</button>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Enter message..." disabled>
+            <button id="send" disabled>Send</button>
+        </div>
+
+        <div class="message-area" id="messageArea">
+            <div class="message system">Ready to connect to server...</div>
+        </div>
+
+        <div>
+            <h3>Server URL:</h3>
+            <input type="text" id="serverUrl" value="http://localhost:3000" style="width: 100%; margin-bottom: 10px;">
+        </div>
+    </div>
+
+    <!-- Socket.IO Client Library (Local) -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="test.js"></script>
+</body>
+
+</html>

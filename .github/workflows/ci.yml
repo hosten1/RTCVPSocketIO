@@ -1,0 +1,78 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ main, SocketIOV3, socketiov2 ]
+  pull_request:
+    branches: [ main, SocketIOV3, socketiov2 ]
+  workflow_dispatch:
+    inputs:
+      debug: 
+        description: 'Debug Mode'
+        required: false
+        default: 'false'
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup Xcode version
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+    
+    - name: Install dependencies (if any)
+      run: |
+        # 如果项目使用了CocoaPods，取消注释以下行
+        # pod install
+    
+    - name: Build and Test
+      run: |
+        xcodebuild -project VPSocketIO.xcodeproj -scheme VPSocketIO -configuration Release clean build test -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" 2>&1 | xcpretty
+    
+    - name: Build Framework
+      run: |
+        xcodebuild -project VPSocketIO.xcodeproj -scheme VPSocketIO -configuration Release clean build -destination "generic/platform=iOS" 2>&1 | xcpretty
+    
+    - name: Build App
+      run: |
+        xcodebuild -project VPSocketIO.xcodeproj -scheme VPSocketIOApp -configuration Release clean build -destination "generic/platform=iOS" 2>&1 | xcpretty
+    
+    - name: Build Universal Framework
+      run: |
+        ./build-framework.sh
+    
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: builds
+        path: |
+          build/Framework/
+          build/Release-iphoneos/
+          build/Release-iphonesimulator/
+        retention-days: 7
+        
+  test-server:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: |
+        cd testServer
+        npm install
+    
+    - name: Test server build
+      run: |
+        cd testServer
+        npm run build --if-present
+        npm run test --if-present
