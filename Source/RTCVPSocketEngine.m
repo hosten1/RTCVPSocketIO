@@ -592,17 +592,29 @@ NSURLSessionDelegate>
     
     [self log:[NSString stringWithFormat:@"Got binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
     
+    // 直接处理数据作为有效负载，因为WebSocket帧的有效负载已经在EngineWebsocket分类中提取过了
+    [self processEngineBinaryPayload:data];
+}
+
+- (void)processEngineBinaryPayload:(NSData *)payload {
+    if (!payload || payload.length == 0) {
+        [self log:@"Received empty binary payload" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    [self log:[NSString stringWithFormat:@"Processing binary payload, length: %lu", (unsigned long)payload.length] level:RTCLogLevelDebug];
+    
     // 根据协议版本处理二进制数据
     if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
         // Engine.IO 3.x 协议：二进制数据前会有一个字节的标记
         // 第一个字节是 0x04 表示二进制消息
-        if (data.length > 1) {
-            const Byte *bytes = (const Byte *)data.bytes;
+        if (payload.length > 1) {
+            const Byte *bytes = (const Byte *)payload.bytes;
             Byte firstByte = bytes[0];
             
             if (firstByte == 0x04) {
                 // 提取实际的二进制数据
-                NSData *actualData = [data subdataWithRange:NSMakeRange(1, data.length - 1)];
+                NSData *actualData = [payload subdataWithRange:NSMakeRange(1, payload.length - 1)];
                 [self log:[NSString stringWithFormat:@"Engine.IO 3.x binary data, length: %lu", (unsigned long)actualData.length] level:RTCLogLevelDebug];
                 
                 // 传递给客户端处理
@@ -615,11 +627,11 @@ NSURLSessionDelegate>
         }
     } else {
         // Engine.IO 4.x+ 协议：直接是二进制数据
-        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)payload.length] level:RTCLogLevelDebug];
         
         // 直接传递给客户端处理
         if (self.client) {
-            [self.client parseEngineBinaryData:data];
+            [self.client parseEngineBinaryData:payload];
         }
     }
 }
