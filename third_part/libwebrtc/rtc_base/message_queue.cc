@@ -10,7 +10,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/algorithm/container.h"
 #include "rtc_base/atomic_ops.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
@@ -79,7 +78,8 @@ void MessageQueueManager::RemoveInternal(MessageQueue* message_queue) {
     // Prevent changes while the list of message queues is processed.
     RTC_DCHECK_EQ(processing_, 0);
     std::vector<MessageQueue*>::iterator iter;
-    iter = absl::c_find(message_queues_, message_queue);
+    // 将 absl::c_find 替换为 std::find
+    iter = std::find(message_queues_.begin(), message_queues_.end(), message_queue);
     if (iter != message_queues_.end()) {
       message_queues_.erase(iter);
     }

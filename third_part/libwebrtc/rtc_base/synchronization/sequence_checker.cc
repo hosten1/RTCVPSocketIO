@@ -28,28 +28,31 @@ const void* GetSystemQueueRef() {
 
 SequenceCheckerImpl::SequenceCheckerImpl()
     : attached_(true),
-//      valid_queue_(TaskQueueBase::Current()),
+      valid_thread_(rtc::CurrentThreadRef()),
+      valid_queue_(TaskQueueBase::Current()),
       valid_system_queue_(GetSystemQueueRef()) {}
 
 SequenceCheckerImpl::~SequenceCheckerImpl() = default;
 
 bool SequenceCheckerImpl::IsCurrent() const {
-//  const TaskQueueBase* const current_queue = TaskQueueBase::Current();
+  const TaskQueueBase* const current_queue = TaskQueueBase::Current();
+  const rtc::PlatformThreadRef current_thread = rtc::CurrentThreadRef();
   const void* const current_system_queue = GetSystemQueueRef();
   rtc::CritScope scoped_lock(&lock_);
   if (!attached_) {  // Previously detached.
     attached_ = true;
-//    valid_queue_ = current_queue;
+    valid_thread_ = current_thread;
+    valid_queue_ = current_queue;
     valid_system_queue_ = current_system_queue;
     return true;
   }
-//  if (valid_queue_ || current_queue) {
-//    return valid_queue_ == current_queue;
-//  }
+  if (valid_queue_ || current_queue) {
+    return valid_queue_ == current_queue;
+  }
   if (valid_system_queue_ && valid_system_queue_ == current_system_queue) {
     return true;
   }
-  return true;
+  return rtc::IsThreadRefEqual(valid_thread_, current_thread);
 }
 
 void SequenceCheckerImpl::Detach() {

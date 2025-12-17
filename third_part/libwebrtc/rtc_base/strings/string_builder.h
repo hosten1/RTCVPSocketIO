@@ -15,7 +15,7 @@
 #include <string>
 #include <utility>
 
-#include "rtc_base/string_view.h"
+#include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "rtc_base/string_encode.h"
 // TODO(nisse): Delete, as as soon as downstream applications are updated to not

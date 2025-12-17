@@ -25,6 +25,7 @@
 #endif
 
 #include <stdio.h>
+
 #include <utility>
 
 #include "rtc_base/checks.h"
@@ -174,7 +175,6 @@ Thread::Thread(std::unique_ptr<SocketServer> ss, bool do_init)
   if (do_init) {
     DoInit();
   }
-  //RTC_LOG(LS_INFO) << "[vrv_wy] Thread Thread";
 }
 
 Thread::~Thread() {
@@ -230,9 +230,9 @@ bool Thread::SetName(const std::string& name, const void* obj) {
   return true;
 }
 
-bool Thread::Start(Runnable* runnable) {
+bool Thread::Start() {
   RTC_DCHECK(!IsRunning());
-  //RTC_LOG(LS_INFO) << "[vrv_wy] Thread Start: name=" << name_.c_str() << ",fd=" << thread_;
+
   if (IsRunning())
     return false;
 
@@ -244,11 +244,8 @@ bool Thread::Start(Runnable* runnable) {
 
   owned_ = true;
 
-  ThreadInit* init = new ThreadInit;
-  init->thread = this;
-  init->runnable = runnable;
 #if defined(WEBRTC_WIN)
-  thread_ = CreateThread(nullptr, 0, PreRun, init, 0, &thread_id_);
+  thread_ = CreateThread(nullptr, 0, PreRun, this, 0, &thread_id_);
   if (!thread_) {
     return false;
   }
@@ -256,7 +253,7 @@ bool Thread::Start(Runnable* runnable) {
   pthread_attr_t attr;
   pthread_attr_init(&attr);
 
-  int error_code = pthread_create(&thread_, &attr, PreRun, init);
+  int error_code = pthread_create(&thread_, &attr, PreRun, this);
   if (0 != error_code) {
     RTC_LOG(LS_ERROR) << "Unable to create pthread, error " << error_code;
     thread_ = 0;
@@ -264,17 +261,14 @@ bool Thread::Start(Runnable* runnable) {
   }
   RTC_DCHECK(thread_);
 #endif
-
   return true;
 }
 
 bool Thread::WrapCurrent() {
-  //RTC_LOG(LS_INFO) << "[vrv_wy] Thread WrapCurrent: name=" << name_.c_str() << ",fd=" << thread_;
   return WrapCurrentWithThreadManager(ThreadManager::Instance(), true);
 }
 
 void Thread::UnwrapCurrent() {
-  //RTC_LOG(LS_INFO) << "[vrv_wy] Thread UnwrapCurrent: name=" << name_.c_str() << ",fd=" << thread_;
   // Clears the platform-specific thread-specific storage.
   ThreadManager::Instance()->SetCurrentThread(nullptr);
 #if defined(WEBRTC_WIN)
@@ -338,28 +332,24 @@ DWORD WINAPI Thread::PreRun(LPVOID pv) {
 #else
 void* Thread::PreRun(void* pv) {
 #endif
-  ThreadInit* init = static_cast<ThreadInit*>(pv);
-  ThreadManager::Instance()->SetCurrentThread(init->thread);
-  rtc::SetCurrentThreadName(init->thread->name_.c_str());
+  Thread* thread = static_cast<Thread*>(pv);
+  ThreadManager::Instance()->SetCurrentThread(thread);
+  rtc::SetCurrentThreadName(thread->name_.c_str());
+  CurrentTaskQueueSetter set_current_task_queue(thread);
 #if defined(WEBRTC_MAC)
   ScopedAutoReleasePool pool;
 #endif
-  if (init->runnable) {
-    init->runnable->Run(init->thread);
-  } else {
-    init->thread->Run();
-  }
+  thread->Run();
+
   ThreadManager::Instance()->SetCurrentThread(nullptr);
-  delete init;
 #ifdef WEBRTC_WIN
   return 0;
 #else
   return nullptr;
 #endif
-}
+}  // namespace rtc
 
 void Thread::Run() {
-  //RTC_LOG(LS_INFO) << "[vrv_wy] Thread Run: name=" << name_.c_str() << ",fd=" << thread_;
   ProcessMessages(kForever);
 }
 
@@ -369,9 +359,8 @@ bool Thread::IsOwned() {
 }
 
 void Thread::Stop() {
-  //RTC_LOG(LS_INFO) << "[vrv_wy] Thread Stop: name=" << name_.c_str() << ",fd=" << thread_;
   MessageQueue::Quit();
-  Join();  
+  Join();
 }
 
 void Thread::Send(const Location& posted_from,
@@ -480,11 +469,56 @@ bool Thread::PopSendMessageFromThread(const Thread* source, _SendMessage* msg) {
 }
 
 void Thread::InvokeInternal(const Location& posted_from,
-                            MessageHandler* handler) {
-  TRACE_EVENT2("webrtc", "Thread::Invoke", "src_file_and_line",
-               posted_from.file_and_line(), "src_func",
-               posted_from.function_name());
-  Send(posted_from, handler);
+                            rtc::FunctionView<void()> functor) {
+  TRACE_EVENT2("webrtc", "Thread::Invoke", "src_file", posted_from.file_name(),
+               "src_func", posted_from.function_name());
+
+  class FunctorMessageHandler : public MessageHandler {
+   public:
+    explicit FunctorMessageHandler(rtc::FunctionView<void()> functor)
+        : functor_(functor) {}
+    void OnMessage(Message* msg) override { functor_(); }
+
+   private:
+    rtc::FunctionView<void()> functor_;
+  } handler(functor);
+
+  Send(posted_from, &handler);
+}
+
+void Thread::QueuedTaskHandler::OnMessage(Message* msg) {
+  RTC_DCHECK(msg);
+  auto* data = static_cast<ScopedMessageData<webrtc::QueuedTask>*>(msg->pdata);
+  std::unique_ptr<webrtc::QueuedTask> task = std::move(data->data());
+  // MessageQueue expects handler to own Message::pdata when OnMessage is called
+  // Since MessageData is no longer needed, delete it.
+  delete data;
+
+  // QueuedTask interface uses Run return value to communicate who owns the
+  // task. false means QueuedTask took the ownership.
+  if (!task->Run())
+    task.release();
+}
+
+void Thread::PostTask(std::unique_ptr<webrtc::QueuedTask> task) {
+  // Though Post takes MessageData by raw pointer (last parameter), it still
+  // takes it with ownership.
+  Post(RTC_FROM_HERE, &queued_task_handler_,
+       /*id=*/0, new ScopedMessageData<webrtc::QueuedTask>(std::move(task)));
+}
+
+void Thread::PostDelayedTask(std::unique_ptr<webrtc::QueuedTask> task,
+                             uint32_t milliseconds) {
+  // Though PostDelayed takes MessageData by raw pointer (last parameter),
+  // it still takes it with ownership.
+  PostDelayed(RTC_FROM_HERE, milliseconds, &queued_task_handler_,
+              /*id=*/0,
+              new ScopedMessageData<webrtc::QueuedTask>(std::move(task)));
+}
+
+void Thread::Delete() {
+  Stop();
+  delete this;
 }
 
 bool Thread::IsProcessingMessagesForTesting() {
@@ -580,8 +614,11 @@ bool Thread::IsRunning() {
 
 AutoThread::AutoThread()
     : Thread(SocketServer::CreateDefault(), /*do_init=*/false) {
-  DoInit();
   if (!ThreadManager::Instance()->CurrentThread()) {
+    // DoInit registers with MessageQueueManager. Do that only if we intend to
+    // be rtc::Thread::Current(), otherwise ProcessAllMessageQueuesInternal will
+    // post a message to a queue that no running thread is serving.
+    DoInit();
     ThreadManager::Instance()->SetCurrentThread(this);
   }
 }

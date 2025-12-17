@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <string>
 #include <utility>
+#include <algorithm>  // 添加 algorithm 头文件
 
 #if defined(WEBRTC_WIN)
 #include <windows.h>
@@ -23,11 +24,20 @@
 #include <unistd.h>
 #endif  // WEBRTC_WIN
 
-#include "absl/algorithm/container.h"
-#include "absl/strings/match.h"
 #include "absl/types/optional.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+
+// 自定义 EndsWith 函数替代 absl::EndsWith
+namespace absl_alternative {
+inline bool EndsWith(const std::string& str, const std::string& suffix) {
+    if (suffix.size() > str.size()) return false;
+    return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+}
+}  // namespace absl_alternative
+
+// 使用自定义的 EndsWith
+#define absl_EndsWith absl_alternative::EndsWith
 
 // Note: We use fprintf for logging in the write paths of this stream to avoid
 // infinite loops when logging.
@@ -53,7 +63,7 @@ absl::optional<size_t> GetFileSize(const std::string& file);
 #if defined(WEBRTC_WIN)
 
 std::string AddTrailingPathDelimiterIfNeeded(std::string directory) {
-  if (absl::EndsWith(directory, "\\")) {
+  if (absl_EndsWith(directory, "\\")) {
     return directory;
   }
   return directory + "\\";
@@ -61,7 +71,7 @@ std::string AddTrailingPathDelimiterIfNeeded(std::string directory) {
 
 std::vector<std::string> GetFilesWithPrefix(const std::string& directory,
                                             const std::string& prefix) {
-  RTC_DCHECK(absl::EndsWith(directory, "\\"));
+  RTC_DCHECK(absl_EndsWith(directory, "\\"));
   WIN32_FIND_DATAW data;
   HANDLE handle;
   handle = ::FindFirstFileW(ToUtf16(directory + prefix + '*').c_str(), &data);
@@ -113,7 +123,7 @@ absl::optional<size_t> GetFileSize(const std::string& file) {
 #else  // defined(WEBRTC_WIN)
 
 std::string AddTrailingPathDelimiterIfNeeded(std::string directory) {
-  if (absl::EndsWith(directory, "/")) {
+  if (absl_EndsWith(directory, "/")) {
     return directory;
   }
   return directory + "/";
@@ -121,7 +131,7 @@ std::string AddTrailingPathDelimiterIfNeeded(std::string directory) {
 
 std::vector<std::string> GetFilesWithPrefix(const std::string& directory,
                                             const std::string& prefix) {
-  RTC_DCHECK(absl::EndsWith(directory, "/"));
+  RTC_DCHECK(absl_EndsWith(directory, "/"));
   DIR* dir = ::opendir(directory.c_str());
   if (dir == nullptr)
     return {};
@@ -391,7 +401,8 @@ FileRotatingStreamReader::FileRotatingStreamReader(
 
   // Plain sort of the file names would sort by age, i.e., oldest last. Using
   // std::greater gives us the desired chronological older, oldest first.
-  absl::c_sort(file_names_, std::greater<std::string>());
+  // 替换 absl::c_sort 为 std::sort
+  std::sort(file_names_.begin(), file_names_.end(), std::greater<std::string>());
 }
 
 FileRotatingStreamReader::~FileRotatingStreamReader() = default;

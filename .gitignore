@@ -8,3 +8,4 @@ VPSocketIO.xcodeproj/xcuserdata/
 build/
 build.log
 testServer/logs/
+third_part/libwebrtc/build/

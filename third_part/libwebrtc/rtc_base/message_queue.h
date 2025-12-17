@@ -13,7 +13,7 @@
 
 #include <string.h>
 
-#include <algorithm>
+#include <algorithm> 
 #include <list>
 #include <memory>
 #include <queue>

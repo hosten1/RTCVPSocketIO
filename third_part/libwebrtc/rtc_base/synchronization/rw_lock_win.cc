@@ -9,11 +9,10 @@
  */
 
 #include "rtc_base/synchronization/rw_lock_win.h"
-#ifdef _WIN32
+
 #include "rtc_base/logging.h"
-#endif
+
 namespace webrtc {
-#ifdef _WIN32
 
 typedef void(WINAPI* PInitializeSRWLock)(PSRWLOCK);
 
@@ -103,5 +102,5 @@ bool RWLockWin::LoadModule() {
 #endif  // !defined(WINUWP)
   return native_rw_locks_supported;
 }
-#endif
+
 }  // namespace webrtc

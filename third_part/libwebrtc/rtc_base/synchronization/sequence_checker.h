@@ -10,9 +10,10 @@
 #ifndef RTC_BASE_SYNCHRONIZATION_SEQUENCE_CHECKER_H_
 #define RTC_BASE_SYNCHRONIZATION_SEQUENCE_CHECKER_H_
 
-//#include "api/task_queue/task_queue_base.h"
+#include "api/task_queue/task_queue_base.h"
 #include "rtc_base/critical_section.h"
 #include "rtc_base/platform_thread_types.h"
+#include "rtc_base/system/rtc_export.h"
 #include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
@@ -22,7 +23,7 @@ namespace webrtc {
 //
 // Note: You should almost always use the SequenceChecker class to get the
 // right version for your build configuration.
-class SequenceCheckerImpl {
+class RTC_EXPORT SequenceCheckerImpl {
  public:
   SequenceCheckerImpl();
   ~SequenceCheckerImpl();
@@ -38,7 +39,7 @@ class SequenceCheckerImpl {
   // These are mutable so that IsCurrent can set them.
   mutable bool attached_ RTC_GUARDED_BY(lock_);
   mutable rtc::PlatformThreadRef valid_thread_ RTC_GUARDED_BY(lock_);
-//  mutable const TaskQueueBase* valid_queue_ RTC_GUARDED_BY(lock_);
+  mutable const TaskQueueBase* valid_queue_ RTC_GUARDED_BY(lock_);
   mutable const void* valid_system_queue_ RTC_GUARDED_BY(lock_);
 };
 

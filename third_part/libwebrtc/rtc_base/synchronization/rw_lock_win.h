@@ -10,14 +10,12 @@
 
 #ifndef RTC_BASE_SYNCHRONIZATION_RW_LOCK_WIN_H_
 #define RTC_BASE_SYNCHRONIZATION_RW_LOCK_WIN_H_
-#ifdef _WIN32
 
 #include <Windows.h>
 
 #include "rtc_base/synchronization/rw_lock_wrapper.h"
-#endif
+
 namespace webrtc {
-#ifdef _WIN32
 
 class RWLockWin : public RWLockWrapper {
  public:
@@ -35,7 +33,7 @@ class RWLockWin : public RWLockWrapper {
 
   SRWLOCK lock_;
 };
-#endif 
+
 }  // namespace webrtc
 
 #endif  // RTC_BASE_SYNCHRONIZATION_RW_LOCK_WIN_H_
