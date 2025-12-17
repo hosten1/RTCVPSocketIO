@@ -10,7 +10,6 @@
 #define RTCVPSocketIOClientProtocol_H
 
 #import <Foundation/Foundation.h>
-@class RTCVPSocketAckManager;
 @class RTCVPSocketAckEmitter;
 
 typedef void (^RTCVPScoketAckArrayCallback)(NSArray*array);

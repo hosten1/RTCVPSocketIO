@@ -335,56 +335,14 @@
     NSDictionary *frameInfo = [RTCVPWebSocketProtocolFixer analyzeWebSocketFrame:data];
     [self log:[NSString stringWithFormat:@"WebSocket帧分析: %@", frameInfo] level:RTCLogLevelDebug];
     
-    // 检查是否为有效帧
-    if (![RTCVPWebSocketProtocolFixer isValidWebSocketFrame:data]) {
-        [self log:@"收到无效WebSocket帧，尝试修复..." level:RTCLogLevelWarning];
-        
-        // 尝试修复帧
-        NSData *fixedData = [RTCVPWebSocketProtocolFixer fixWebSocketFrame:data];
-        
-        // 重新分析修复后的帧
-        frameInfo = [RTCVPWebSocketProtocolFixer analyzeWebSocketFrame:fixedData];
-        [self log:[NSString stringWithFormat:@"修复后帧分析: %@", frameInfo] level:RTCLogLevelDebug];
-        
-        data = fixedData;
-    }
-    
-    // 解析操作码
-    const uint8_t *bytes = (const uint8_t *)data.bytes;
-    uint8_t opcode = bytes[0] & 0x0F;
-    
-    // 处理不同类型的帧
-    switch (opcode) {
-        case 0x1: // 文本帧
-            [self handleWebSocketTextFrame:data];
-            break;
-            
-        case 0x2: // 二进制帧
-            [self log:@"收到WebSocket二进制帧" level:RTCLogLevelDebug];
-            [self parseEngineData:data];
-            break;
-            
-        case 0x9: // Ping
-            [self log:@"收到WebSocket Ping帧" level:RTCLogLevelDebug];
-            [self handleWebSocketPing:data];
-            break;
-            
-        case 0xA: // Pong
-            [self log:@"收到WebSocket Pong帧" level:RTCLogLevelDebug];
-            [self handleWebSocketPong:data];
-            break;
-            
-        case 0x8: // 关闭连接
-            [self log:@"收到WebSocket关闭帧" level:RTCLogLevelDebug];
-            [self handleWebSocketClose:data];
-            break;
-            
-        default:
-            [self log:[NSString stringWithFormat:@"收到操作码为0x%02X的帧，尝试作为文本处理", opcode]
-                level:RTCLogLevelWarning];
-            [self handleWebSocketTextFrame:data];
-            break;
-    }
+    // RTCJFRWebSocket 已经正确解析了 WebSocket 帧
+    // 我们收到的 data 已经是有效负载（去除了帧头、掩码等）
+       
+    [self log:[NSString stringWithFormat:@"📦 收到WebSocket二进制数据，长度: %lu", (unsigned long)data.length]
+            level:RTCLogLevelInfo];
+       
+    // 直接传递给 parseEngineData
+    [self parseEngineData:data];
 }
 
 // 添加处理WebSocket文本帧的方法

@@ -3,25 +3,68 @@
 #import "RTCVPSocketIOClientProtocol.h"
 #import "RTCVPSocketIOConfig.h"
 
-// Socket.IO客户端状态枚举
-typedef NS_ENUM(NSUInteger, RTCVPSocketIOClientStatus) {
-    RTCVPSocketIOClientStatusNotConnected = 0x1,  // 未连接
-    RTCVPSocketIOClientStatusDisconnected = 0x2,  // 已断开连接
-    RTCVPSocketIOClientStatusConnecting = 0x3,    // 连接中
-    RTCVPSocketIOClientStatusOpened = 0x4,        // 连接已打开
-    RTCVPSocketIOClientStatusConnected = 0x5      // 已连接
+// 事件类型
+typedef NS_ENUM(NSUInteger, RTCVPSocketClientEvent) {
+    RTCVPSocketClientEventConnect = 0x0,
+    RTCVPSocketClientEventDisconnect,
+    RTCVPSocketClientEventError,
+    RTCVPSocketClientEventReconnect,
+    RTCVPSocketClientEventReconnectAttempt,
+    RTCVPSocketClientEventStatusChange,
 };
 
-// Socket.IO事件名称常量
-extern NSString * _Nonnull  const kSocketEventConnect;
-extern NSString * _Nonnull const kSocketEventDisconnect;
-extern NSString * _Nonnull const kSocketEventError;
-extern NSString * _Nonnull const kSocketEventReconnect;
-extern NSString * _Nonnull const kSocketEventReconnectAttempt;
-extern NSString * _Nonnull const kSocketEventStatusChange;
+// 客户端状态
+typedef NS_ENUM(NSUInteger, RTCVPSocketIOClientStatus) {
+    RTCVPSocketIOClientStatusNotConnected = 0,
+    RTCVPSocketIOClientStatusDisconnected,
+    RTCVPSocketIOClientStatusConnecting,
+    RTCVPSocketIOClientStatusOpened,
+    RTCVPSocketIOClientStatusConnected,
+};
+
+// 事件字符串常量
+extern NSString * _Nullable const RTCVPSocketEventConnect;
+extern NSString * _Nullable const RTCVPSocketEventDisconnect;
+extern NSString * _Nullable const RTCVPSocketEventError;
+extern NSString * _Nullable const RTCVPSocketEventReconnect;
+extern NSString * _Nullable const RTCVPSocketEventReconnectAttempt;
+extern NSString * _Nullable const RTCVPSocketEventStatusChange;
+
+// 状态字符串常量
+extern NSString * _Nullable const RTCVPSocketStatusNotConnected;
+extern NSString * _Nullable const RTCVPSocketStatusDisconnected;
+extern NSString * _Nullable const RTCVPSocketStatusConnecting;
+extern NSString * _Nullable const RTCVPSocketStatusOpened;
+extern NSString * _Nullable const RTCVPSocketStatusConnected;
 
 // 全局事件类前向声明
 @class RTCVPSocketAnyEvent;
+
+// ACK发射器类
+extern NSString * _Nonnull const kRTCVPSocketAckEmitterErrorDomain;
+
+extern NSInteger const kRTCVPSocketAckEmitterErrorSendFailed;
+
+@interface RTCVPSocketAckEmitter : NSObject
+
+/// ACK ID
+@property (nonatomic, assign) NSInteger ackId;
+
+/// 初始化方法
+- (instancetype _Nonnull)initWithAckId:(NSInteger)ackId emitBlock:(void (^_Nullable)(NSArray *_Nullable items))emitBlock;
+
+/// 发送ACK响应
+- (void)send:(NSArray *_Nullable)items;
+
+@end
+
+// 类扩展，用于声明私有属性
+@interface RTCVPSocketAckEmitter ()
+
+/// 内部emitBlock
+@property (nonatomic, copy) void (^_Nullable emitBlock)(NSArray *_Nullable items);
+
+@end
 
 // 回调类型定义
 typedef void (^RTCVPSocketIOVoidHandler)(void);
@@ -34,11 +77,11 @@ typedef void (^RTCVPSocketConnectHandler)(BOOL connected, NSError * _Nullable er
 /// 客户端状态
 @property (nonatomic, readonly) RTCVPSocketIOClientStatus status;
 /// 强制创建新连接
-@property (nonatomic) BOOL forceNew;
+@property (nonatomic,assign) BOOL forceNew;
 /// 配置对象
 @property (nonatomic, strong, readonly) RTCVPSocketIOConfig * _Nullable config;
 /// 是否启用重连
-@property (nonatomic) BOOL reconnects;
+@property (nonatomic,assign) BOOL reconnects;
 /// 重连等待时间（秒）
 @property (nonatomic) NSTimeInterval reconnectWait;
 /// 重连尝试次数

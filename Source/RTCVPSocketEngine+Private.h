@@ -72,18 +72,13 @@ typedef enum : NSUInteger{
 @property (nonatomic, copy) NSString *probeTimeoutTaskId;
 @property (nonatomic, copy) NSString *connectionTimeoutTaskId;
 
-// ACK管理
-@property (nonatomic, strong) RTCVPACKManager *ackManager;
-@property (nonatomic, assign) NSInteger ackIdCounter;
 
 // 线程安全锁，保护共享状态变量
 @property (nonatomic, strong) NSLock *stateLock;
 
-/// 生成唯一的ACK ID
-- (NSInteger)generateACKId;
 
 /// 处理Socket.IO消息（支持ACK）
-- (void)handleSocketIOMessage:(NSString *)message;
+//- (void)handleSocketIOMessage:(NSString *)message;
 
 // 内部连接方法
 - (void)_connect;

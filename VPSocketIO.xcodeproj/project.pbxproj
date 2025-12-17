@@ -18,13 +18,11 @@
 		1B364D592829FF3F00CCC820 /* RTCVPSocketLogger.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D322829FF3F00CCC820 /* RTCVPSocketLogger.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		1B364D5C2829FF3F00CCC820 /* RTCVPSocketIO.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D352829FF3F00CCC820 /* RTCVPSocketIO.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		1B364D5D2829FF3F00CCC820 /* RTCVPStringReader.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D362829FF3F00CCC820 /* RTCVPStringReader.h */; };
-		1B364D5E2829FF3F00CCC820 /* RTCVPSocketAckManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B364D372829FF3F00CCC820 /* RTCVPSocketAckManager.m */; };
 		1B364D622829FF3F00CCC820 /* RTCVPSocketEngine.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D3B2829FF3F00CCC820 /* RTCVPSocketEngine.h */; };
 		1B364D632829FF3F00CCC820 /* RTCVPSocketEngine+Private.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D3C2829FF3F00CCC820 /* RTCVPSocketEngine+Private.h */; };
 		1B364D662829FF3F00CCC820 /* RTCVPSocketPacket.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B364D3F2829FF3F00CCC820 /* RTCVPSocketPacket.m */; };
 		1B364D672829FF3F00CCC820 /* RTCVPSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B364D402829FF3F00CCC820 /* RTCVPSocketLogger.m */; };
 		1B364D682829FF3F00CCC820 /* RTCVPSocketIOClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D412829FF3F00CCC820 /* RTCVPSocketIOClient.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		1B364D692829FF3F00CCC820 /* RTCVPSocketAckManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D422829FF3F00CCC820 /* RTCVPSocketAckManager.h */; };
 		1B364D6A2829FF3F00CCC820 /* RTCVPStringReader.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B364D432829FF3F00CCC820 /* RTCVPStringReader.m */; };
 		1B364D6D2829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D472829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.h */; };
 		1B364D6F2829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B364D492829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.h */; };
@@ -32,14 +30,13 @@
 		1B364D722829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B364D4C2829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.m */; };
 		1B3D8C8429F21AE9001DEC5D /* VPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08E4F6E1F7ACFEB0032C8E3 /* VPSocketIO.framework */; };
 		1B3D8C8529F21AE9001DEC5D /* VPSocketIO.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F08E4F6E1F7ACFEB0032C8E3 /* VPSocketIO.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1B5D261F2EF1522C00D7875F /* VPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08E4F6E1F7ACFEB0032C8E3 /* VPSocketIO.framework */; };
 		1B91EEFD26281D35003120A7 /* VPSocketIOAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */; };
 		1BAA0A2F2EE95D1100DB39A2 /* RTCVPSocketIOConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BAA0A2D2EE95D1100DB39A2 /* RTCVPSocketIOConfig.h */; };
 		1BAA0A302EE95D1100DB39A2 /* RTCVPSocketIOConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BAA0A2E2EE95D1100DB39A2 /* RTCVPSocketIOConfig.m */; };
 		1BAA0A332EE96F3700DB39A2 /* RTCVPProbe.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BAA0A312EE96F3700DB39A2 /* RTCVPProbe.h */; };
 		1BAA0A342EE96F3700DB39A2 /* RTCVPProbe.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BAA0A322EE96F3700DB39A2 /* RTCVPProbe.m */; };
 		1BC443E52EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */; };
-		1BC443E82EEA53E600C8E846 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BC443E72EEA53E600C8E846 /* RTCVPACKManager.m */; };
-		1BC443E92EEA53E600C8E846 /* RTCVPACKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BC443E62EEA53E600C8E846 /* RTCVPACKManager.h */; };
 		1BE37A742EEBC2AD003ABC59 /* RTCVPACKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */; };
 		1BE37A752EEBC2AD003ABC59 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */; };
 		F06B19321F71466D003E81B1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19311F71466D003E81B1 /* main.m */; };
@@ -52,6 +49,13 @@
 
 /* Begin PBXContainerItemProxy section */
 		1B3D8C8629F21AE9001DEC5D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F06B19251F71466C003E81B1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F08E4F6D1F7ACFEB0032C8E3;
+			remoteInfo = VPSocketIO;
+		};
+		1B5D26202EF1522C00D7875F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F06B19251F71466C003E81B1 /* Project object */;
 			proxyType = 1;
@@ -93,19 +97,18 @@
 		1B364D322829FF3F00CCC820 /* RTCVPSocketLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketLogger.h; sourceTree = "<group>"; };
 		1B364D352829FF3F00CCC820 /* RTCVPSocketIO.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIO.h; sourceTree = "<group>"; };
 		1B364D362829FF3F00CCC820 /* RTCVPStringReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPStringReader.h; sourceTree = "<group>"; };
-		1B364D372829FF3F00CCC820 /* RTCVPSocketAckManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketAckManager.m; sourceTree = "<group>"; };
 		1B364D3B2829FF3F00CCC820 /* RTCVPSocketEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketEngine.h; sourceTree = "<group>"; };
 		1B364D3C2829FF3F00CCC820 /* RTCVPSocketEngine+Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+Private.h"; sourceTree = "<group>"; };
 		1B364D3F2829FF3F00CCC820 /* RTCVPSocketPacket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketPacket.m; sourceTree = "<group>"; };
 		1B364D402829FF3F00CCC820 /* RTCVPSocketLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketLogger.m; sourceTree = "<group>"; };
 		1B364D412829FF3F00CCC820 /* RTCVPSocketIOClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOClient.h; sourceTree = "<group>"; };
-		1B364D422829FF3F00CCC820 /* RTCVPSocketAckManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketAckManager.h; sourceTree = "<group>"; };
 		1B364D432829FF3F00CCC820 /* RTCVPStringReader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RTCVPStringReader.m; sourceTree = "<group>"; };
 		1B364D472829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EngineWebsocket.h"; sourceTree = "<group>"; };
 		1B364D492829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "RTCVPSocketEngine+EnginePollable.h"; sourceTree = "<group>"; };
 		1B364D4B2829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "RTCVPSocketEngine+EngineWebsocket.m"; sourceTree = "<group>"; };
 		1B364D4C2829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "RTCVPSocketEngine+EnginePollable.m"; sourceTree = "<group>"; };
 		1B364D7C282A029300CCC820 /* VPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VPSocketIO.framework; path = framework/VPSocketIO.framework; sourceTree = "<group>"; };
+		1B5D261B2EF1522C00D7875F /* VPSocketIOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VPSocketIOAppTests.m; sourceTree = "<group>"; };
 		1B91EEFE26281D35003120A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -114,8 +117,6 @@
 		1BAA0A312EE96F3700DB39A2 /* RTCVPProbe.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPProbe.h; sourceTree = "<group>"; };
 		1BAA0A322EE96F3700DB39A2 /* RTCVPProbe.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPProbe.m; sourceTree = "<group>"; };
 		1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOProtocolVersion.h; sourceTree = "<group>"; };
-		1BC443E62EEA53E600C8E846 /* RTCVPACKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPACKManager.h; sourceTree = "<group>"; };
-		1BC443E72EEA53E600C8E846 /* RTCVPACKManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPACKManager.m; sourceTree = "<group>"; };
 		1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPACKManager.h; sourceTree = "<group>"; };
 		1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPACKManager.m; sourceTree = "<group>"; };
 		F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPSocketIOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -133,10 +134,19 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		1B5D261C2EF1522C00D7875F /* VPSocketIOTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VPSocketIOTests; sourceTree = "<group>"; };
 		1BC443EA2EEA5F6D00C8E846 /* utils */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = utils; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1B5D26182EF1522C00D7875F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1B5D261F2EF1522C00D7875F /* VPSocketIO.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1B91EEF726281D35003120A7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -177,8 +187,6 @@
 			isa = PBXGroup;
 			children = (
 				1BC443EA2EEA5F6D00C8E846 /* utils */,
-				1B364D422829FF3F00CCC820 /* RTCVPSocketAckManager.h */,
-				1B364D372829FF3F00CCC820 /* RTCVPSocketAckManager.m */,
 				1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */,
 				1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */,
 				1B364D3B2829FF3F00CCC820 /* RTCVPSocketEngine.h */,
@@ -199,8 +207,6 @@
 				1BAA0A312EE96F3700DB39A2 /* RTCVPProbe.h */,
 				1BAA0A322EE96F3700DB39A2 /* RTCVPProbe.m */,
 				1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */,
-				1BC443E62EEA53E600C8E846 /* RTCVPACKManager.h */,
-				1BC443E72EEA53E600C8E846 /* RTCVPACKManager.m */,
 			);
 			path = Source;
 			sourceTree = SOURCE_ROOT;
@@ -239,6 +245,7 @@
 				F06B192F1F71466C003E81B1 /* VPSocketIO */,
 				F08E4F6F1F7ACFEB0032C8E3 /* VPSocketIO-iOS */,
 				1B91EEFB26281D35003120A7 /* VPSocketIOAppTests */,
+				1B5D261C2EF1522C00D7875F /* VPSocketIOTests */,
 				F06B192E1F71466C003E81B1 /* Products */,
 				1BF8BF8624AAD274003B5EA3 /* Frameworks */,
 			);
@@ -250,6 +257,7 @@
 				F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */,
 				F08E4F6E1F7ACFEB0032C8E3 /* VPSocketIO.framework */,
 				1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */,
+				1B5D261B2EF1522C00D7875F /* VPSocketIOTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -303,7 +311,6 @@
 				1B364D682829FF3F00CCC820 /* RTCVPSocketIOClient.h in Headers */,
 				1B364D4D2829FF3F00CCC820 /* RTCJFRWebSocket.h in Headers */,
 				1B364D6F2829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.h in Headers */,
-				1BC443E92EEA53E600C8E846 /* RTCVPACKManager.h in Headers */,
 				1BAA0A2F2EE95D1100DB39A2 /* RTCVPSocketIOConfig.h in Headers */,
 				1B364D632829FF3F00CCC820 /* RTCVPSocketEngine+Private.h in Headers */,
 				1B364D5D2829FF3F00CCC820 /* RTCVPStringReader.h in Headers */,
@@ -313,13 +320,35 @@
 				1B364D6D2829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.h in Headers */,
 				1B364D582829FF3F00CCC820 /* RTCVPSocketEngineProtocol.h in Headers */,
 				1B364D502829FF3F00CCC820 /* RTCJFRSecurity.h in Headers */,
-				1B364D692829FF3F00CCC820 /* RTCVPSocketAckManager.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		1B5D261A2EF1522C00D7875F /* VPSocketIOTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B5D26222EF1522C00D7875F /* Build configuration list for PBXNativeTarget "VPSocketIOTests" */;
+			buildPhases = (
+				1B5D26172EF1522C00D7875F /* Sources */,
+				1B5D26182EF1522C00D7875F /* Frameworks */,
+				1B5D26192EF1522C00D7875F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1B5D26212EF1522C00D7875F /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				1B5D261C2EF1522C00D7875F /* VPSocketIOTests */,
+			);
+			name = VPSocketIOTests;
+			packageProductDependencies = (
+			);
+			productName = VPSocketIOTests;
+			productReference = 1B5D261B2EF1522C00D7875F /* VPSocketIOTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		1B91EEF926281D35003120A7 /* VPSocketIOAppTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1B91EF0326281D35003120A7 /* Build configuration list for PBXNativeTarget "VPSocketIOAppTests" */;
@@ -387,6 +416,9 @@
 				LastUpgradeCheck = 1420;
 				ORGANIZATIONNAME = "Vasily Popov";
 				TargetAttributes = {
+					1B5D261A2EF1522C00D7875F = {
+						CreatedOnToolsVersion = 16.1;
+					};
 					1B91EEF926281D35003120A7 = {
 						CreatedOnToolsVersion = 12.4;
 						DevelopmentTeam = WBAAXLQG52;
@@ -420,11 +452,19 @@
 				F06B192C1F71466C003E81B1 /* VPSocketIOApp */,
 				F08E4F6D1F7ACFEB0032C8E3 /* VPSocketIO */,
 				1B91EEF926281D35003120A7 /* VPSocketIOAppTests */,
+				1B5D261A2EF1522C00D7875F /* VPSocketIOTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		1B5D26192EF1522C00D7875F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1B91EEF826281D35003120A7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -452,6 +492,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1B5D26172EF1522C00D7875F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1B91EEF626281D35003120A7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -476,14 +523,12 @@
 			files = (
 				1B364D512829FF3F00CCC820 /* RTCVPSocketEngine.m in Sources */,
 				1BE37A752EEBC2AD003ABC59 /* RTCVPACKManager.m in Sources */,
-				1BC443E82EEA53E600C8E846 /* RTCVPACKManager.m in Sources */,
 				1B364D6A2829FF3F00CCC820 /* RTCVPStringReader.m in Sources */,
 				1B364D672829FF3F00CCC820 /* RTCVPSocketLogger.m in Sources */,
 				1BAA0A342EE96F3700DB39A2 /* RTCVPProbe.m in Sources */,
 				1B364D712829FF3F00CCC820 /* RTCVPSocketEngine+EngineWebsocket.m in Sources */,
 				1B364D4F2829FF3F00CCC820 /* RTCJFRWebSocket.m in Sources */,
 				1B364D4E2829FF3F00CCC820 /* RTCJFRSecurity.m in Sources */,
-				1B364D5E2829FF3F00CCC820 /* RTCVPSocketAckManager.m in Sources */,
 				1B364D662829FF3F00CCC820 /* RTCVPSocketPacket.m in Sources */,
 				1B364D722829FF3F00CCC820 /* RTCVPSocketEngine+EnginePollable.m in Sources */,
 				1B364D572829FF3F00CCC820 /* RTCVPSocketIOClient.m in Sources */,
@@ -498,6 +543,11 @@
 			isa = PBXTargetDependency;
 			target = F08E4F6D1F7ACFEB0032C8E3 /* VPSocketIO */;
 			targetProxy = 1B3D8C8629F21AE9001DEC5D /* PBXContainerItemProxy */;
+		};
+		1B5D26212EF1522C00D7875F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F08E4F6D1F7ACFEB0032C8E3 /* VPSocketIO */;
+			targetProxy = 1B5D26202EF1522C00D7875F /* PBXContainerItemProxy */;
 		};
 		1B91EF0026281D35003120A7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -526,6 +576,55 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		1B5D26232EF1522C00D7875F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WBAAXLQG52;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.VPSocketIOTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1B5D26242EF1522C00D7875F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WBAAXLQG52;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.VPSocketIOTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		1B91EF0126281D35003120A7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -831,6 +930,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1B5D26222EF1522C00D7875F /* Build configuration list for PBXNativeTarget "VPSocketIOTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B5D26232EF1522C00D7875F /* Debug */,
+				1B5D26242EF1522C00D7875F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		1B91EF0326281D35003120A7 /* Build configuration list for PBXNativeTarget "VPSocketIOAppTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

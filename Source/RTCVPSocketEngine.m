@@ -147,9 +147,6 @@ NSURLSessionDelegate>
                                         delegateQueue:sessionQueue];
     // 4. 确保安全地访问属性
     dispatch_queue_set_specific(_engineQueue, (__bridge const void *)(_engineQueue), (__bridge void *)(_engineQueue), NULL);
-    // 初始化ACK管理器
-    _ackManager = [[RTCVPACKManager alloc] init];
-    _ackIdCounter = 0;
 }
 
 #pragma mark - URL 创建
@@ -595,17 +592,29 @@ NSURLSessionDelegate>
     
     [self log:[NSString stringWithFormat:@"Got binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
     
+    // 直接处理数据作为有效负载，因为WebSocket帧的有效负载已经在EngineWebsocket分类中提取过了
+    [self processEngineBinaryPayload:data];
+}
+
+- (void)processEngineBinaryPayload:(NSData *)payload {
+    if (!payload || payload.length == 0) {
+        [self log:@"Received empty binary payload" level:RTCLogLevelWarning];
+        return;
+    }
+    
+    [self log:[NSString stringWithFormat:@"Processing binary payload, length: %lu", (unsigned long)payload.length] level:RTCLogLevelDebug];
+    
     // 根据协议版本处理二进制数据
     if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
         // Engine.IO 3.x 协议：二进制数据前会有一个字节的标记
         // 第一个字节是 0x04 表示二进制消息
-        if (data.length > 1) {
-            const Byte *bytes = (const Byte *)data.bytes;
+        if (payload.length > 1) {
+            const Byte *bytes = (const Byte *)payload.bytes;
             Byte firstByte = bytes[0];
             
             if (firstByte == 0x04) {
                 // 提取实际的二进制数据
-                NSData *actualData = [data subdataWithRange:NSMakeRange(1, data.length - 1)];
+                NSData *actualData = [payload subdataWithRange:NSMakeRange(1, payload.length - 1)];
                 [self log:[NSString stringWithFormat:@"Engine.IO 3.x binary data, length: %lu", (unsigned long)actualData.length] level:RTCLogLevelDebug];
                 
                 // 传递给客户端处理
@@ -618,11 +627,11 @@ NSURLSessionDelegate>
         }
     } else {
         // Engine.IO 4.x+ 协议：直接是二进制数据
-        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)data.length] level:RTCLogLevelDebug];
+        [self log:[NSString stringWithFormat:@"Engine.IO 4.x binary data, length: %lu", (unsigned long)payload.length] level:RTCLogLevelDebug];
         
         // 直接传递给客户端处理
         if (self.client) {
-            [self.client parseEngineBinaryData:data];
+            [self.client parseEngineBinaryData:payload];
         }
     }
 }
@@ -841,169 +850,171 @@ NSURLSessionDelegate>
 
 #pragma mark - ACK消息发送
 
-/// 生成唯一的ACK ID
-- (NSInteger)generateACKId {
-    NSInteger ackId = self.ackIdCounter;
-    self.ackIdCounter = (self.ackIdCounter + 1) % 1000; // 循环使用，避免溢出
-    return ackId;
-}
-
-/// 发送消息（带ACK回调）
-- (void)send:(NSString *)msg ack:(RTCVPSocketAckCallback)ack {
-    [self send:msg withData:@[] ack:ack];
-}
-
-/// 发送消息和数据（带ACK回调）
-- (void)send:(NSString *)msg withData:(NSArray<NSData *> *)data ack:(RTCVPSocketAckCallback)ack {
-    if (!msg || self.closed || !self.connected) {
-        if (ack) {
-            ack(@[]); // 连接已关闭，立即回调空数据
-        }
-        return;
-    }
-    
-    NSInteger ackId = [self generateACKId];
-    
-    // 如果有ACK回调，先存储起来
-    if (ack) {
-        [self.ackManager addCallback:ack forId:ackId];
-    }
-    
-    // 构建带有ACK ID的消息格式
-    // Socket.IO协议格式: [event_name, data, ack_id]
-    // 如果没有数据，格式为: [event_name, ack_id]
-    // 如果有数据，格式为: [event_name, data, ack_id]
-    
-    NSMutableArray *messageParts = [NSMutableArray array];
-    
-    // 解析原始消息（可能是JSON数组）
-    NSError *error = nil;
-    NSData *msgData = [msg dataUsingEncoding:NSUTF8StringEncoding];
-    id jsonObject = [NSJSONSerialization JSONObjectWithData:msgData options:0 error:&error];
-    
-    if (error) {
-        // 如果不是JSON，直接当作事件名处理
-        [messageParts addObject:msg];
-        if (data.count > 0) {
-            // 如果有二进制数据，添加占位符
-            [messageParts addObject:@"_placeholder"];
-            [messageParts addObject:@(ackId)];
-        } else {
-            // 没有二进制数据，直接添加ACK ID
-            [messageParts addObject:@(ackId)];
-        }
-    } else if ([jsonObject isKindOfClass:[NSArray class]]) {
-        // 已经是JSON数组，需要插入ACK ID
-        NSMutableArray *jsonArray = [jsonObject mutableCopy];
-        
-        // 查找二进制数据占位符
-        BOOL hasBinaryPlaceholder = NO;
-        for (id item in jsonArray) {
-            if ([item isKindOfClass:[NSDictionary class]]) {
-                id placeholder = ((NSDictionary *)item)[@"_placeholder"];
-                if (placeholder) {
-                    hasBinaryPlaceholder = YES;
-                    break;
-                }
-            }
-        }
-        
-        if (hasBinaryPlaceholder) {
-            // 有二进制数据占位符，ACK ID在占位符之后
-            [jsonArray addObject:@(ackId)];
-        } else {
-            // 没有二进制数据，ACK ID在最后一个位置
-            [jsonArray addObject:@(ackId)];
-        }
-        
-        // 转换为JSON字符串
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonArray options:0 error:&error];
-        if (!error) {
-            msg = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        }
-    }
-    
-    // 发送消息
-    [self write:msg withType:RTCVPSocketEnginePacketTypeMessage withData:data];
-    
-    [self log:[NSString stringWithFormat:@"Sent message with ACK ID: %ld", (long)ackId] level:RTCLogLevelDebug];
-}
+///// 发送消息和数据（带ACK回调）
+//- (void)send:(NSString *)msg withData:(NSArray<NSData *> *)data ack:(RTCVPSocketAckCallback)ack {
+//    if (!msg || self.closed || !self.connected) {
+//        if (ack) {
+//            ack(@[]); // 连接已关闭，立即回调空数据
+//        }
+//        return;
+//    }
+//    
+//    NSInteger ackId = [self generateACKId];
+//    
+//    // 如果有ACK回调，先存储起来
+//    if (ack) {
+//        [self.ackManager addCallback:ack forId:ackId];
+//    }
+//    
+//    // 构建带有ACK ID的消息格式
+//    // Socket.IO协议格式: [event_name, data, ack_id]
+//    // 如果没有数据，格式为: [event_name, ack_id]
+//    // 如果有数据，格式为: [event_name, data, ack_id]
+//    
+//    NSMutableArray *messageParts = [NSMutableArray array];
+//    
+//    // 解析原始消息（可能是JSON数组）
+//    NSError *error = nil;
+//    NSData *msgData = [msg dataUsingEncoding:NSUTF8StringEncoding];
+//    id jsonObject = [NSJSONSerialization JSONObjectWithData:msgData options:0 error:&error];
+//    
+//    if (error) {
+//        // 如果不是JSON，直接当作事件名处理
+//        [messageParts addObject:msg];
+//        if (data.count > 0) {
+//            // 如果有二进制数据，添加占位符
+//            [messageParts addObject:@"_placeholder"];
+//            [messageParts addObject:@(ackId)];
+//        } else {
+//            // 没有二进制数据，直接添加ACK ID
+//            [messageParts addObject:@(ackId)];
+//        }
+//    } else if ([jsonObject isKindOfClass:[NSArray class]]) {
+//        // 已经是JSON数组，需要插入ACK ID
+//        NSMutableArray *jsonArray = [jsonObject mutableCopy];
+//        
+//        // 查找二进制数据占位符
+//        BOOL hasBinaryPlaceholder = NO;
+//        for (id item in jsonArray) {
+//            if ([item isKindOfClass:[NSDictionary class]]) {
+//                id placeholder = ((NSDictionary *)item)[@"_placeholder"];
+//                if (placeholder) {
+//                    hasBinaryPlaceholder = YES;
+//                    break;
+//                }
+//            }
+//        }
+//        
+//        if (hasBinaryPlaceholder) {
+//            // 有二进制数据占位符，ACK ID在占位符之后
+//            [jsonArray addObject:@(ackId)];
+//        } else {
+//            // 没有二进制数据，ACK ID在最后一个位置
+//            [jsonArray addObject:@(ackId)];
+//        }
+//        
+//        // 转换为JSON字符串
+//        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonArray options:0 error:&error];
+//        if (!error) {
+//            msg = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+//        }
+//    }
+//    
+//    // 发送消息
+//    [self write:msg withType:RTCVPSocketEnginePacketTypeMessage withData:data];
+//    
+//    [self log:[NSString stringWithFormat:@"Sent message with ACK ID: %ld", (long)ackId] level:RTCLogLevelDebug];
+//}
 
 /// 发送ACK响应
-- (void)sendAck:(NSInteger)ackId withData:(NSArray *)data {
-    if (self.closed || !self.connected) {
-        return;
-    }
-    
-    // 构建ACK响应格式
-    // Socket.IO协议格式: [ack_id, data]
-    NSArray *ackArray = @[@(ackId)];
-    
-    // 如果有数据，添加到数组中
-    NSMutableArray *responseArray = [ackArray mutableCopy];
-    if (data && data.count > 0) {
-        // 检查数据中是否有二进制数据
-        BOOL hasBinaryData = NO;
-        for (id item in data) {
-            if ([item isKindOfClass:[NSData class]]) {
-                hasBinaryData = YES;
-                break;
-            }
+//- (void)sendAck:(NSInteger)ackId withData:(NSArray *)data {
+//    if (self.closed || !self.connected) {
+//        return;
+//    }
+//    
+//    // 构建ACK响应格式
+//    // Socket.IO协议格式: [ack_id, data]
+//    NSArray *ackArray = @[@(ackId)];
+//    
+//    // 如果有数据，添加到数组中
+//    NSMutableArray *responseArray = [ackArray mutableCopy];
+//    if (data && data.count > 0) {
+//        // 检查数据中是否有二进制数据
+//        BOOL hasBinaryData = NO;
+//        for (id item in data) {
+//            if ([item isKindOfClass:[NSData class]]) {
+//                hasBinaryData = YES;
+//                break;
+//            }
+//        }
+//        
+//        if (hasBinaryData) {
+//            // 有二进制数据，添加占位符
+//            NSMutableArray *processedData = [NSMutableArray array];
+//            NSInteger placeholderIndex = 0;
+//            NSMutableArray *binaryDataArray = [NSMutableArray array];
+//            
+//            for (id item in data) {
+//                if ([item isKindOfClass:[NSData class]]) {
+//                    // 二进制数据，添加占位符
+//                    NSDictionary *placeholder = @{
+//                        @"_placeholder": @YES,
+//                        @"num": @(placeholderIndex)
+//                    };
+//                    [processedData addObject:placeholder];
+//                    [binaryDataArray addObject:item];
+//                    placeholderIndex++;
+//                } else {
+//                    [processedData addObject:item];
+//                }
+//            }
+//            
+//            [responseArray addObject:processedData];
+//            
+//            // 发送消息
+//            NSError *error = nil;
+//            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
+//            if (!error) {
+//                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+//                [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:binaryDataArray];
+//            }
+//        } else {
+//            // 没有二进制数据，直接添加数据
+//            [responseArray addObjectsFromArray:data];
+//            
+//            // 发送消息
+//            NSError *error = nil;
+//            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
+//            if (!error) {
+//                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+//                [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
+//            }
+//        }
+//    } else {
+//        // 没有数据，直接发送ACK ID
+//        NSError *error = nil;
+//        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
+//        if (!error) {
+//            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+//            [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
+//        }
+//    }
+//    
+//    [self log:[NSString stringWithFormat:@"Sent ACK response for ID: %ld", (long)ackId] level:RTCLogLevelDebug];
+//}
+
+/// 发送ACK响应（由客户端调用）
+- (void)sendAckResponse:(NSString *)ackMessage withData:(NSArray<NSData *> *)data {
+    dispatch_async(self.engineQueue, ^{
+        if (!self.connected || self.closed) {
+            [self log:@"Cannot send ACK response, engine not connected" level:RTCLogLevelWarning];
+            return;
         }
         
-        if (hasBinaryData) {
-            // 有二进制数据，添加占位符
-            NSMutableArray *processedData = [NSMutableArray array];
-            NSInteger placeholderIndex = 0;
-            NSMutableArray *binaryDataArray = [NSMutableArray array];
-            
-            for (id item in data) {
-                if ([item isKindOfClass:[NSData class]]) {
-                    // 二进制数据，添加占位符
-                    NSDictionary *placeholder = @{
-                        @"_placeholder": @YES,
-                        @"num": @(placeholderIndex)
-                    };
-                    [processedData addObject:placeholder];
-                    [binaryDataArray addObject:item];
-                    placeholderIndex++;
-                } else {
-                    [processedData addObject:item];
-                }
-            }
-            
-            [responseArray addObject:processedData];
-            
-            // 发送消息
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
-            if (!error) {
-                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:binaryDataArray];
-            }
-        } else {
-            // 没有二进制数据，直接添加数据
-            [responseArray addObjectsFromArray:data];
-            
-            // 发送消息
-            NSError *error = nil;
-            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
-            if (!error) {
-                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
-            }
-        }
-    } else {
-        // 没有数据，直接发送ACK ID
-        NSError *error = nil;
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:responseArray options:0 error:&error];
-        if (!error) {
-            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            [self write:jsonString withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
-        }
-    }
-    
-    [self log:[NSString stringWithFormat:@"Sent ACK response for ID: %ld", (long)ackId] level:RTCLogLevelDebug];
+        [self write:ackMessage withType:RTCVPSocketEnginePacketTypeMessage withData:data];
+        
+        [self log:[NSString stringWithFormat:@"Sent ACK response: %@", ackMessage] level:RTCLogLevelDebug];
+    });
 }
 
 #pragma mark - 消息解析（增强版）
@@ -1056,7 +1067,7 @@ NSURLSessionDelegate>
                     } else {
                         // 那就是轮训发送消息
                         [self.postWait addObject:@"3"];
-                        //强制刷星
+                        //强制刷新
                         [self flushWaitingForPost];
                         [self log:@"📤 使用异步队列发送pong响应" level:RTCLogLevelInfo];
                     }
@@ -1065,7 +1076,8 @@ NSURLSessionDelegate>
                     [self handlePong:content];
                     break;
                 case RTCVPSocketEnginePacketTypeMessage:
-                    [self handleSocketIOMessage:content];
+                    // 直接传递消息给客户端，由客户端处理ACK
+                    [self handleMessage:content];
                     break;
                 case RTCVPSocketEnginePacketTypeUpgrade:
                     [self handleUpgrade];
@@ -1079,122 +1091,16 @@ NSURLSessionDelegate>
             }
         } else {
             // 可能是字符串消息（没有类型前缀）
-            [self handleSocketIOMessage:message];
+            [self handleMessage:message];
         }
     }
 }
 
 /// 处理Socket.IO消息（支持ACK）
-- (void)handleSocketIOMessage:(NSString *)message {
-    // 尝试解析为JSON数组
-    NSError *error = nil;
-    NSData *data = [message dataUsingEncoding:NSUTF8StringEncoding];
-    id jsonObject = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
-    
-    if (error) {
-        // 不是JSON，当作普通消息处理
-        [self log:[NSString stringWithFormat:@"Non-JSON message: %@", message] level:RTCLogLevelDebug];
-        [self.client parseEngineMessage:message];
-        return;
-    }
-    
-    if (![jsonObject isKindOfClass:[NSArray class]]) {
-        // 不是数组，当作普通消息处理
-        [self.client parseEngineMessage:message];
-        return;
-    }
-    
-    NSArray *messageArray = (NSArray *)jsonObject;
-    if (messageArray.count == 0) {
-        [self log:@"Empty message array" level:RTCLogLevelWarning];
-        return;
-    }
-    
-    // 检查是否是ACK响应
-    if (messageArray.count >= 2) {
-        id firstItem = messageArray[0];
-        id secondItem = messageArray[1];
-        
-        // 检查是否是ACK响应格式: [ackId, data...]
-        if ([firstItem isKindOfClass:[NSNumber class]]) {
-            NSInteger ackId = [firstItem integerValue];
-            
-            // 提取响应数据
-            NSArray *responseData = nil;
-            if (messageArray.count > 1) {
-                NSMutableArray *tempData = [NSMutableArray array];
-                for (NSUInteger i = 1; i < messageArray.count; i++) {
-                    [tempData addObject:messageArray[i]];
-                }
-                responseData = [tempData copy];
-            } else {
-                responseData = @[];
-            }
-            
-            // 执行ACK回调
-            [self.ackManager executeCallbackForId:ackId withData:responseData];
-            [self log:[NSString stringWithFormat:@"Executed ACK callback for ID: %ld", (long)ackId] level:RTCLogLevelDebug];
-            return;
-        }
-        
-        // 检查是否是带有ACK请求的事件: [event, data..., ackId]
-        if (messageArray.count >= 3) {
-            id lastItem = [messageArray lastObject];
-            if ([lastItem isKindOfClass:[NSNumber class]]) {
-                NSInteger ackId = [lastItem integerValue];
-                
-                // 提取事件和数据
-                NSString *event = nil;
-                if ([firstItem isKindOfClass:[NSString class]]) {
-                    event = firstItem;
-                }
-                
-                NSArray *eventData = nil;
-                if (messageArray.count > 2) {
-                    NSMutableArray *tempData = [NSMutableArray array];
-                    for (NSUInteger i = 1; i < messageArray.count - 1; i++) {
-                        id item = messageArray[i];
-                        // 检查是否有二进制数据占位符
-                        if ([item isKindOfClass:[NSDictionary class]]) {
-                            NSDictionary *dict = (NSDictionary *)item;
-                            if ([dict[@"_placeholder"] boolValue]) {
-                                // 二进制数据占位符，客户端需要处理
-                                [tempData addObject:item];
-                            } else {
-                                [tempData addObject:item];
-                            }
-                        } else {
-                            [tempData addObject:item];
-                        }
-                    }
-                    eventData = [tempData copy];
-                }
-                
-                // 构建ACK请求消息格式
-                NSMutableDictionary *ackMessage = [NSMutableDictionary dictionary];
-                if (event) {
-                    ackMessage[@"event"] = event;
-                }
-                if (eventData) {
-                    ackMessage[@"data"] = eventData;
-                }
-                ackMessage[@"ackId"] = @(ackId);
-                
-                // 转换为JSON字符串
-                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:ackMessage options:0 error:nil];
-                if (jsonData) {
-                    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                    [self log:[NSString stringWithFormat:@"Forwarding ACK request to client: %@", jsonString] level:RTCLogLevelDebug];
-                    [self.client parseEngineMessage:jsonString];
-                }
-                return;
-            }
-        }
-    }
-    
-    // 普通消息，直接转发给客户端
-    [self.client parseEngineMessage:message];
-}
+//- (void)handleSocketIOMessage:(NSString *)message {
+//    // 直接传递给客户端处理，包括ACK
+//    [self handleMessage:message];
+//}
 
 
 
@@ -1268,7 +1174,11 @@ NSURLSessionDelegate>
     });
 }
 
+
+#pragma mark - 发送消息
+
 - (void)send:(NSString *)msg withData:(NSArray<NSData *> *)data {
+    [self log:[NSString stringWithFormat:@"发送消息: %@ (原始Socket.IO包)", msg] level:RTCLogLevelDebug];
     [self write:msg withType:RTCVPSocketEnginePacketTypeMessage withData:data];
 }
 

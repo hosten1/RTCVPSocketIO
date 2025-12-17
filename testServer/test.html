@@ -123,6 +123,8 @@
             <button id="disconnect" disabled>Disconnect</button>
             <button id="sendCustomEvent">Send Custom Event</button>
             <button id="testAck" disabled>ACK Test</button>
+            <button id="sendBinary" disabled>Send Binary</button>
+            <button id="testBinaryAck" disabled>Binary ACK Test</button>
         </div>
         
         <div class="input-area">
@@ -153,6 +155,8 @@
         const sendBtn = document.getElementById('send');
         const sendCustomEventBtn = document.getElementById('sendCustomEvent');
         const testAckBtn = document.getElementById('testAck');
+        const sendBinaryBtn = document.getElementById('sendBinary');
+        const testBinaryAckBtn = document.getElementById('testBinaryAck');
         const serverUrlInput = document.getElementById('serverUrl');
         
         // Socket instance
@@ -178,6 +182,8 @@
                 messageInput.disabled = false;
                 sendCustomEventBtn.disabled = false;
                 testAckBtn.disabled = false;
+                sendBinaryBtn.disabled = false;
+                testBinaryAckBtn.disabled = false;
                 addMessage('Connected to server');
             } else {
                 statusElement.className = 'status disconnected';
@@ -188,6 +194,8 @@
                 messageInput.disabled = true;
                 sendCustomEventBtn.disabled = true;
                 testAckBtn.disabled = true;
+                sendBinaryBtn.disabled = true;
+                testBinaryAckBtn.disabled = true;
                 addMessage('Disconnected from server');
             }
         }
@@ -238,13 +246,23 @@
                 });
                 
                 // Welcome message
-                socket.on('welcome', (data) => {
+                socket.on('welcome', (data, callback) => {
                     addMessage(`Welcome message: ${JSON.stringify(data)}`, 'received');
+                    
+                    // 发送ACK响应
+                    if (callback && typeof callback === 'function') {
+                        callback({ success: true, message: 'Welcome received from HTML client', clientId: socket.id });
+                    }
                 });
                 
                 // User connected event
-                socket.on('userConnected', (data) => {
+                socket.on('userConnected', (data, callback) => {
                     addMessage(`User joined: ${data.socketId}`, 'system');
+                    
+                    // 发送ACK响应
+                    if (callback && typeof callback === 'function') {
+                        callback({ success: true, message: 'UserConnected received from HTML client', clientId: socket.id });
+                    }
                 });
                 
                 // User disconnected event
@@ -262,6 +280,54 @@
                 socket.on('heartbeat', (data) => {
                     addMessage(`Heartbeat: ${data.timestamp}`, 'system');
                 });
+                
+                // Binary event
+        socket.on('binaryEvent', (data) => {
+            if (data.binaryData) {
+                // 收到二进制数据
+                addMessage(`Binary message from ${data.sender}: Size ${data.binaryData.length} bytes, Text: ${data.text || 'No text'}`, 'received');
+                
+                // 比较二进制数据
+                if (data.text && data.text.includes('testData')) {
+                    // 这是用于比较的测试数据
+                    addMessage('🔍 开始比较二进制数据...', 'system');
+                    
+                    // 创建相同的测试数据用于比较
+                    const expectedData = new Uint8Array(1024);
+                    for (let i = 0; i < expectedData.length; i++) {
+                        expectedData[i] = i % 256;
+                    }
+                    
+                    // 比较收到的数据与预期数据
+                    let isEqual = true;
+                    if (data.binaryData.length === expectedData.length) {
+                        for (let i = 0; i < expectedData.length; i++) {
+                            if (data.binaryData[i] !== expectedData[i]) {
+                                isEqual = false;
+                                break;
+                            }
+                        }
+                    } else {
+                        isEqual = false;
+                    }
+                    
+                    if (isEqual) {
+                        addMessage('✅ 二进制数据完全匹配！', 'system');
+                    } else {
+                        addMessage('❌ 二进制数据不匹配！', 'system');
+                        addMessage(`   预期大小: ${expectedData.length} bytes, 实际大小: ${data.binaryData.length} bytes`, 'system');
+                    }
+                }
+                
+                // 如果是从自己发送的
+                if (data.sender === socket.id) {
+                    addMessage('✓ This binary message was sent by me', 'system');
+                }
+            } else {
+                // 普通数据
+                addMessage(`Binary event from ${data.sender}: ${JSON.stringify(data)}`, 'received');
+            }
+        });
                 
                 // Error event
                 socket.on('error', (error) => {
@@ -364,6 +430,60 @@
                     // Small delay to avoid too many requests at once
                     await new Promise(resolve => setTimeout(resolve, 5));
                 }
+            }
+        });
+        
+        // Send binary message button event listener
+        sendBinaryBtn.addEventListener('click', () => {
+            if (socket) {
+                // 创建模拟二进制数据
+                const binaryData = new Uint8Array(1024); // 1KB二进制数据
+                for (let i = 0; i < binaryData.length; i++) {
+                    binaryData[i] = i % 256; // 填充数据: 0-255循环
+                }
+                
+                const textMessage = 'testData: HTML客户端发送的二进制测试数据';
+                
+                addMessage(`📤 Sending binary data: Size ${binaryData.length} bytes, Text: ${textMessage}`, 'sent');
+                
+                // 发送二进制消息
+                socket.emit('binaryEvent', {
+                    binaryData: binaryData,
+                    text: textMessage,
+                    timestamp: Date.now()
+                }, (ack) => {
+                    if (ack && ack.success) {
+                        addMessage(`✅ Binary message ACK: ${JSON.stringify(ack)}`, 'system');
+                    } else {
+                        addMessage(`❌ Binary message failed: ${JSON.stringify(ack)}`, 'system');
+                    }
+                });
+            }
+        });
+        
+        // Binary ACK test button event listener
+        testBinaryAckBtn.addEventListener('click', async () => {
+            if (socket) {
+                addMessage('🔄 Starting binary ACK test...', 'system');
+                
+                // 创建模拟二进制数据
+                const binaryData = new Uint8Array(512); // 512 bytes binary data
+                for (let i = 0; i < binaryData.length; i++) {
+                    binaryData[i] = Math.floor(Math.random() * 256); // 随机数据
+                }
+                
+                // 发送带ACK的二进制消息
+                socket.emit('binaryAckTest', {
+                    binaryData: binaryData,
+                    text: 'Binary ACK test from HTML client',
+                    timestamp: Date.now()
+                }, (ack) => {
+                    if (ack && ack.result === 'success') {
+                        addMessage(`✅ Binary ACK test success: ${JSON.stringify(ack)}`, 'system');
+                    } else {
+                        addMessage(`❌ Binary ACK test failed: ${JSON.stringify(ack)}`, 'system');
+                    }
+                });
             }
         });
     </script>

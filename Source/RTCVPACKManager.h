@@ -6,32 +6,36 @@
 //  Copyright © 2025 Vasily Popov. All rights reserved.
 //
 
-// RTCVPACKManager.h
 #import <Foundation/Foundation.h>
+#import "RTCVPSocketPacket.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-typedef void (^RTCVPACKCallback)(NSArray *response);
-
 @interface RTCVPACKManager : NSObject
 
-/// 生成唯一的 ACK ID
-- (NSInteger)generateACKId;
+#pragma mark - 配置
+@property (nonatomic, assign) NSTimeInterval defaultTimeout;
+@property (nonatomic, assign) NSInteger maxPendingPackets;
 
-/// 添加 ACK 回调
-- (void)addCallback:(RTCVPACKCallback)callback forId:(NSInteger)ackId;
+#pragma mark - 初始化
+- (instancetype)initWithDefaultTimeout:(NSTimeInterval)timeout;
 
-/// 执行并移除 ACK 回调
-- (void)executeCallbackForId:(NSInteger)ackId withData:(NSArray *)data;
+#pragma mark - 包管理
+- (void)registerPacket:(RTCVPSocketPacket *)packet;
+- (BOOL)acknowledgePacketWithId:(NSInteger)packetId data:(nullable NSArray *)data;
+- (BOOL)failPacketWithId:(NSInteger)packetId error:(nullable NSError *)error;
+- (void)removePacketWithId:(NSInteger)packetId;
+- (void)removeAllPackets;
 
-/// 移除 ACK 回调
-- (void)removeCallbackForId:(NSInteger)ackId;
+#pragma mark - 查询
+- (nullable RTCVPSocketPacket *)packetForId:(NSInteger)packetId;
+- (NSInteger)activePacketCount;
+- (NSArray<NSNumber *> *)allPacketIds;
 
-/// 清理所有 ACK 回调
-- (void)removeAllCallbacks;
-
-/// 获取当前活跃的 ACK 数量
-- (NSInteger)activeACKCount;
+#pragma mark - 超时检查
+- (void)checkTimeouts;
+- (void)startPeriodicTimeoutCheckWithInterval:(NSTimeInterval)interval;
+- (void)stopPeriodicTimeoutCheck;
 
 @end
 

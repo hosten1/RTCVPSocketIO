@@ -364,7 +364,25 @@ RTCVPSocketIO 是一个功能完整、架构清晰的 Socket.IO 客户端库，�
 - **良好的扩展性**：可根据需求定制
 
 RTCVPSocketIO 适用于各种实时通信场景，如即时聊天、实时数据推送、在线游戏等。
+# 对于二进制帧记录
+  对于Socket.IO二进制消息，服务器会将消息分成两部分：一部分是文本帧（包含JSON和占位符），另一部分是二进制帧（包含二进制数据）。在WebSocket层，这两部分可能是两个独立的帧，但它们在应用层（Socket.IO层）是同一个消息。
+  例如：
+  发送的时候：
+  ```
+  {
+        binaryData = {length = 1024, bytes = 0x00010203 04050607 08090a0b 0c0d0e0f ... f8f9fafb fcfdfeff };
+        sender = "KL1R-FCLTq-WzW-6AAAD";
+        text = "testData: HTML\U5ba2\U6237\U7aef\U53d1\U9001\U7684\U4e8c\U8fdb\U5236\U6d4b\U8bd5\U6570\U636e";
+        timestamp = "2025-12-17T02:10:09.230Z";
+    }
+  ```
+  接收的时候：
+  ```json
+  51-["binaryEvent",{"sender":"KL1R-FCLTq-WzW-6AAAD","binaryData":{"_placeholder":true,"num":0},"text":"testData: HTML客户端发送的二进制测试数据","timestamp":"2025-12-17T01:17:12.279Z"}]
+  ```
 
+  分析：
+  可以看到，接收的时候，二进制数据被占位符替换了。占位符的格式是 `{"_placeholder":true,"num":0}`，其中 `num` 是占位符的索引。
 ## 11. 许可证
 
 MIT License
