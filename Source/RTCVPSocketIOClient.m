@@ -60,9 +60,12 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 }
 
 - (void)executeCallbackWith:(NSArray *)data withAck:(NSInteger)ack withSocket:(id<RTCVPSocketIOClientProtocol>)socket withEmitter:(RTCVPSocketAckEmitter *)emitter {
-    if (self.callback) {
-        self.callback(data, emitter);
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.callback) {
+            self.callback(data, emitter);
+        }
+    });
+    
 }
 
 @end

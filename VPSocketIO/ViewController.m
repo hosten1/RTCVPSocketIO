@@ -840,11 +840,14 @@
         
         // 发送二进制消息
         [self.socket emitWithAck:@"binaryEvent" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
-            if (error) {
-                [self addMessage:[NSString stringWithFormat:@"❌ 二进制消息发送失败: %@", error.localizedDescription] type:@"system"];
-            } else {
-                [self addMessage:[NSString stringWithFormat:@"✅ 二进制消息发送成功, ACK: %@", data] type:@"system"];
-            }
+            // UI更新必须在主线程执行
+            dispatch_async(dispatch_get_main_queue(), ^{  
+                if (error) {
+                    [self addMessage:[NSString stringWithFormat:@"❌ 二进制消息发送失败: %@", error.localizedDescription] type:@"system"];
+                } else {
+                    [self addMessage:[NSString stringWithFormat:@"✅ 二进制消息发送成功, ACK: %@", data] type:@"system"];
+                }
+            });
         } timeout:10.0];
         
     } else {
