@@ -136,13 +136,19 @@ set_target_properties(libVPSocketIO PROPERTIES
 )
 
 # 添加测试目标
-source_group(\"Test\" FILES Source/test_sio_packet.cpp)
+source_group("Test" FILES Source/test_sio_packet.cpp test_packet_interfaces.cpp)
 
 add_executable(test_sio_packet
     Source/sio_packet.cpp
     Source/test_sio_packet.cpp
 )
 
+add_executable(test_packet_interfaces
+    Source/sio_packet.cpp
+    test_packet_interfaces.cpp
+)
+
+# 为两个测试目标设置相同的include目录
 target_include_directories(test_sio_packet
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
@@ -153,6 +159,17 @@ target_include_directories(test_sio_packet
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_include_directories(test_packet_interfaces
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# 为两个测试目标设置相同的链接库
 target_link_libraries(test_sio_packet
     libwebrtc
     # iOS 系统库
@@ -163,11 +180,29 @@ target_link_libraries(test_sio_packet
     pthread
 )
 
-# 设置输出目录和ARC属性
+target_link_libraries(test_packet_interfaces
+    libwebrtc
+    # iOS 系统库
+    "-framework Foundation"
+    "-framework CFNetwork"
+    "-framework Security"
+    "-framework SystemConfiguration"
+    pthread
+)
+
+# 为两个测试目标设置相同的属性
 set_target_properties(test_sio_packet PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}/lib\"
-    LIBRARY_OUTPUT_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}/lib\"
-    OUTPUT_NAME test_sio_packet
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+    OUTPUT_NAME "test_sio_packet"
+    LINKER_LANGUAGE CXX
+    CLANG_ENABLE_OBJC_ARC YES
+)
+
+set_target_properties(test_packet_interfaces PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+    OUTPUT_NAME "test_packet_interfaces"
     LINKER_LANGUAGE CXX
     CLANG_ENABLE_OBJC_ARC YES
 )
