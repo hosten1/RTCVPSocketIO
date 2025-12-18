@@ -1,122 +1,145 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(SioPacket)
+# 设置项目名称
+project(RTCVPSocketIO CXX OBJC OBJCXX)
 
-# 设置C++标准
+# 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 平台检测
-if(APPLE)
-    if(IOS)
-        # iOS特定配置
-        set(CMAKE_OSX_SYSROOT iphoneos)
-        set(CMAKE_OSX_ARCHITECTURES "arm64")
-        set(CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "12.0")
-        set(CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
-    else()
-        # macOS特定配置
-        set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64")
-    endif()
-endif()
+# 启用 Objective-C 和 Objective-C++ 支持
+enable_language(OBJC)
+enable_language(OBJCXX)
 
-# 包含目录
-set(INCLUDE_DIRS
-    Source
-    third_part/libwebrtc/third_part/jsoncpp/include
-    third_part/libwebrtc
-    third_part/libwebrtc/api
-    third_part/libwebrtc/rtc_base
-    third_part/libwebrtc/rtc_base/memory
-    third_part/libwebrtc/rtc_base/network
-    third_part/libwebrtc/rtc_base/numerics
-    third_part/libwebrtc/rtc_base/strings
-    third_part/libwebrtc/rtc_base/synchronization
-    third_part/libwebrtc/rtc_base/system
-    third_part/libwebrtc/rtc_base/task_utils
-    third_part/libwebrtc/rtc_base/third_party/base64
-    third_part/libwebrtc/rtc_base/third_party/sigslot
-    third_part/libwebrtc/system_wrappers
-    third_part/libwebrtc/system_wrappers/include
+# 设置 Objective-C 编译选项
+set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
+
+# 设置 Objective-C++ 编译选项
+set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
+
+# 设置 iOS 相关编译选项
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum iOS version" FORCE)
+
+# 添加 libwebrtc 子项目
+set(LIBWEBRTC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_part/libwebrtc")
+add_subdirectory(${LIBWEBRTC_DIR} libwebrtc_build)
+
+# 设置 libwebrtc include 目录
+set(LIBWEBRTC_INCLUDE_DIRS
+    "${LIBWEBRTC_DIR}"
+    "${LIBWEBRTC_DIR}/third_part"
 )
 
-include_directories(${INCLUDE_DIRS})
+# 添加源文件
+set(SOURCE_FILES
+    # Source 目录 - 根目录
+    Source/RTCVPSocketIOClient.mm
+    Source/RTCVPSocketEngine.m
+    Source/RTCVPSocketPacket.mm
+    Source/RTCVPSocketIOConfig.m
+    Source/RTCVPSocketLogger.m
+    Source/RTCVPStringReader.m
+    Source/RTCVPACKManager.m
+    Source/RTCVPProbe.m
+    Source/sio_packet.cpp
+    
+    # Source 目录 - utils
+    Source/utils/NSString+RTCVPSocketIO.m
+    Source/utils/NSString+Random.m
+    Source/utils/RTCDefaultSocketLogger.m
+    Source/utils/RTCVPTimer.m
+    Source/utils/RTCVPTimeoutManager.m
+    Source/utils/RTCVPWebSocketProtocolFixer.m
+    Source/utils/RTCVPAFNetworkReachabilityManager.m
+    
+    # Category 目录
+    Category/RTCVPSocketEngine+EnginePollable.m
+    Category/RTCVPSocketEngine+EngineWebsocket.m
+    
+    # jetfire 目录
+    jetfire/RTCJFRSecurity.m
+    jetfire/RTCJFRWebSocket.m
+)
+
+# 添加头文件
+set(HEADER_FILES
+    # Source 目录 - 根目录
+    Source/RTCVPSocketIO.h
+    Source/RTCVPSocketIOClient.h
+    Source/RTCVPSocketEngine.h
+    Source/RTCVPSocketEngine+Private.h
+    Source/RTCVPSocketEngineProtocol.h
+    Source/RTCVPSocketPacket.h
+    Source/RTCVPSocketIOConfig.h
+    Source/RTCVPSocketIOProtocolVersion.h
+    Source/RTCVPSocketLogger.h
+    Source/RTCVPStringReader.h
+    Source/RTCVPACKManager.h
+    Source/RTCVPProbe.h
+    Source/sio_packet.h
+    
+    # Source 目录 - utils
+    Source/utils/NSString+RTCVPSocketIO.h
+    Source/utils/NSString+Random.h
+    Source/utils/RTCDefaultSocketLogger.h
+    Source/utils/RTCVPSocketIOClientProtocol.h
+    Source/utils/RTCVPAFNetworkReachabilityManager.h
+    Source/utils/RTCVPTimer.h
+    Source/utils/RTCVPTimeoutManager.h
+    Source/utils/RTCVPWebSocketProtocolFixer.h
+    
+    # Category 目录
+    Category/RTCVPSocketEngine+EnginePollable.h
+    Category/RTCVPSocketEngine+EngineWebsocket.h
+    
+    # jetfire 目录
+    jetfire/RTCJFRSecurity.h
+    jetfire/RTCJFRWebSocket.h
+)
 
 # 创建静态库
-add_library(sio_packet STATIC
-    Source/sio_packet.cpp
+add_library(libVPSocketIO STATIC
+    ${SOURCE_FILES}
+    ${HEADER_FILES}
 )
 
-# 链接libwebrtc静态库
-target_link_libraries(sio_packet
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_part/libwebrtc/build/liblibwebrtc.a
+# 添加 include 目录
+target_include_directories(libVPSocketIO
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source
+    ${CMAKE_CURRENT_SOURCE_DIR}/Source/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# 编译选项
-target_compile_options(sio_packet PRIVATE
-    -Wall
-    -Wextra
-    -Wpedantic
-)
-
-# 针对不同平台的编译选项
-if(APPLE)
-    target_compile_options(sio_packet PRIVATE
-        -fobjc-arc
-    )
-endif()
-
-# 链接选项
-target_link_libraries(sio_packet
+# 链接库
+target_link_libraries(libVPSocketIO
+    libwebrtc
+    # iOS 系统库
+    "-framework Foundation"
+    "-framework CFNetwork"
+    "-framework Security"
+    "-framework SystemConfiguration"
     pthread
 )
 
-# 针对iOS平台的链接选项
-if(APPLE AND IOS)
-    target_link_libraries(sio_packet
-        -framework Foundation
-        -framework CFNetwork
-        -framework Security
-        -framework SystemConfiguration
-    )
-endif()
-
-# 设置输出目录
-set_target_properties(sio_packet PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+# 设置输出目录和ARC属性
+set_target_properties(libVPSocketIO PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib"
+    OUTPUT_NAME "VPSocketIO"
+    LINKER_LANGUAGE OBJC
+    CLANG_ENABLE_OBJC_ARC YES
 )
 
-# 安装配置
-install(TARGETS sio_packet
+# 安装规则
+install(TARGETS libVPSocketIO
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
 )
 
-install(FILES
-    Source/sio_packet.h
+install(FILES ${HEADER_FILES}
     DESTINATION include
 )
-
-# 仅在非iOS平台编译测试程序
-if(NOT APPLE OR NOT IOS)
-    # 创建测试可执行文件
-    add_executable(test_sio_packet
-        Source/sio_packet.cpp
-    )
-    
-    target_include_directories(test_sio_packet PRIVATE ${INCLUDE_DIRS})
-    
-    target_compile_options(test_sio_packet PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-    )
-    
-    target_link_libraries(test_sio_packet
-        pthread
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_part/libwebrtc/build/liblibwebrtc.a
-    )
-endif()
