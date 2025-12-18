@@ -1,6 +1,12 @@
-# 安装规则
-install(TARGETS system_wrappers
-    ARCHIVE DESTINATION lib
+add_library(rtc_base_strings STATIC
+   string_builder.cc
+   string_builder.h
+   string_format.cc
+   string_format.h
 )
-
-install(DIRECTORY include/ DESTINATION include/system_wrappers)
+target_include_directories(rtc_base_strings
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../..>
+)
+install(DIRECTORY include/ DESTINATION include/rtc_base/strings)
