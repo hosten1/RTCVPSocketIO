@@ -56,8 +56,6 @@ public:
     };
     
     // 异步拆分接口1: 使用lambda回调处理拆分结果
-    // text_callback: 处理文本部分的回调
-    // binary_callback: 处理每个二进制部分的回调
     static void split_data_array_async(
         const std::vector<T>& data_array,
         std::function<void(const std::string& text_part)> text_callback,
@@ -79,6 +77,12 @@ public:
         const std::string& text_part,
         std::function<void(const rtc::Buffer& binary_part, size_t index)> request_binary_callback,
         std::function<void(const std::vector<T>& data_array)> complete_callback);
+    
+    // 同步接口（向后兼容）
+    static SplitResult split_data_array(const std::vector<T>& data_array);
+    static std::vector<T> combine_to_data_array(
+        const std::string& text_part,
+        const std::vector<rtc::Buffer>& binary_parts);
     
     // 从文本中解析二进制占位符数量
     static int parse_binary_count(const std::string& text);
