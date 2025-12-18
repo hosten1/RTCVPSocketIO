@@ -11,7 +11,7 @@
 #ifndef RTC_BASE_NETWORK_SENT_PACKET_H_
 #define RTC_BASE_NETWORK_SENT_PACKET_H_
 
-#include <absl/types/optional.h>
+#include "absl/types/optional.h"
 #include <stddef.h>
 #include <stdint.h>
 

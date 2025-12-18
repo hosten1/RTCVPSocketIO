@@ -1,96 +1,162 @@
-# api 目录的 CMakeLists.txt
+cmake_minimum_required(VERSION 3.10)
 
-# 添加源文件到主库
-target_sources(libwebrtc PRIVATE
-    # 基础文件
+# 公共头文件
+set(API_PUBLIC_HEADERS
+    array_view.h
+    bitrate_constraints.h
+    fec_controller.h
+    fec_controller_override.h
+    field_trials_view.h
+    function_view.h
+    network_state_predictor.h
+    ref_counted_base.h
+    scoped_refptr.h
+    sequence_checker.h
+)
+
+# units目录
+set(API_UNITS_SOURCES
+    units/data_rate.cc
+    units/data_rate.h
+    units/data_size.cc
+    units/data_size.h
+    units/frequency.cc
+    units/frequency.h
+    units/time_delta.cc
+    units/time_delta.h
+    units/timestamp.cc
+    units/timestamp.h
+)
+
+# task_queue目录 - 公共文件
+set(API_TASK_QUEUE_COMMON_SOURCES
+    task_queue/task_queue_factory.h
+    task_queue/queued_task.h
+    task_queue/task_queue_base.cc
+    task_queue/task_queue_base.h
+    task_queue/default_task_queue_factory.h
+)
+
+# task_queue目录 - 平台特定文件
+# iOS平台（GCD）
+if(APPLE AND IOS)
+    set(API_TASK_QUEUE_IOS_SOURCES
+        task_queue/default_task_queue_factory_gcd.cc
+        # task_queue/default_task_queue_factory_gcd.h  # 头文件已包含
+    )
+endif()
+
+# Linux平台（libevent）
+if(UNIX AND NOT APPLE AND NOT ANDROID)
+    set(API_TASK_QUEUE_LINUX_SOURCES
+        task_queue/default_task_queue_factory_libevent.cc
+        # task_queue/default_task_queue_factory_libevent.h
+    )
+endif()
+
+# Windows平台
+if(WIN32)
+    set(API_TASK_QUEUE_WINDOWS_SOURCES
+        task_queue/default_task_queue_factory_win.cc
+        # task_queue/default_task_queue_factory_win.h
+    )
+endif()
+
+# Android平台
+if(ANDROID)
+    set(API_TASK_QUEUE_ANDROID_SOURCES
+      task_queue/default_task_queue_factory_stdlib.cc
+    )
+endif()
+
+# 通用实现（如果平台没有特定实现，则使用这个）
+set(API_TASK_QUEUE_GENERIC_SOURCES
+    task_queue/default_task_queue_factory_stdlib.cc
+    # task_queue/default_task_queue_factory_std.h
+)
+
+# 收集所有源文件
+set(API_ALL_SOURCES
+    # 主目录源文件
     ${CMAKE_CURRENT_SOURCE_DIR}/array_view.h
     ${CMAKE_CURRENT_SOURCE_DIR}/bitrate_constraints.h
     ${CMAKE_CURRENT_SOURCE_DIR}/fec_controller.h
     ${CMAKE_CURRENT_SOURCE_DIR}/fec_controller_override.h
     ${CMAKE_CURRENT_SOURCE_DIR}/field_trials_view.h
     ${CMAKE_CURRENT_SOURCE_DIR}/function_view.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/media_types.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/media_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/network_state_predictor.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/network_state_predictor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ref_counted_base.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_headers.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_headers.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_packet_info.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_packet_info.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_packet_infos.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_parameters.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/rtp_parameters.h
     ${CMAKE_CURRENT_SOURCE_DIR}/scoped_refptr.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/sequence_checker.h
     
-    # audio_codecs 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_codec_pair_id.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_codec_pair_id.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_decoder.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_decoder.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_decoder_factory.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_encoder.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_encoder.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_format.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/audio_codecs/audio_format.h
+    # units目录
+    ${API_UNITS_SOURCES}
     
-    # call 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/call/audio_sink.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/call/bitrate_allocation.h
+    # task_queue公共文件
+    ${API_TASK_QUEUE_COMMON_SOURCES}
+)
+
+# 根据平台添加task_queue实现
+if(API_TASK_QUEUE_IOS_SOURCES)
+    list(APPEND API_ALL_SOURCES ${API_TASK_QUEUE_IOS_SOURCES})
+    message(STATUS "Using iOS GCD task queue implementation")
+elseif(API_TASK_QUEUE_LINUX_SOURCES)
+    list(APPEND API_ALL_SOURCES ${API_TASK_QUEUE_LINUX_SOURCES})
+    message(STATUS "Using Linux libevent task queue implementation")
+elseif(API_TASK_QUEUE_WINDOWS_SOURCES)
+    list(APPEND API_ALL_SOURCES ${API_TASK_QUEUE_WINDOWS_SOURCES})
+    message(STATUS "Using Windows task queue implementation")
+elseif(API_TASK_QUEUE_ANDROID_SOURCES)
+    list(APPEND API_ALL_SOURCES ${API_TASK_QUEUE_ANDROID_SOURCES})
+    message(STATUS "Using Android task queue implementation")
+elseif(API_TASK_QUEUE_GENERIC_SOURCES)
+    list(APPEND API_ALL_SOURCES ${API_TASK_QUEUE_GENERIC_SOURCES})
+    message(STATUS "Using generic task queue implementation")
+else()
+    message(WARNING "No task queue implementation selected!")
+endif()
+
+# 创建库
+add_library(webrtc_api STATIC ${API_ALL_SOURCES} ${API_PUBLIC_HEADERS})
+
+# 包含目录
+target_include_directories(webrtc_api
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include/webrtc/api>
     
-    # transport 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/bitrate_settings.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/bitrate_settings.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/field_trial_based_config.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/field_trial_based_config.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/goog_cc_factory.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/goog_cc_factory.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/network_control.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/network_types.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/network_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/transport/webrtc_key_value_config.h
-    
-    # units 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/data_rate.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/data_rate.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/data_size.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/data_size.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/frequency.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/frequency.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/time_delta.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/time_delta.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/timestamp.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/units/timestamp.h
-    
-    # video 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/color_space.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/color_space.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/encoded_image.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/encoded_image.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/hdr_metadata.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/hdr_metadata.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_bitrate_allocation.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_bitrate_allocation.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_codec_constants.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_codec_type.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_content_type.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_content_type.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_frame.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_frame.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_frame_buffer.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_frame_buffer.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_frame_marking.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_frame_type.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_rotation.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_timing.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video/video_timing.h
-    
-    # video_codecs 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/bitstream_parser.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/video_codec.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/video_codec.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/video_decoder.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/video_decoder.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/video_encoder.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/video_codecs/video_encoder.h
+    # 添加子目录
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/units>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/task_queue>
+)
+
+# 链接rtc_base库
+target_link_libraries(webrtc_api
+    PRIVATE
+    rtc_base
+)
+
+# 安装规则
+install(TARGETS webrtc_api
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# 安装头文件
+install(FILES ${API_PUBLIC_HEADERS}
+    DESTINATION include/webrtc/api
+)
+
+# 安装units头文件
+install(DIRECTORY units/
+    DESTINATION include/webrtc/api/units
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# 安装task_queue头文件
+install(DIRECTORY task_queue/
+    DESTINATION include/webrtc/api/task_queue
+    FILES_MATCHING PATTERN "*.h"
 )
