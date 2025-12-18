@@ -167,7 +167,7 @@ target_link_libraries(test_sio_packet
 set_target_properties(test_sio_packet PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}/lib\"
     LIBRARY_OUTPUT_DIRECTORY \"${CMAKE_CURRENT_BINARY_DIR}/lib\"
-    OUTPUT_NAME \"test_sio_packet\"
+    OUTPUT_NAME test_sio_packet
     LINKER_LANGUAGE CXX
     CLANG_ENABLE_OBJC_ARC YES
 )
