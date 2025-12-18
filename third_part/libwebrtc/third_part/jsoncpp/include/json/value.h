@@ -425,6 +425,7 @@ public:
   bool isString() const;
   bool isArray() const;
   bool isObject() const;
+  bool isBinary() const;
 
   /// The `as<T>` and `is<T>` member function templates and specializations.
   template <typename T> T as() const JSONCPP_TEMPLATE_DELETE;

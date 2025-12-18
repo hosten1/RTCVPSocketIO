@@ -6,7 +6,6 @@
 //  Copyright © 2025 Vasily Popov. All rights reserved.
 //
 
-// sio_packet.h
 #ifndef SIO_PACKET_H
 #define SIO_PACKET_H
 
@@ -15,12 +14,10 @@
 #include <cstdint>
 #include <memory>
 #include <queue>
-
-// 使用WebRTC的Buffer
-namespace rtc {
-class ByteBufferWriter;
-class ByteBufferReader;
-}
+#include <any>
+#include <map>
+#include "json/json.h"
+#include "rtc_base/buffer.h"
 
 namespace sio {
 
@@ -41,7 +38,7 @@ struct Packet {
     int nsp;  // 命名空间索引
     int id;   // 包ID（用于ACK）
     std::string data;  // JSON数据
-    std::vector<std::vector<uint8_t>> attachments;  // 二进制附件
+    std::vector<rtc::Buffer> attachments;  // 二进制附件（使用 WebRTC Buffer）
     
     Packet() : type(PacketType::EVENT), nsp(0), id(-1) {}
     
@@ -49,32 +46,51 @@ struct Packet {
     bool has_binary() const { return !attachments.empty(); }
 };
 
+// 判断数据数组中是否包含二进制数据
+bool contains_binary(const std::vector<std::any>& data_array);
+
 // 分包器：将包含二进制的包拆分为文本部分和二进制部分
 class PacketSplitter {
 public:
     struct SplitResult {
-        std::string text_part;  // 文本部分（包含占位符）
-        std::vector<std::vector<uint8_t>> binary_parts;  // 二进制部分
+        std::string text_part;  // 文本部分（包含占位符的JSON字符串）
+        std::vector<rtc::Buffer> binary_parts;  // 二进制部分
     };
     
-    // 将包拆分为文本和二进制部分
-    static SplitResult split(const Packet& packet);
+    // 核心接口1: 拆分 - 输入一个数据数组，输出拆分结果
+    static SplitResult split_data_array(const std::vector<std::any>& data_array);
     
-    // 将包组合还原
-    static Packet combine(const std::string& text_part,
-                         const std::vector<std::vector<uint8_t>>& binary_parts);
+    // 核心接口2: 合并 - 输入文本部分和二进制部分，输出数据数组
+    static std::vector<std::any> combine_to_data_array(const std::string& text_part,
+                                                      const std::vector<rtc::Buffer>& binary_parts);
     
 private:
-    // 在JSON数据中替换二进制为占位符
-    static std::string replace_binary_with_placeholders(
-        const std::string& json_data,
-        const std::vector<std::vector<uint8_t>>& attachments,
-        std::vector<std::vector<uint8_t>>& extracted_binaries);
+    // 将数据数组转换为JSON数组，并提取二进制数据
+    static Json::Value convert_to_json_with_placeholders(const std::vector<std::any>& data_array,
+                                                        std::vector<rtc::Buffer>& binaries,
+                                                        int& placeholder_counter);
     
-    // 将占位符替换回二进制引用
-    static void replace_placeholders_with_binary(
-        std::string& json_data,
-        const std::vector<std::vector<uint8_t>>& attachments);
+    // 将JSON数组转换为数据数组，替换占位符为二进制数据
+    static std::vector<std::any> convert_json_to_data_array(const Json::Value& json_array,
+                                                           const std::vector<rtc::Buffer>& binaries);
+    
+    // 将 std::any 转换为 JSON
+    static Json::Value any_to_json(const std::any& value,
+                                  std::vector<rtc::Buffer>& binaries,
+                                  int& placeholder_counter);
+    
+    // 将 JSON 转换为 std::any
+    static std::any json_to_any(const Json::Value& json,
+                               const std::vector<rtc::Buffer>& binaries);
+    
+    // 创建二进制占位符
+    static Json::Value create_placeholder(int num);
+    
+    // 判断是否为二进制占位符
+    static bool is_placeholder(const Json::Value& value);
+    
+    // 从占位符获取索引
+    static int get_placeholder_index(const Json::Value& value);
 };
 
 // 发送队列管理类
@@ -83,8 +99,11 @@ public:
     PacketSender();
     ~PacketSender();
     
-    // 准备要发送的包（自动处理分包）
-    void prepare(const Packet& packet);
+    // 准备要发送的数据数组（自动处理分包）
+    void prepare_data_array(const std::vector<std::any>& data_array,
+                           PacketType type = PacketType::EVENT,
+                           int nsp = 0,
+                           int id = -1);
     
     // 是否有文本部分待发送
     bool has_text_to_send() const;
@@ -96,7 +115,7 @@ public:
     bool has_binary_to_send() const;
     
     // 获取下一个要发送的二进制部分
-    bool get_next_binary(std::vector<uint8_t>& binary);
+    bool get_next_binary(rtc::Buffer& binary);
     
     // 重置发送状态
     void reset();
@@ -104,8 +123,8 @@ public:
 private:
     struct SendState {
         std::queue<std::string> text_queue;
-        std::queue<std::vector<uint8_t>> binary_queue;
-        std::vector<std::vector<uint8_t>> current_attachments;
+        std::queue<rtc::Buffer> binary_queue;
+        std::vector<rtc::Buffer> current_attachments;
         bool expecting_binary;
     };
     
@@ -122,13 +141,13 @@ public:
     bool receive_text(const std::string& text);
     
     // 接收二进制部分
-    bool receive_binary(const std::vector<uint8_t>& binary);
+    bool receive_binary(const rtc::Buffer& binary);
     
     // 是否有完整的包可获取
     bool has_complete_packet() const;
     
-    // 获取组合完成的包
-    bool get_complete_packet(Packet& packet);
+    // 获取组合完成的数据数组
+    bool get_complete_data_array(std::vector<std::any>& data_array);
     
     // 重置接收状态
     void reset();
@@ -136,8 +155,8 @@ public:
 private:
     struct ReceiveState {
         std::string current_text;
-        std::vector<std::vector<uint8_t>> received_binaries;
-        std::vector<std::vector<uint8_t>> expected_binaries;
+        std::vector<rtc::Buffer> received_binaries;
+        std::vector<rtc::Buffer> expected_binaries;
         bool expecting_binary;
         bool has_complete;
     };
@@ -146,9 +165,6 @@ private:
     
     // 从文本中解析二进制占位符数量
     int parse_binary_count(const std::string& text);
-    
-    // 解析包类型和命名空间
-    bool parse_packet_header(const std::string& text, Packet& packet);
 };
 
 } // namespace sio

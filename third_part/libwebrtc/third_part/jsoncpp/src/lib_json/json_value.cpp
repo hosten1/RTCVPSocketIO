@@ -601,6 +601,10 @@ bool Value::operator==(const Value& other) const {
 
 bool Value::operator!=(const Value& other) const { return !(*this == other); }
 
+bool Value::isBinary() const {
+  return type() == nullValue; // jsoncpp没有专门的二进制类型，这里根据实际情况返回
+}
+
 const char* Value::asCString() const {
   JSON_ASSERT_MESSAGE(type() == stringValue,
                       "in Json::Value::asCString(): requires stringValue");
