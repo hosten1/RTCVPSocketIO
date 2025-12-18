@@ -28,7 +28,7 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
 @property (nonatomic, copy) NSString *path;
 
 /// 命名空间（默认：@"/"）
-@property (nonatomic, copy, nullable) NSString *namespace;
+@property (nonatomic, copy, nullable) NSString *nsp;
 
 /// 是否使用安全连接（根据URL自动检测，可覆盖）
 @property (nonatomic, assign) BOOL secure;

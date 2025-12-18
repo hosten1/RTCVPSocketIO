@@ -27,13 +27,13 @@
 #pragma mark - 初始化
 
 - (instancetype)initWithType:(RTCVPPacketType)type
-                         nsp:(NSString *)namespace
+                         nsp:(NSString *)nsp
                 placeholders:(int)placeholders {
     
     self = [super init];
     if (self) {
         _type = type;
-        _nsp = [namespace copy] ?: @"/";
+        _nsp = [nsp copy] ?: @"/";
         _placeholders = placeholders;
         _packetState = RTCVPPacketStatePending;
         _internalCreationDate = [NSDate date];

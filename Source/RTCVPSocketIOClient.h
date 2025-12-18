@@ -159,7 +159,7 @@ ackBlock:(void(^_Nonnull)(NSArray * _Nullable data, NSError * _Nullable error))a
 #pragma mark - 命名空间管理
 
 /// 加入命名空间
-- (void)joinNamespace:(NSString * _Nonnull)namespace;
+- (void)joinNamespace:(NSString * _Nonnull)nsp;
 /// 离开命名空间
 - (void)leaveNamespace;
 

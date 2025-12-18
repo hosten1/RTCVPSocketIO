@@ -57,7 +57,7 @@ typedef NS_ENUM(NSUInteger, RTCVPPacketState) {
 
 #pragma mark - 初始化方法
 - (instancetype)initWithType:(RTCVPPacketType)type
-                         nsp:(NSString *)namespace
+                         nsp:(NSString *)nsp
                 placeholders:(int)placeholders;
 
 - (instancetype)initWithType:(RTCVPPacketType)type

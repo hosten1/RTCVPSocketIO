@@ -17,8 +17,10 @@
 #import "RTCVPTimer.h"
 #import "RTCVPSocketIOConfig.h"
 
-//#include "api/task_queue/default_task_queue_factory.h"
-//#include "rtc_base/task_queue.h"
+#include "api/task_queue/default_task_queue_factory.h"
+#include "rtc_base/task_queue.h"
+#include "rtc_base/task_utils/repeating_task.h"
+#include "rtc_base/time_utils.h"
 
 #pragma mark - 常量定义
 
@@ -133,6 +135,10 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     BOOL _reconnecting;
     NSInteger _currentAck;
     RTCVPSocketAnyEventHandler _anyHandler;
+    std::unique_ptr<webrtc::TaskQueueFactory> taskQueueFactory_;
+    std::unique_ptr<rtc::TaskQueue> ioClientQueue_;
+    webrtc::RepeatingTaskHandle repHanler_;
+
 }
 
 @property (nonatomic, strong) NSString *logType;
@@ -149,6 +155,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 @property (nonatomic, strong, readonly) NSDictionary *eventMap;
 // 状态映射字典
 @property (nonatomic, strong, readonly) NSDictionary *statusMap;
+
+@property (nonatomic, strong) NSString* _Nullable nsp;
+
 
 @end
 
@@ -176,13 +185,13 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
             [RTCDefaultSocketLogger setCoustomLogger:self.config.logger];
         }
         [RTCDefaultSocketLogger setEnabled:self.config.loggingEnabled];
-        [RTCDefaultSocketLogger setLogLevel:self.config.logLevel];
+        [RTCDefaultSocketLogger setLogLevel:(RTCLogLevel)self.config.logLevel];
         
         // 配置重连参数
         _reconnects = self.config.reconnectionEnabled;
         _reconnectAttempts = self.config.reconnectionAttempts;
         _reconnectWait = self.config.reconnectionDelay;
-        _nsp = self.config.namespace ?: @"/";
+        _nsp = self.config.nsp ?: @"/";
         
         // 设置处理队列
         _handleQueue = dispatch_get_main_queue();
@@ -191,14 +200,31 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         }
         
         // 设置命名空间
-        if (self.config.namespace) {
-            _nsp = self.config.namespace;
+        if (self.config.nsp) {
+            _nsp = self.config.nsp;
         }
         
         // 启动网络监控
         if (self.config.enableNetworkMonitoring) {
             [self startNetworkMonitoring];
         }
+        
+        const uint64_t interval = 1000;
+        taskQueueFactory_ = webrtc::CreateDefaultTaskQueueFactory();
+        ioClientQueue_ = absl::make_unique<rtc::TaskQueue>(
+            taskQueueFactory_->CreateTaskQueue(
+                "WavFileWriterQueue", webrtc::TaskQueueFactory::Priority::NORMAL));
+        repHanler_ =  webrtc::RepeatingTaskHandle::Start(ioClientQueue_->Get(), [=]() {
+            auto startTime = std::chrono::steady_clock::now();
+            // 这里放置你想要每次触发定时器时执行的代码
+            
+//          repHanler_.Stop();
+            auto endTime = std::chrono::steady_clock::now();
+            auto diffTime = duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+                         uint64_t diffTimer = static_cast<uint64_t>(diffTime);
+            NSLog(@"===========> RepeatingTaskHandle");
+           return webrtc::TimeDelta::ms(diffTimer < interval?(interval - diffTimer):interval);
+         });
         
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Client initialized with URL: %@", socketURL.absoluteString]
                                       type:self.logType];
@@ -354,6 +380,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     [RTCDefaultSocketLogger.logger log:@"Closing socket" type:self.logType];
     _reconnects = NO;
     [self didDisconnect:@"Disconnect"];
+    repHanler_.Stop();
 }
 
 - (void)disconnectWithHandler:(RTCVPSocketIOVoidHandler)handler {
@@ -711,13 +738,13 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     }
 }
 
-- (void)joinNamespace:(NSString *)namespace {
-    if (!namespace || namespace.length == 0) {
+- (void)joinNamespace:(NSString *)nsp {
+    if (!nsp || nsp.length == 0) {
         [RTCDefaultSocketLogger.logger error:@"Namespace is empty or nil" type:self.logType];
         return;
     }
     
-    _nsp = namespace;
+    self.nsp = nsp;
     if (![self.nsp isEqualToString:@"/"]) {
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Joining namespace: %@", self.nsp] type:self.logType];
         // 使用新的引擎接口发送加入命名空间消息
@@ -932,7 +959,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     }
 }
 
-- (void)didConnect:(NSString *)namespace {
+- (void)didConnect:(NSString *)nsp {
     [RTCDefaultSocketLogger.logger log:@"Socket已连接" type:self.logType];
     self.status = RTCVPSocketIOClientStatusConnected;
     
@@ -950,7 +977,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         }
     }
     
-    [self handleClientEvent:RTCVPSocketEventConnect withData:@[namespace]];
+    [self handleClientEvent:RTCVPSocketEventConnect withData:@[nsp]];
 }
 
 - (void)didError:(NSString *)reason {

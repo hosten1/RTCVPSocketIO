@@ -437,7 +437,7 @@
     config.ignoreSSLErrors = NO;
     config.reconnectionDelay = 2;
     config.connectTimeout = 15; // 增加连接超时时间
-    config.namespace = @"/";
+    config.nsp = @"/";
     config.connectParams = connectParams;
     config.logger = logger;
     config.handleQueue = self->_currentEngineProtooQueue;

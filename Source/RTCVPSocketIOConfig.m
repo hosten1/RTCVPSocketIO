@@ -134,7 +134,7 @@ const int kRTCVPSocketIOProtocolVersion3 = 3;
         } else if ([key isEqualToString:kRTCVPSocketIOConfigKeyCompress]) {
             self.compressionEnabled = [value boolValue];
         } else if ([key isEqualToString:kRTCVPSocketIOConfigKeyNamespace]) {
-            self.namespace = value;
+            self.nsp = value;
         }
     }
 }

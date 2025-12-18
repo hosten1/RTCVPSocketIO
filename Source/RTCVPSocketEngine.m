@@ -757,14 +757,14 @@ NSURLSessionDelegate>
     // 在handleOpen方法末尾添加命名空间加入逻辑
     // 发送命名空间加入请求（Socket.IO connect packet）
     // 格式：Engine.IO消息类型4 + Socket.IO连接类型0
-    NSString *namespace = self.config.namespace ?: @"/";
-    if ([namespace isEqualToString:@"/"]) {
+    NSString *_namespace = self.config.nsp ?: @"/";
+    if ([_namespace isEqualToString:@"/"]) {
         // 加入默认命名空间，发送Socket.IO connect packet: "0"
         [self write:@"0" withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
         [self log:@"📤 已发送默认命名空间加入请求: 0" level:RTCLogLevelInfo];
     } else {
-        // 加入自定义命名空间，发送Socket.IO connect packet: "0/namespace"
-        NSString *joinMessage = [NSString stringWithFormat:@"0%@", namespace];
+        // 加入自定义命名空间，发送Socket.IO connect packet: "0/_namespace"
+        NSString *joinMessage = [NSString stringWithFormat:@"0%@", _namespace];
         [self write:joinMessage withType:RTCVPSocketEnginePacketTypeMessage withData:@[]];
         [self log:[NSString stringWithFormat:@"📤 已发送命名空间加入请求: %@", joinMessage] level:RTCLogLevelInfo];
     }
