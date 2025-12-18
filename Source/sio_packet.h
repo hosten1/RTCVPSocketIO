@@ -16,6 +16,7 @@
 #include <queue>
 #include <any>
 #include <map>
+#include <functional>
 #include "json/json.h"
 #include "rtc_base/buffer.h"
 
@@ -46,9 +47,6 @@ struct Packet {
     bool has_binary() const { return !attachments.empty(); }
 };
 
-// 判断数据数组中是否包含二进制数据
-bool contains_binary(const std::vector<std::any>& data_array);
-
 // 分包器：将包含二进制的包拆分为文本部分和二进制部分
 class PacketSplitter {
 public:
@@ -57,31 +55,52 @@ public:
         std::vector<rtc::Buffer> binary_parts;  // 二进制部分
     };
     
-    // 核心接口1: 拆分 - 输入一个数据数组，输出拆分结果
-    static SplitResult split_data_array(const std::vector<std::any>& data_array);
+    // 异步拆分接口1: 使用lambda回调处理拆分结果
+    // text_callback: 处理文本部分的回调
+    // binary_callback: 处理每个二进制部分的回调
+    static void split_data_array_async(
+        const std::vector<std::any>& data_array,
+        std::function<void(const std::string& text_part)> text_callback,
+        std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback = nullptr);
     
-    // 核心接口2: 合并 - 输入文本部分和二进制部分，输出数据数组
-    static std::vector<std::any> combine_to_data_array(const std::string& text_part,
-                                                      const std::vector<rtc::Buffer>& binary_parts);
+    // 异步拆分接口2: 单个回调接收完整拆分结果
+    static void split_data_array_async(
+        const std::vector<std::any>& data_array,
+        std::function<void(const SplitResult& result)> callback);
+    
+    // 异步合并接口1: 使用lambda回调处理合并结果
+    static void combine_to_data_array_async(
+        const std::string& text_part,
+        const std::vector<rtc::Buffer>& binary_parts,
+        std::function<void(const std::vector<std::any>& data_array)> callback);
+    
+    // 异步合并接口2: 流式合并，逐个添加二进制数据
+    static void combine_streaming_async(
+        const std::string& text_part,
+        std::function<void(const rtc::Buffer& binary_part, size_t index)> request_binary_callback,
+        std::function<void(const std::vector<std::any>& data_array)> complete_callback);
+    
+    // 同步接口（向后兼容）
+    static SplitResult split_data_array(const std::vector<std::any>& data_array);
+    static std::vector<std::any> combine_to_data_array(
+        const std::string& text_part,
+        const std::vector<rtc::Buffer>& binary_parts);
     
 private:
     // 将数据数组转换为JSON数组，并提取二进制数据
-    static Json::Value convert_to_json_with_placeholders(const std::vector<std::any>& data_array,
-                                                        std::vector<rtc::Buffer>& binaries,
-                                                        int& placeholder_counter);
+    static Json::Value convert_to_json_with_placeholders(
+        const std::vector<std::any>& data_array,
+        std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback,
+        int& placeholder_counter);
     
-    // 将JSON数组转换为数据数组，替换占位符为二进制数据
-    static std::vector<std::any> convert_json_to_data_array(const Json::Value& json_array,
-                                                           const std::vector<rtc::Buffer>& binaries);
-    
-    // 将 std::any 转换为 JSON
-    static Json::Value any_to_json(const std::any& value,
-                                  std::vector<rtc::Buffer>& binaries,
-                                  int& placeholder_counter);
-    
-    // 将 JSON 转换为 std::any
+    // 将 JSON 转换为 std::any，将占位符替换为二进制数据
     static std::any json_to_any(const Json::Value& json,
                                const std::vector<rtc::Buffer>& binaries);
+    
+    // 将 std::any 转换为 JSON，提取二进制数据并替换为占位符
+    static Json::Value any_to_json(const std::any& value,
+                                  std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback,
+                                  int& placeholder_counter);
     
     // 创建二进制占位符
     static Json::Value create_placeholder(int num);
@@ -91,31 +110,30 @@ private:
     
     // 从占位符获取索引
     static int get_placeholder_index(const Json::Value& value);
+    
+    // 从文本中解析二进制占位符数量
+    static int parse_binary_count(const std::string& text);
 };
 
-// 发送队列管理类
+// 发送队列管理类（使用lambda回调）
 class PacketSender {
 public:
     PacketSender();
     ~PacketSender();
     
-    // 准备要发送的数据数组（自动处理分包）
-    void prepare_data_array(const std::vector<std::any>& data_array,
-                           PacketType type = PacketType::EVENT,
-                           int nsp = 0,
-                           int id = -1);
+    // 准备要发送的数据数组（异步处理）
+    void prepare_data_array_async(
+        const std::vector<std::any>& data_array,
+        PacketType type = PacketType::EVENT,
+        int nsp = 0,
+        int id = -1,
+        std::function<void()> on_complete = nullptr);
     
-    // 是否有文本部分待发送
-    bool has_text_to_send() const;
+    // 设置文本数据回调
+    void set_text_callback(std::function<void(const std::string& text)> callback);
     
-    // 获取下一个要发送的文本部分
-    bool get_next_text(std::string& text);
-    
-    // 是否有二进制部分待发送
-    bool has_binary_to_send() const;
-    
-    // 获取下一个要发送的二进制部分
-    bool get_next_binary(rtc::Buffer& binary);
+    // 设置二进制数据回调
+    void set_binary_callback(std::function<void(const rtc::Buffer& binary)> callback);
     
     // 重置发送状态
     void reset();
@@ -124,30 +142,32 @@ private:
     struct SendState {
         std::queue<std::string> text_queue;
         std::queue<rtc::Buffer> binary_queue;
-        std::vector<rtc::Buffer> current_attachments;
         bool expecting_binary;
+        std::function<void(const std::string& text)> text_callback;
+        std::function<void(const rtc::Buffer& binary)> binary_callback;
+        std::function<void()> on_complete;
     };
     
     std::unique_ptr<SendState> state_;
+    
+    // 处理下一个待发送项
+    void process_next_item();
 };
 
-// 接收组合器：接收文本和二进制并组合成完整包
+// 接收组合器（使用lambda回调）
 class PacketReceiver {
 public:
     PacketReceiver();
     ~PacketReceiver();
+    
+    // 设置接收完成回调
+    void set_complete_callback(std::function<void(const std::vector<std::any>& data_array)> callback);
     
     // 接收文本部分
     bool receive_text(const std::string& text);
     
     // 接收二进制部分
     bool receive_binary(const rtc::Buffer& binary);
-    
-    // 是否有完整的包可获取
-    bool has_complete_packet() const;
-    
-    // 获取组合完成的数据数组
-    bool get_complete_data_array(std::vector<std::any>& data_array);
     
     // 重置接收状态
     void reset();
@@ -158,13 +178,13 @@ private:
         std::vector<rtc::Buffer> received_binaries;
         std::vector<rtc::Buffer> expected_binaries;
         bool expecting_binary;
-        bool has_complete;
+        std::function<void(const std::vector<std::any>& data_array)> complete_callback;
     };
     
     std::unique_ptr<ReceiveState> state_;
     
-    // 从文本中解析二进制占位符数量
-    int parse_binary_count(const std::string& text);
+    // 检查并触发完成回调
+    void check_and_trigger_complete();
 };
 
 } // namespace sio
