@@ -22,22 +22,28 @@ set(SOURCES
 )
 
 # 创建可执行文件
-# 只编译新的测试程序，旧的测试程序已过时
-add_executable(test_packet_new Source/sio_packet.cpp test_packet_new.cpp
+# 编译我们修改过的test_sio_packet.cpp测试程序
+add_executable(test_sio_packet Source/sio_packet.cpp Source/test_sio_packet.cpp
     third_part/libwebrtc/third_part/jsoncpp/src/lib_json/json_reader.cpp
     third_part/libwebrtc/third_part/jsoncpp/src/lib_json/json_value.cpp
     third_part/libwebrtc/third_part/jsoncpp/src/lib_json/json_writer.cpp
+    third_part/libwebrtc/rtc_base/checks.cc
+    third_part/libwebrtc/rtc_base/buffer.cc
+    third_part/libwebrtc/rtc_base/constructormagic.cc
+    third_part/libwebrtc/rtc_base/random.cc
 )
 
 # 编译选项
-target_compile_options(test_packet_new PRIVATE
+target_compile_options(test_sio_packet PRIVATE
     -Wall
     -Wextra
     -Wpedantic
 )
 
 # 包含目录
-target_include_directories(test_packet_new PRIVATE
+target_include_directories(test_sio_packet PRIVATE
     Source
     third_part/libwebrtc/third_part/jsoncpp/include
+    third_part/libwebrtc
+    third_part/libwebrtc/rtc_base
 )

@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "absl/strings/string_view.h"
+#include "absl/memory/memory.h"
 #include "api/task_queue/queued_task.h"
 #include "api/task_queue/task_queue_base.h"
 #include "rtc_base/checks.h"
@@ -147,7 +148,7 @@ class TaskQueueGcdFactory final : public TaskQueueFactory {
 }  // namespace
 
 std::unique_ptr<TaskQueueFactory> CreateTaskQueueGcdFactory() {
-  return std::make_unique<TaskQueueGcdFactory>();
+    return absl::make_unique<TaskQueueGcdFactory>();
 }
 
 }  // namespace webrtc
