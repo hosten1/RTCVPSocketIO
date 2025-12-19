@@ -11,14 +11,15 @@
 
 #include "json/json.h"
 #include "rtc_base/buffer.h"
+#include <memory>
 
 namespace sio {
 
 /**
  * @brief 二进制数据辅助类，用于简化Json::Value中二进制数据的处理
- * 
+ *
  * 提供了创建、检测和访问JSON中二进制数据的便捷方法，
- * 避免直接操作指针，提高安全性和易用性。
+ * 使用智能指针管理内存，提高安全性和易用性。
  */
 class binary_helper {
 public:
@@ -31,12 +32,14 @@ public:
         Json::Value binary_obj(Json::objectValue);
         binary_obj["_binary_data"] = true;
         
-        // 创建一个副本并返回其指针
-        rtc::Buffer* buffer_copy = new rtc::Buffer();
+        // 使用智能指针创建副本
+        auto buffer_copy = std::make_shared<rtc::Buffer>();
         buffer_copy->SetData(buffer.data(), buffer.size());
         
-        // 将指针转换为 uint64_t 存储
-        binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(buffer_copy)));
+        // 将智能指针转换为 uint64_t 存储
+        binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(
+            reinterpret_cast<uintptr_t>(new std::shared_ptr<rtc::Buffer>(buffer_copy))
+        ));
         
         return binary_obj;
     }
@@ -51,12 +54,14 @@ public:
         Json::Value binary_obj(Json::objectValue);
         binary_obj["_binary_data"] = true;
         
-        // 创建一个副本并返回其指针
-        rtc::Buffer* buffer_copy = new rtc::Buffer();
+        // 使用智能指针创建副本
+        auto buffer_copy = std::make_shared<rtc::Buffer>();
         buffer_copy->SetData(data, size);
         
-        // 将指针转换为 uint64_t 存储
-        binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(buffer_copy)));
+        // 将智能指针转换为 uint64_t 存储
+        binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(
+            reinterpret_cast<uintptr_t>(new std::shared_ptr<rtc::Buffer>(buffer_copy))
+        ));
         
         return binary_obj;
     }
@@ -77,10 +82,10 @@ public:
      * @return 是否包含二进制数据
      */
     static bool is_binary(const Json::Value& value) {
-        return value.isObject() && 
-               value.isMember("_binary_data") && 
-               value["_binary_data"].isBool() && 
-               value["_binary_data"].asBool() && 
+        return value.isObject() &&
+               value.isMember("_binary_data") &&
+               value["_binary_data"].isBool() &&
+               value["_binary_data"].asBool() &&
                value.isMember("_buffer_ptr");
     }
     
@@ -91,16 +96,7 @@ public:
      * @throws std::runtime_error 如果JSON对象不包含有效的二进制数据
      */
     static rtc::Buffer get_binary(const Json::Value& value) {
-        if (!is_binary(value)) {
-            throw std::runtime_error("JSON object is not a binary value");
-        }
-        
-        uint64_t buffer_ptr_val = value["_buffer_ptr"].asUInt64();
-        rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
-        
-        if (!buffer_ptr) {
-            throw std::runtime_error("Invalid binary buffer pointer");
-        }
+        auto buffer_ptr = get_binary_shared_ptr(value);
         
         // 创建副本并返回
         rtc::Buffer buffer_copy;
@@ -109,24 +105,35 @@ public:
     }
     
     /**
-     * @brief 从JSON对象中获取二进制数据指针
+     * @brief 从JSON对象中获取二进制数据智能指针
+     * @param value JSON对象
+     * @return 二进制数据缓冲区智能指针
+     * @throws std::runtime_error 如果JSON对象不包含有效的二进制数据
+     */
+    static std::shared_ptr<rtc::Buffer> get_binary_shared_ptr(const Json::Value& value) {
+        if (!is_binary(value)) {
+            throw std::runtime_error("JSON object is not a binary value");
+        }
+        
+        uint64_t ptr_val = value["_buffer_ptr"].asUInt64();
+        auto shared_ptr_ptr = reinterpret_cast<std::shared_ptr<rtc::Buffer>*>(static_cast<uintptr_t>(ptr_val));
+        
+        if (!shared_ptr_ptr) {
+            throw std::runtime_error("Invalid binary buffer pointer");
+        }
+        
+        return *shared_ptr_ptr;  // 返回智能指针的拷贝
+    }
+    
+    /**
+     * @brief 从JSON对象中获取二进制数据指针（原始指针，不推荐使用）
      * @param value JSON对象
      * @return 二进制数据缓冲区指针
      * @throws std::runtime_error 如果JSON对象不包含有效的二进制数据
      */
     static rtc::Buffer* get_binary_ptr(const Json::Value& value) {
-        if (!is_binary(value)) {
-            throw std::runtime_error("JSON object is not a binary value");
-        }
-        
-        uint64_t buffer_ptr_val = value["_buffer_ptr"].asUInt64();
-        rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
-        
-        if (!buffer_ptr) {
-            throw std::runtime_error("Invalid binary buffer pointer");
-        }
-        
-        return buffer_ptr;
+        auto shared_ptr = get_binary_shared_ptr(value);
+        return shared_ptr.get();
     }
     
     /**
@@ -135,11 +142,11 @@ public:
      */
     static void release_binary(Json::Value& value) {
         if (is_binary(value)) {
-            uint64_t buffer_ptr_val = value["_buffer_ptr"].asUInt64();
-            rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
+            uint64_t ptr_val = value["_buffer_ptr"].asUInt64();
+            auto shared_ptr_ptr = reinterpret_cast<std::shared_ptr<rtc::Buffer>*>(static_cast<uintptr_t>(ptr_val));
             
-            if (buffer_ptr) {
-                delete buffer_ptr;
+            if (shared_ptr_ptr) {
+                delete shared_ptr_ptr;
                 // 清空指针值，避免悬垂指针
                 value["_buffer_ptr"] = Json::Value(0);
             }
