@@ -158,7 +158,7 @@ void test_nested_structures() {
     Json::Value client_data(Json::objectValue);
     client_data["sender"] = Json::Value(generate_test_sender_id());
     client_data["binaryData"] = binary_obj_1;
-    client_data["imageData"] = binary_obj_2;
+    client_data["image"] = binary_obj_2;  // 使用image字段，而不是imageData
     client_data["text"] = Json::Value("testData: HTML客户端发送的二进制测试数据");
     client_data["timestamp"] = Json::Value("2025-12-17T01:17:12.279Z");
     client_data["hasMultipleBinaries"] = true;
@@ -336,14 +336,14 @@ void test_nested_structures() {
                     print_test_result(false, "binaryData不是二进制对象");
                 }
                 
-                if (binary_helper::is_binary(combined_obj["imageData"])) {
-                    SmartBuffer recovered_binary2 = binary_helper::get_binary(combined_obj["imageData"]);
+                if (binary_helper::is_binary(combined_obj["image"])) {
+                    SmartBuffer recovered_binary2 = binary_helper::get_binary(combined_obj["image"]);
                     bool match2 = compare_binary_data(recovered_binary2, binary_data_2);
-                    print_test_result(match2, "imageData内容匹配");
+                    print_test_result(match2, "image内容匹配");
                     combine_success = combine_success && match2;
                 } else {
                     combine_success = false;
-                    print_test_result(false, "imageData不是二进制对象");
+                    print_test_result(false, "image不是二进制对象");
                 }
                 
                 // 验证嵌套数组
@@ -386,18 +386,20 @@ void test_packet_sender_receiver() {
     SmartBuffer binary_data_1;
     binary_data_1.set_data(TEST_BINARY_DATA_1.data(), TEST_BINARY_DATA_1.size());
     
+    // 使用PNG图片数据作为第二个二进制数据
     SmartBuffer binary_data_2;
-    binary_data_2.set_data(TEST_BINARY_DATA_2.data(), TEST_BINARY_DATA_2.size());
+    binary_data_2.set_data(TEST_PNG_DATA, TEST_PNG_DATA_SIZE);
     
-    // 创建测试事件数据
+    // 创建测试事件数据 - 匹配用户要求的格式
     Json::Value binary_obj_1 = binary_helper::create_binary_value(binary_data_1.buffer());
     Json::Value binary_obj_2 = binary_helper::create_binary_value(binary_data_2.buffer());
     
     Json::Value event_data(Json::objectValue);
-    event_data["sender"] = Json::Value("TEST_SENDER_123");
-    event_data["data1"] = binary_obj_1;
-    event_data["data2"] = binary_obj_2;
-    event_data["message"] = Json::Value("测试消息");
+    event_data["sender"] = Json::Value(generate_test_sender_id()); // 使用与嵌套结构测试相同的sender ID
+    event_data["binaryData"] = binary_obj_1;
+    event_data["image"] = binary_obj_2; // 使用image字段，而不是data2
+    event_data["text"] = Json::Value("testData: HTML客户端发送的二进制测试数据");
+    event_data["timestamp"] = Json::Value("2025-12-17T01:17:12.279Z");
     event_data["number"] = Json::Value(999);
     event_data["nested"] = Json::Value(Json::objectValue);
     event_data["nested"]["inner"] = Json::Value("内部数据");
@@ -564,34 +566,37 @@ void test_packet_sender_receiver() {
             } else {
                 const Json::Value& received_obj = received_data[i];
                 
-                print_test_result(received_obj["sender"].asString() == "TEST_SENDER_123",
+                print_test_result(received_obj["sender"].asString() == generate_test_sender_id(),
                                  "发送者ID匹配");
                 
-                print_test_result(received_obj["message"].asString() == "测试消息",
-                                 "消息内容匹配");
+                print_test_result(received_obj["text"].asString() == "testData: HTML客户端发送的二进制测试数据",
+                                 "文本内容匹配");
+                
+                print_test_result(received_obj["timestamp"].asString() == "2025-12-17T01:17:12.279Z",
+                                 "时间戳匹配");
                 
                 print_test_result(received_obj["number"].asInt() == 999,
                                  "数字字段匹配");
                 
                 // 验证二进制数据
-                if (binary_helper::is_binary(received_obj["data1"])) {
-                    SmartBuffer recovered1 = binary_helper::get_binary(received_obj["data1"]);
+                if (binary_helper::is_binary(received_obj["binaryData"])) {
+                    SmartBuffer recovered1 = binary_helper::get_binary(received_obj["binaryData"]);
                     bool match1 = compare_binary_data(recovered1, binary_data_1);
-                    print_test_result(match1, "data1二进制数据匹配");
+                    print_test_result(match1, "binaryData内容匹配");
                     receive_success = receive_success && match1;
                 } else {
                     receive_success = false;
-                    print_test_result(false, "data1不是二进制对象");
+                    print_test_result(false, "binaryData不是二进制对象");
                 }
                 
-                if (binary_helper::is_binary(received_obj["data2"])) {
-                    SmartBuffer recovered2 = binary_helper::get_binary(received_obj["data2"]);
+                if (binary_helper::is_binary(received_obj["image"])) {
+                    SmartBuffer recovered2 = binary_helper::get_binary(received_obj["image"]);
                     bool match2 = compare_binary_data(recovered2, binary_data_2);
-                    print_test_result(match2, "data2二进制数据匹配");
+                    print_test_result(match2, "image内容匹配");
                     receive_success = receive_success && match2;
                 } else {
                     receive_success = false;
-                    print_test_result(false, "data2不是二进制对象");
+                    print_test_result(false, "image不是二进制对象");
                 }
             }
         } else if (i == 2) {

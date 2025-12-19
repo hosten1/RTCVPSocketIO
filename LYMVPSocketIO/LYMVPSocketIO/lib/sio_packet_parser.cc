@@ -471,10 +471,10 @@ std::string PacketParser::buildV2Format(const Packet& packet, const BuildOptions
         }
     }
     
-    // 4. 包ID
-    if (packet.id >= 0) {
-        ss << packet.id;
-    }
+    // 4. 包ID（ACK ID）
+       if (packet.id >= 0) {
+           ss << packet.id;
+       }
     
     // 5. 数据部分
     if (!packet.data.empty()) {
@@ -505,10 +505,11 @@ std::string PacketParser::buildV3Format(const Packet& packet, const BuildOptions
     // V3版本的Socket.IO数据包不再包含二进制计数
     // 二进制数据通过后续的二进制帧发送，通过占位符索引关联
     
-    // 4. 包ID
+    // 4. 包ID（ACK ID）
     if (packet.id >= 0) {
-        ss << packet.id;
-    }
+           // 对于ACK包，ACK ID在二进制计数后
+           ss << packet.id;
+       }
     
     // 5. 数据部分
     if (!packet.data.empty()) {
@@ -534,7 +535,7 @@ std::string PacketParser::buildEventString(
     Packet packet;
     packet.type = is_binary ? PacketType::BINARY_EVENT : PacketType::EVENT;
     packet.nsp = namespaceToIndex(nsp);
-    packet.id = packet_id;
+    packet.id = packet_id;  // 这里设置ACK ID
     
     // 构建数据数组
     Json::Value data_array(Json::arrayValue);
@@ -550,6 +551,12 @@ std::string PacketParser::buildEventString(
         }
     }
     
+    // 如果packet_id >= 0，表示需要ACK，将ACK ID添加到JSON数据末尾
+    if (packet_id >= 0) {
+        // 对于事件包，ACK ID在JSON数组的末尾
+        data_array.append(Json::Value(packet_id));
+    }
+    
     // 序列化JSON
     Json::FastWriter writer;
     packet.data = writer.write(data_array);
@@ -557,6 +564,7 @@ std::string PacketParser::buildEventString(
     BuildOptions options;
     options.namespace_str = nsp;
     options.force_binary_type = is_binary;
+    options.include_binary_count = is_binary;  // 二进制包才包含二进制计数
     
     return buildPacketString(packet, options);
 }
@@ -570,10 +578,11 @@ std::string PacketParser::buildAckString(
     Packet packet;
     packet.type = is_binary ? PacketType::BINARY_ACK : PacketType::ACK;
     packet.nsp = namespaceToIndex(nsp);
-    packet.id = ack_id;
+    packet.id = ack_id;  // ACK包的ID就是ACK ID
     
-    // 构建数据数组
+    // 构建数据数组 - ACK包格式不同
     Json::Value data_array(Json::arrayValue);
+    // ACK包的第一个元素是ACK ID
     data_array.append(Json::Value(ack_id));
     
     if (!data.isNull()) {
@@ -592,6 +601,7 @@ std::string PacketParser::buildAckString(
     
     BuildOptions options;
     options.namespace_str = nsp;
+    options.include_binary_count = is_binary;
     
     return buildPacketString(packet, options);
 }
