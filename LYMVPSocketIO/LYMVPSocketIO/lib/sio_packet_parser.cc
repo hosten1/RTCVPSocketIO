@@ -219,8 +219,14 @@ ParseResult PacketParser::parseV2Format(const std::string& packet_str) {
     
     size_t cursor = 0;
     
-    // 1. 解析包类型
-    int type_int = readNumber(packet_str, cursor);
+    // 1. 解析包类型（只读取一个字符）
+    if (cursor >= packet_str.length() || !std::isdigit(packet_str[cursor])) {
+        result.error = "Invalid packet type: no numeric prefix found";
+        return result;
+    }
+    int type_int = packet_str[cursor] - '0';
+    cursor++;
+    
     if (!isValidPacketType(type_int)) {
         result.error = "Invalid packet type: " + std::to_string(type_int);
         return result;
@@ -292,8 +298,14 @@ ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
     
     size_t cursor = 0;
     
-    // 1. 解析包类型
-    int type_int = readNumber(packet_str, cursor);
+    // 1. 解析包类型（只读取一个字符）
+    if (cursor >= packet_str.length() || !std::isdigit(packet_str[cursor])) {
+        result.error = "Invalid packet type: no numeric prefix found";
+        return result;
+    }
+    int type_int = packet_str[cursor] - '0';
+    cursor++;
+    
     if (!isValidPacketType(type_int)) {
         result.error = "Invalid packet type: " + std::to_string(type_int);
         return result;
@@ -424,6 +436,8 @@ std::string PacketParser::extractJsonString(const std::string& packet_str) {
 std::string PacketParser::buildImpl(const Packet& packet, const BuildOptions& options) {
     SocketIOVersion version = config_.version;
     
+    // 直接使用当前配置的版本来选择构建方法
+    // v2版本使用buildV2Format，v3版本使用buildV3Format
     if (static_cast<int>(version) < 3) {
         return buildV2Format(packet, options);
     } else {
@@ -431,17 +445,19 @@ std::string PacketParser::buildImpl(const Packet& packet, const BuildOptions& op
     }
 }
 
+// ==================== buildV2Format 修复 ====================
 std::string PacketParser::buildV2Format(const Packet& packet, const BuildOptions& options) {
     std::stringstream ss;
     
     // 1. 包类型
     ss << static_cast<int>(packet.type);
     
-    // 2. 二进制计数（如果是二进制包且需要包含计数）
+    // 2. 二进制计数（V2格式：在类型后，命名空间前）
     bool is_binary_type = isBinaryPacketType(packet.type);
-    int binary_count = static_cast<int>(packet.attachments.size());
+    int binary_count = countBinaryPlaceholders(packet.data);
     
-    if (is_binary_type && options.include_binary_count && binary_count > 0) {
+    if (is_binary_type && binary_count > 0) {
+        // V2格式：51- 表示类型5，有1个二进制
         ss << binary_count << V2_BINARY_SEPARATOR;
     }
     
@@ -449,8 +465,10 @@ std::string PacketParser::buildV2Format(const Packet& packet, const BuildOptions
     std::string nsp_str = options.namespace_str.empty() ? indexToNamespace(packet.nsp) : options.namespace_str;
     if (nsp_str != "/" && !nsp_str.empty()) {
         ss << nsp_str;
-        // V2格式：命名空间后需要有逗号分隔符
-        ss << NAMESPACE_SEPARATOR;
+        // V2格式：命名空间后需要逗号分隔符（如果有包ID或数据）
+        if (packet.id >= 0 || !packet.data.empty()) {
+            ss << NAMESPACE_SEPARATOR;
+        }
     }
     
     // 4. 包ID
@@ -460,16 +478,13 @@ std::string PacketParser::buildV2Format(const Packet& packet, const BuildOptions
     
     // 5. 数据部分
     if (!packet.data.empty()) {
-        // 如果包ID存在且数据不为空，需要添加逗号分隔符
-        if (packet.id >= 0 && packet.data[0] != '[' && packet.data[0] != '{') {
-            // 如果数据不是以JSON数组或对象开始，可能需要额外处理
-        }
         ss << packet.data;
     }
     
     return ss.str();
 }
 
+// ==================== buildV3Format 修复 ====================
 std::string PacketParser::buildV3Format(const Packet& packet, const BuildOptions& options) {
     std::stringstream ss;
     
@@ -481,16 +496,14 @@ std::string PacketParser::buildV3Format(const Packet& packet, const BuildOptions
     if (nsp_str != "/" && !nsp_str.empty()) {
         ss << nsp_str;
         // V3格式：命名空间后需要有逗号分隔符
-        ss << NAMESPACE_SEPARATOR;
+        if (packet.id >= 0 || !packet.data.empty()) {
+            ss << NAMESPACE_SEPARATOR;
+        }
     }
     
-    // 3. 二进制计数（如果是二进制包且需要包含计数）
-    bool is_binary_type = isBinaryPacketType(packet.type);
-    int binary_count = static_cast<int>(packet.attachments.size());
-    
-    if (is_binary_type && options.include_binary_count && binary_count > 0) {
-        ss << binary_count << V3_BINARY_SEPARATOR;
-    }
+    // 3. 二进制计数（V3格式：不包含二进制计数）
+    // V3版本的Socket.IO数据包不再包含二进制计数
+    // 二进制数据通过后续的二进制帧发送，通过占位符索引关联
     
     // 4. 包ID
     if (packet.id >= 0) {
@@ -700,30 +713,13 @@ bool PacketParser::isBinaryPacket(const std::string& packet_str) {
     return type_int == 5 || type_int == 6; // BINARY_EVENT 或 BINARY_ACK
 }
 
-int PacketParser::countBinaryPlaceholders(const std::string& packet_str) {
-    // 先解析包
-    ParseResult result = parsePacket(packet_str);
-    if (!result.success) {
-        return 0;
-    }
-    
-    // 如果已经是二进制包，使用解析出的计数
-    if (result.is_binary_packet) {
-        return result.binary_count;
-    }
-    
-    // 否则，从JSON数据中计算占位符数量
-    std::string json_data = result.json_data;
-    if (json_data.empty()) {
-        return 0;
-    }
-    
-    // 简单实现：统计 "_placeholder":true 的出现次数
+int PacketParser::countBinaryPlaceholders(const std::string& data) {
+    // 直接从数据中计算占位符数量，不进行包解析
     int count = 0;
     size_t pos = 0;
     std::string placeholder = "\"_placeholder\":true";
     
-    while ((pos = json_data.find(placeholder, pos)) != std::string::npos) {
+    while ((pos = data.find(placeholder, pos)) != std::string::npos) {
         count++;
         pos += placeholder.length();
     }

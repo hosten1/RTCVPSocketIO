@@ -167,8 +167,14 @@ void PacketSender<T>::send_data_array_async_v2(
             packet.nsp = nsp;
             packet.id = id;
             
-            // 使用 PacketParser 检测二进制数据数量
-            int binary_count = PacketParser::getInstance().countBinaryPlaceholders(text_part);
+            // 直接从文本部分中计算占位符数量
+            int binary_count = 0;
+            size_t pos = 0;
+            std::string placeholder = "\"_placeholder\":true";
+            while ((pos = text_part.find(placeholder, pos)) != std::string::npos) {
+                binary_count++;
+                pos += placeholder.length();
+            }
             
             // 如果有二进制数据，需要更新包类型
             if (binary_count > 0) {
@@ -186,7 +192,23 @@ void PacketSender<T>::send_data_array_async_v2(
             options.namespace_str = PacketParser::getInstance().indexToNamespace(packet.nsp);
             options.include_binary_count = (binary_count > 0);
             
-            std::string text_packet = PacketParser::getInstance().buildPacketString(packet, options);
+            // 构建包字符串
+            std::string text_packet;
+            {
+                // 保存当前配置
+                ParserConfig current_config = PacketParser::getInstance().getConfig();
+                
+                // 临时设置v2配置
+                ParserConfig temp_config = current_config;
+                temp_config.version = SocketIOVersion::V2;
+                temp_config.allow_numeric_nsp = false;  // v2不支持数字命名空间
+                PacketParser::getInstance().setConfig(temp_config);
+                
+                text_packet = PacketParser::getInstance().buildPacketString(packet, options);
+                
+                // 恢复当前配置
+                PacketParser::getInstance().setConfig(current_config);
+            }
             
             // 先发送文本包
             bool text_sent = text_callback(text_packet);
@@ -256,8 +278,14 @@ void PacketSender<T>::send_data_array_async_v3(
             packet.nsp = nsp;
             packet.id = id;
             
-            // 使用 PacketParser 检测二进制数据数量
-            int binary_count = PacketParser::getInstance().countBinaryPlaceholders(text_part);
+            // 直接从文本部分中计算占位符数量
+            int binary_count = 0;
+            size_t pos = 0;
+            std::string placeholder = "\"_placeholder\":true";
+            while ((pos = text_part.find(placeholder, pos)) != std::string::npos) {
+                binary_count++;
+                pos += placeholder.length();
+            }
             
             // 如果有二进制数据，需要更新包类型
             if (binary_count > 0) {
@@ -273,9 +301,25 @@ void PacketSender<T>::send_data_array_async_v3(
             // 使用 PacketParser 构建包字符串（v3格式）
             BuildOptions options;
             options.namespace_str = PacketParser::getInstance().indexToNamespace(packet.nsp);
-            options.include_binary_count = (binary_count > 0);
+            options.include_binary_count = false; // v3版本不包含二进制计数
             
-            std::string text_packet = PacketParser::getInstance().buildPacketString(packet, options);
+            // 构建包字符串
+            std::string text_packet;
+            {
+                // 保存当前配置
+                ParserConfig current_config = PacketParser::getInstance().getConfig();
+                
+                // 临时设置v3配置
+                ParserConfig temp_config = current_config;
+                temp_config.version = SocketIOVersion::V3;
+                temp_config.allow_numeric_nsp = true;  // v3支持数字命名空间
+                PacketParser::getInstance().setConfig(temp_config);
+                
+                text_packet = PacketParser::getInstance().buildPacketString(packet, options);
+                
+                // 恢复当前配置
+                PacketParser::getInstance().setConfig(current_config);
+            }
             
             // 先发送文本包
             bool text_sent = text_callback(text_packet);
