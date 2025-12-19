@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 #include <functional>
-#include "sio_packet.h"
 #include "json/json.h"
+#include "sio_packet_types.h"
 
 namespace sio {
 
@@ -145,6 +145,9 @@ public:
     // 获取命名空间
     static std::string getNamespace(const std::string& packet_str);
     
+    // 命名空间索引转换
+    static std::string indexToNamespace(int index);
+    
     // 验证包格式
     static bool validatePacket(const std::string& packet_str);
     
@@ -195,7 +198,6 @@ private:
     // 处理命名空间
     static std::string normalizeNamespace(const std::string& nsp);
     static int namespaceToIndex(const std::string& nsp);
-    static std::string indexToNamespace(int index);
     
     // 处理二进制数据
     static std::string createBinaryPlaceholder(int index);

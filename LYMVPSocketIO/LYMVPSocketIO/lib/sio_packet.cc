@@ -83,20 +83,6 @@ namespace {
         ss << "}";
         return ss.str();
     }
-    
-    // 在JSON字符串中查找二进制占位符数量（简单实现）
-int count_placeholders(const std::string& json) {
-    int count = 0;
-    size_t pos = 0;
-    
-    while ((pos = json.find("\"_placeholder\":true", pos)) != std::string::npos) {
-        count++;
-        pos += 18; // 跳过已找到的字符串
-    }
-    
-    std::cout << "DEBUG: count_placeholders 返回: " << count << std::endl;
-    return count;
-}
 }
 
 // PacketSplitter 模板类实现
@@ -130,26 +116,11 @@ int PacketSplitter<T>::get_placeholder_index(const Json::Value& value) {
     return -1;
 }
 
-// 解析文本中的二进制计数
+// 解析文本中的二进制计数 - 使用 PacketParser
 template <typename T>
 int PacketSplitter<T>::parse_binary_count(const std::string& text) {
-    // 跳过包类型、命名空间和ID部分，只解析JSON数据部分
-    size_t json_start = text.find_first_of("[{]");
-    if (json_start == std::string::npos) {
-        // 没有找到JSON开始标记，说明没有二进制数据
-        std::cout << "DEBUG: parse_binary_count - 未找到JSON开始标记，返回0" << std::endl;
-        return 0;
-    }
-    
-    // 提取JSON数据部分
-    std::string json_data = text.substr(json_start);
-    int count = count_placeholders(json_data);
-    
-    std::cout << "DEBUG: parse_binary_count - 原始文本: " << text << std::endl;
-    std::cout << "DEBUG: parse_binary_count - JSON部分: " << json_data << std::endl;
-    std::cout << "DEBUG: parse_binary_count - 二进制计数: " << count << std::endl;
-    
-    return count;
+    // 使用 PacketParser 来获取二进制计数
+    return PacketParser::getInstance().countBinaryPlaceholders(text);
 }
 
 // 将数据转换为 JSON，提取二进制数据并替换为占位符

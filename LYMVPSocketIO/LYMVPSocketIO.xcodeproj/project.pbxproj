@@ -411,6 +411,7 @@
 		1BF5C6C62EF52FC300966BB3 /* RTCVPSocketEngineProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C37F2EF52FC300966BB3 /* RTCVPSocketEngineProtocol.h */; };
 		1BF5C6C72EF52FC300966BB3 /* crypt_string.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4352EF52FC300966BB3 /* crypt_string.h */; };
 		1BF5C6C82EF52FC300966BB3 /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4C42EF52FC300966BB3 /* version.h */; };
+		1BF5C6CE2EF5445100966BB3 /* sio_packet_helper.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C6CD2EF5445100966BB3 /* sio_packet_helper.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -724,6 +725,7 @@
 		1BF5C4CB2EF52FC300966BB3 /* json_valueiterator.inl */ = {isa = PBXFileReference; lastKnownFileType = text; path = json_valueiterator.inl; sourceTree = "<group>"; };
 		1BF5C4CC2EF52FC300966BB3 /* json_writer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = json_writer.cpp; sourceTree = "<group>"; };
 		1BF5C4D82EF52FC300966BB3 /* LYMVPSocketIO.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LYMVPSocketIO.h; sourceTree = "<group>"; };
+		1BF5C6CD2EF5445100966BB3 /* sio_packet_helper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet_helper.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -821,6 +823,7 @@
 				1BF5C3642EF52FC300966BB3 /* sio_packet_parser.cc */,
 				1BF5C3652EF52FC300966BB3 /* sio_packet_printer.hpp */,
 				1BF5C3662EF52FC300966BB3 /* sio_smart_buffer.hpp */,
+				1BF5C6CD2EF5445100966BB3 /* sio_packet_helper.h */,
 			);
 			path = lib;
 			sourceTree = "<group>";
@@ -1401,6 +1404,7 @@
 			files = (
 				1BF5C6392EF52FC300966BB3 /* RTCVPSocketIOClientProtocol.h in Headers */,
 				1BF5C6912EF52FC300966BB3 /* RTCVPSocketIOClient.h in Headers */,
+				1BF5C6CE2EF5445100966BB3 /* sio_packet_helper.h in Headers */,
 				1BF5C6972EF52FC300966BB3 /* RTCVPSocketIOConfig.h in Headers */,
 				1BF5C6982EF52FC300966BB3 /* RTCVPSocketLogger.h in Headers */,
 				1BF5C6BD2EF52FC300966BB3 /* LYMVPSocketIO.h in Headers */,
@@ -1953,6 +1957,11 @@
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part/jsoncpp/include\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/lib\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/src\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/Category\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1997,6 +2006,11 @@
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part/jsoncpp/include\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/lib\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/src\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/Category\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";

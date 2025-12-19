@@ -20,36 +20,10 @@
 #include "rtc_base/buffer.h"
 #include "sio_smart_buffer.hpp"
 #include "sio_jsoncpp_binary_helper.hpp"
+#include "sio_packet_types.h"  // 添加类型定义头文件
+#include "sio_packet_parser.h"  // 添加解析器头文件
 
 namespace sio {
-
-// 数据包类型
-enum class PacketType {
-    CONNECT = 0,
-    DISCONNECT = 1,
-    EVENT = 2,
-    ACK = 3,
-    ERROR = 4,
-    BINARY_EVENT = 5,
-    BINARY_ACK = 6
-};
-
-// Socket.IO数据包结构
-struct Packet {
-    PacketType type;
-    int nsp;  // 命名空间索引
-    int id;   // 包ID（用于ACK）
-    std::string data;  // JSON数据
-    std::vector<SmartBuffer> attachments;  // 二进制附件（使用智能指针管理的Buffer）
-    
-    Packet() : type(PacketType::EVENT), nsp(0), id(-1) {}
-    
-    // 检查是否包含二进制数据
-    bool has_binary() const { return !attachments.empty(); }
-    
-    // 生成调试信息字符串
-    std::string to_string() const;
-};
 
 // 分包器：将包含二进制的包拆分为文本部分和二进制部分
 template <typename T>
@@ -89,7 +63,7 @@ public:
         const std::string& text_part,
         const std::vector<SmartBuffer>& binary_parts);
     
-    // 从文本中解析二进制占位符数量
+    // 从文本中解析二进制占位符数量 - 使用 PacketParser
     static int parse_binary_count(const std::string& text);
     
 private:
@@ -120,6 +94,71 @@ private:
     
     // 从占位符获取索引
     static int get_placeholder_index(const Json::Value& value);
+};
+
+// 包处理工具类
+class PacketUtils {
+public:
+    // 检测包类型
+    static PacketType detect_packet_type(const std::string& packet_str) {
+        return PacketParser::getInstance().getPacketType(packet_str);
+    }
+    
+    // 获取包ID
+    static int get_packet_id(const std::string& packet_str) {
+        return PacketParser::getInstance().getPacketId(packet_str);
+    }
+    
+    // 获取命名空间
+    static std::string get_namespace(const std::string& packet_str) {
+        return PacketParser::getInstance().getNamespace(packet_str);
+    }
+    
+    // 验证包格式
+    static bool validate_packet(const std::string& packet_str) {
+        return PacketParser::getInstance().validatePacket(packet_str);
+    }
+    
+    // 构建连接包
+    static std::string build_connect_packet(const Json::Value& auth_data = Json::Value(),
+                                          const std::string& nsp = "/",
+                                          const Json::Value& query_params = Json::Value()) {
+        return PacketParser::getInstance().buildConnectString(auth_data, nsp, query_params);
+    }
+    
+    // 构建事件包
+    static std::string build_event_packet(const std::string& event_name,
+                                        const Json::Value& data = Json::Value(),
+                                        int packet_id = -1,
+                                        const std::string& nsp = "/",
+                                        bool is_binary = false) {
+        return PacketParser::getInstance().buildEventString(event_name, data, packet_id, nsp, is_binary);
+    }
+    
+    // 构建ACK包
+    static std::string build_ack_packet(int ack_id,
+                                      const Json::Value& data = Json::Value(),
+                                      const std::string& nsp = "/",
+                                      bool is_binary = false) {
+        return PacketParser::getInstance().buildAckString(ack_id, data, nsp, is_binary);
+    }
+    
+    // 构建断开连接包
+    static std::string build_disconnect_packet(const std::string& nsp = "/") {
+        return PacketParser::getInstance().buildDisconnectString(nsp);
+    }
+    
+    // 构建错误包
+    static std::string build_error_packet(const std::string& error_message,
+                                        const Json::Value& error_data = Json::Value(),
+                                        const std::string& nsp = "/") {
+        return PacketParser::getInstance().buildErrorString(error_message, error_data, nsp);
+    }
+    
+    // 解析包
+    static ParseResult parse_packet(const std::string& packet_str) {
+        return PacketParser::getInstance().parsePacket(packet_str);
+    }
 };
 
 } // namespace sio

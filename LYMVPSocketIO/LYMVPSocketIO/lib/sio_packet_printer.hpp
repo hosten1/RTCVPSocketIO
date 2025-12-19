@@ -140,6 +140,7 @@ public:
         
         std::cout << "拆分结果:" << std::endl;
         std::cout << "  文本部分长度: " << result.text_part.length() << std::endl;
+        std::cout << "  文本部分内容: " << result.text_part << std::endl;
         std::cout << "  二进制部分数量: " << result.binary_parts.size() << std::endl;
         
         for (size_t i = 0; i < result.binary_parts.size(); i++) {

@@ -184,13 +184,18 @@ install(TARGETS libVPSocketIO
 )
 
 # 添加测试目标
-source_group("Test" FILES lib/test_sio_packet.cpp)
+source_group("Test" FILES 
+    lib/test/test_sio_packet.cpp
+    lib/test/main.cpp
+    lib/test/test_sio_packet.h
+)
 
 add_executable(test_sio_packet
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
-    lib/test_sio_packet.cpp
+    lib/test/test_sio_packet.cpp
+    lib/test/main.cpp
 )
 
 # 为测试目标设置include目录
@@ -202,6 +207,8 @@ target_include_directories(test_sio_packet
     ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
 )
 
 # 为测试目标设置链接库
