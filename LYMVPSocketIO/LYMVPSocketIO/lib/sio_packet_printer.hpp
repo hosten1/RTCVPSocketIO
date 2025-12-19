@@ -12,7 +12,7 @@
 #include "json/json.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/string_encode.h"
-#include "sio_jsoncpp_binary_helper.h"
+#include "sio_jsoncpp_binary_helper.hpp"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
