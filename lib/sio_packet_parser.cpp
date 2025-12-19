@@ -147,7 +147,7 @@ std::string PacketParser::readString(const std::string& str, size_t& cursor) {
                         if (cursor + 4 < str.length()) {
                             std::string hex = str.substr(cursor + 1, 4);
                             try {
-                                unsigned int code = std::stoul(hex, nullptr, 16);
+                                unsigned long code = std::stoul(hex, nullptr, 16);
                                 // 简化处理：只支持基本多文种平面
                                 if (code <= 0x7F) {
                                     result += static_cast<char>(code);
@@ -808,17 +808,17 @@ PacketType PacketParser::getPacketType(const std::string& packet_str) {
 }
 
 int PacketParser::getPacketId(const std::string& packet_str) {
-    ParseResult result = parsePacket(packet_str);
+    ParseResult result = getInstance().parsePacket(packet_str);
     return result.packet.id;
 }
 
 std::string PacketParser::getNamespace(const std::string& packet_str) {
-    ParseResult result = parsePacket(packet_str);
+    ParseResult result = getInstance().parsePacket(packet_str);
     return result.namespace_str;
 }
 
 bool PacketParser::validatePacket(const std::string& packet_str) {
-    ParseResult result = parsePacket(packet_str);
+    ParseResult result = getInstance().parsePacket(packet_str);
     return result.success;
 }
 
