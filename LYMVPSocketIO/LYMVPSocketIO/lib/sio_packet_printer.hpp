@@ -38,6 +38,15 @@ public:
     }
     
     /**
+     * @brief 将SmartBuffer转换为16进制字符串
+     * @param smart_buffer SmartBuffer对象
+     * @return 16进制表示的字符串
+     */
+    static std::string buffer_to_hex(const sio::SmartBuffer& smart_buffer) {
+        return rtc::hex_encode_with_delimiter(reinterpret_cast<const char*>(smart_buffer.data()), smart_buffer.size(), ' ');
+    }
+    
+    /**
      * @brief 将二进制数据转换为16进制字符串
      * @param data 二进制数据指针
      * @param size 二进制数据大小
@@ -151,6 +160,20 @@ public:
         
         std::cout << "数据大小: " << buffer.size() << " 字节" << std::endl;
         std::cout << "十六进制内容: " << buffer_to_hex(buffer) << std::endl;
+    }
+    
+    /**
+     * @brief 打印单个SmartBuffer数据
+     * @param smart_buffer SmartBuffer对象
+     * @param description 二进制数据的描述信息
+     */
+    static void print_binary_data(const sio::SmartBuffer& smart_buffer, const std::string& description = "") {
+        if (!description.empty()) {
+            std::cout << description << std::endl;
+        }
+        
+        std::cout << "数据大小: " << smart_buffer.size() << " 字节" << std::endl;
+        std::cout << "十六进制内容: " << buffer_to_hex(smart_buffer) << std::endl;
     }
     
     /**

@@ -82,7 +82,7 @@ void test_nested_structures() {
         [](const PacketSplitter<Json::Value>::SplitResult& result) {
             // 打印拆分结果
             std::cout << "\n测试中 - 拆分结果:" << std::endl;
-            packet_printer::print_split_result(result, "  拆分结果:");
+            packet_printer::print_split_result<Json::Value>(result, "  拆分结果:");
             
             // 验证拆分结果
             assert(!result.text_part.empty());
@@ -130,6 +130,16 @@ void test_nested_structures() {
             // 验证第二个二进制数据 (imageData - PNG图片)
             assert(combined_obj["imageData"].isObject());
             assert(combined_obj["imageData"]["_binary_data"].asBool() == true);
+            
+            // 打印最终验证结果
+            std::cout << "\n测试后 - 最终验证结果:" << std::endl;
+            std::cout << "  合并结果数组大小: " << combined_data.size() << std::endl;
+            std::cout << "  事件类型: " << combined_data[0].asString() << std::endl;
+            std::cout << "  发送者ID: " << combined_obj["sender"].asString() << std::endl;
+            std::cout << "  文本内容: " << combined_obj["text"].asString() << std::endl;
+            std::cout << "  时间戳: " << combined_obj["timestamp"].asString() << std::endl;
+            std::cout << "  二进制数据1验证: " << (combined_obj["binaryData"]["_binary_data"].asBool() ? "通过" : "失败") << std::endl;
+            std::cout << "  二进制数据2验证: " << (combined_obj["imageData"]["_binary_data"].asBool() ? "通过" : "失败") << std::endl;
             
             std::cout << "\n=== 合并结果验证通过 ===" << std::endl;
             
