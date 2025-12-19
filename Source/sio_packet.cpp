@@ -12,10 +12,25 @@
 #include <algorithm>
 #include <cstring>
 #include <atomic>
+#include "rtc_base/string_encode.h"
 
 namespace sio {
 
 namespace {
+    // 获取PacketType的字符串表示
+    std::string packet_type_to_string(PacketType type) {
+        switch (type) {
+            case PacketType::CONNECT: return "CONNECT";
+            case PacketType::DISCONNECT: return "DISCONNECT";
+            case PacketType::EVENT: return "EVENT";
+            case PacketType::ACK: return "ACK";
+            case PacketType::ERROR: return "ERROR";
+            case PacketType::BINARY_EVENT: return "BINARY_EVENT";
+            case PacketType::BINARY_ACK: return "BINARY_ACK";
+            default: return "UNKNOWN";
+        }
+    }
+    
     // Socket.IO包编码格式
     std::string encode_packet(const Packet& packet) {
         std::stringstream ss;
@@ -41,6 +56,30 @@ namespace {
             ss << packet.data;
         }
         
+        return ss.str();
+    }
+    
+    // 生成Packet的调试信息字符串
+    std::string Packet_to_string(const Packet& packet) {
+        std::stringstream ss;
+        ss << "Packet {" << std::endl;
+        ss << "  type: " << packet_type_to_string(packet.type) << " (" << static_cast<int>(packet.type) << ")" << std::endl;
+        ss << "  nsp: " << packet.nsp << std::endl;
+        ss << "  id: " << packet.id << std::endl;
+        ss << "  data: " << packet.data << std::endl;
+        ss << "  attachments: " << packet.attachments.size() << " 个二进制附件" << std::endl;
+        for (size_t i = 0; i < packet.attachments.size(); ++i) {
+            const rtc::Buffer& buffer = packet.attachments[i];
+            ss << "    [" << i << "]: 大小=" << buffer.size() << " 字节, 前16字节=";
+            // 只打印前16字节的十六进制
+            size_t print_size = std::min(buffer.size(), size_t(16));
+            ss << rtc::hex_encode_with_delimiter(reinterpret_cast<const char*>(buffer.data()), print_size, ' ');
+            if (buffer.size() > 16) {
+                ss << "...";
+            }
+            ss << std::endl;
+        }
+        ss << "}";
         return ss.str();
     }
     
@@ -566,13 +605,10 @@ Json::Value PacketSplitter<Json::Value>::data_to_json(
             return placeholder;
         }
         
-        // 检查是否是二进制数据对象 - 格式2：_binary_data + _buffer_ptr
-        if (value.isMember("_binary_data") && value["_binary_data"].isBool() &&
-            value["_binary_data"].asBool() && value.isMember("_buffer_ptr")) {
-            
+        // 检查是否是二进制数据对象 - 使用binary_helper
+        if (sio::binary_helper::is_binary(value)) {
             // 获取二进制数据指针
-            uint64_t buffer_ptr_val = value["_buffer_ptr"].asUInt64();
-            rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
+            rtc::Buffer* buffer_ptr = sio::binary_helper::get_binary_ptr(value);
             
             if (buffer_ptr) {
                 // 调用二进制回调
@@ -628,19 +664,8 @@ Json::Value PacketSplitter<Json::Value>::json_to_data(
                 // 获取二进制数据
                 const rtc::Buffer& buffer = binaries[index];
                 
-                // 创建包含二进制数据的对象 - 使用测试代码期望的格式：_binary_data + _buffer_ptr
-                Json::Value binary_obj(Json::objectValue);
-                binary_obj["_binary_data"] = true;
-                
-                // 注意：这里我们不能直接返回原始指针，因为二进制数据是临时的
-                // 我们需要创建一个副本并返回其指针
-                rtc::Buffer* buffer_copy = new rtc::Buffer();
-                buffer_copy->SetData(buffer.data(), buffer.size());
-                
-                // 将指针转换为 uint64_t 存储
-                binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(buffer_copy)));
-                
-                return binary_obj;
+                // 使用binary_helper创建包含二进制数据的对象
+                return sio::binary_helper::create_binary_value(buffer);
             }
             return Json::Value(Json::nullValue);
         }
@@ -655,6 +680,11 @@ Json::Value PacketSplitter<Json::Value>::json_to_data(
     }
     
     return Json::Value(Json::nullValue);
+}
+
+// 实现Packet::to_string()方法
+std::string Packet::to_string() const {
+    return Packet_to_string(*this);
 }
 
 // 显式实例化常用类型

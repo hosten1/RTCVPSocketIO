@@ -18,6 +18,7 @@
 #include <functional>
 #include "json/json.h"
 #include "rtc_base/buffer.h"
+#include "sio_jsoncpp_binary_helper.h"
 
 namespace sio {
 
@@ -44,6 +45,9 @@ struct Packet {
     
     // 检查是否包含二进制数据
     bool has_binary() const { return !attachments.empty(); }
+    
+    // 生成调试信息字符串
+    std::string to_string() const;
 };
 
 // 分包器：将包含二进制的包拆分为文本部分和二进制部分

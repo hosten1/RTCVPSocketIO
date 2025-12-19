@@ -1,62 +1,11 @@
 #include "sio_packet.h"
+#include "sio_jsoncpp_binary_helper.h"
+#include "sio_packet_printer.h"
 #include <iostream>
 #include <cassert>
 #include <vector>
 #include <map>
 #include <atomic>
-#include <iomanip>
-#include <sstream>
-
-// 辅助函数：将二进制数据转换为16进制字符串
-std::string buffer_to_hex(const rtc::Buffer& buffer) {
-    std::stringstream ss;
-    ss << std::hex << std::uppercase << std::setfill('0');
-    for (size_t i = 0; i < buffer.size(); i++) {
-        ss << std::setw(2) << static_cast<int>(buffer.data()[i]);
-        if (i < buffer.size() - 1) {
-            ss << " ";
-        }
-    }
-    return ss.str();
-}
-
-// 辅助函数：打印Json::Value
-void print_json_value(const Json::Value& value, const std::string& prefix = "", bool is_binary = false) {
-    if (is_binary) {
-        std::cout << prefix << "[二进制数据]";
-        if (value.isObject() && value.isMember("_binary_data") && value["_binary_data"].asBool()) {
-            std::cout << " (二进制占位符)";
-        }
-        std::cout << std::endl;
-    } else if (value.isNull()) {
-        std::cout << prefix << "null" << std::endl;
-    } else if (value.isBool()) {
-        std::cout << prefix << (value.asBool() ? "true" : "false") << std::endl;
-    } else if (value.isInt()) {
-        std::cout << prefix << value.asInt() << std::endl;
-    } else if (value.isUInt()) {
-        std::cout << prefix << value.asUInt() << std::endl;
-    } else if (value.isDouble()) {
-        std::cout << prefix << value.asDouble() << std::endl;
-    } else if (value.isString()) {
-        std::cout << prefix << "\"" << value.asString() << "\"" << std::endl;
-    } else if (value.isArray()) {
-        std::cout << prefix << "数组[" << value.size() << "]:" << std::endl;
-        for (Json::ArrayIndex i = 0; i < value.size(); i++) {
-            std::cout << prefix << "  [" << i << "]: ";
-            print_json_value(value[i], "", 
-                value[i].isObject() && value[i].isMember("_binary_data") && value[i]["_binary_data"].asBool());
-        }
-    } else if (value.isObject()) {
-        std::cout << prefix << "对象{" << value.size() << "}:" << std::endl;
-        Json::Value::const_iterator it = value.begin();
-        for (; it != value.end(); ++it) {
-            std::cout << prefix << "  \"" << it.key().asString() << "\": ";
-            print_json_value(*it, "", 
-                it->isObject() && it->isMember("_binary_data") && (*it)["_binary_data"].asBool());
-        }
-    }
-}
 
 void test_async_splitter() {
     using namespace sio;
@@ -74,11 +23,7 @@ void test_async_splitter() {
         data_array.push_back(Json::Value(3.14159));
         data_array.push_back(Json::Value("字符串测试"));
         
-        std::cout << "原始数据数组 (" << data_array.size() << " 个元素):" << std::endl;
-        for (size_t i = 0; i < data_array.size(); i++) {
-            std::cout << "  [" << i << "]: ";
-            print_json_value(data_array[i]);
-        }
+        packet_printer::print_data_array(data_array, "原始数据数组:");
         
         std::atomic<bool> text_received{false};
         std::atomic<int> binary_count{0};
@@ -119,29 +64,16 @@ void test_async_splitter() {
         data_array.push_back(Json::Value("binary_event"));
         
         // 创建包含二进制数据的对象
-        Json::Value binary_obj1(Json::objectValue);
-        binary_obj1["_binary_data"] = true;
-        binary_obj1["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&buffer1)));
-        data_array.push_back(binary_obj1);
+        data_array.push_back(sio::binary_helper::create_binary_value(buffer1));
         
         data_array.push_back(Json::Value("中间字符串"));
         
         // 创建包含二进制数据的对象
-        Json::Value binary_obj2(Json::objectValue);
-        binary_obj2["_binary_data"] = true;
-        binary_obj2["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&buffer2)));
-        data_array.push_back(binary_obj2);
+        data_array.push_back(sio::binary_helper::create_binary_value(buffer2));
         
         data_array.push_back(Json::Value(999));
         
-        std::cout << "原始数据数组 (" << data_array.size() << " 个元素):" << std::endl;
-        for (size_t i = 0; i < data_array.size(); i++) {
-            std::cout << "  [" << i << "]: ";
-            bool is_binary = data_array[i].isObject() && 
-                           data_array[i].isMember("_binary_data") && 
-                           data_array[i]["_binary_data"].asBool();
-            print_json_value(data_array[i], "", is_binary);
-        }
+        packet_printer::print_data_array(data_array, "原始数据数组:");
         
         std::vector<rtc::Buffer> received_binaries;
         std::string received_text;
@@ -155,7 +87,7 @@ void test_async_splitter() {
             },
             [&received_binaries](const rtc::Buffer& binary_part, size_t index) {
                 std::cout << "\n二进制部分回调 #" << index << " (大小: " << binary_part.size() << " 字节):" << std::endl;
-                std::cout << "16进制: " << buffer_to_hex(binary_part) << std::endl;
+                std::cout << "16进制: " << packet_printer::buffer_to_hex(binary_part) << std::endl;
                 
                 // 复制二进制数据
                 rtc::Buffer buffer_copy;
@@ -172,7 +104,7 @@ void test_async_splitter() {
         std::cout << "\n验证接收到的二进制数据:" << std::endl;
         for (size_t i = 0; i < received_binaries.size(); i++) {
             std::cout << "  二进制[" << i << "]: 大小=" << received_binaries[i].size() 
-                     << ", 16进制=" << buffer_to_hex(received_binaries[i]) << std::endl;
+                     << ", 16进制=" << packet_printer::buffer_to_hex(received_binaries[i]) << std::endl;
         }
         
         std::cout << "\n测试2通过" << std::endl;
@@ -191,22 +123,12 @@ void test_async_splitter() {
         data_array.push_back(Json::Value("test_event"));
         
         // 创建包含二进制数据的对象
-        Json::Value binary_obj(Json::objectValue);
-        binary_obj["_binary_data"] = true;
-        binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&buffer)));
-        data_array.push_back(binary_obj);
+        data_array.push_back(sio::binary_helper::create_binary_value(buffer));
         
         data_array.push_back(Json::Value("文本内容"));
         data_array.push_back(Json::Value(42));
         
-        std::cout << "原始数据数组 (" << data_array.size() << " 个元素):" << std::endl;
-        for (size_t i = 0; i < data_array.size(); i++) {
-            std::cout << "  [" << i << "]: ";
-            bool is_binary = data_array[i].isObject() && 
-                           data_array[i].isMember("_binary_data") && 
-                           data_array[i]["_binary_data"].asBool();
-            print_json_value(data_array[i], "", is_binary);
-        }
+        packet_printer::print_data_array(data_array, "原始数据数组:");
         
         PacketSplitter<Json::Value>::SplitResult received_result;
         bool callback_called = false;
@@ -221,7 +143,7 @@ void test_async_splitter() {
                 
                 for (size_t i = 0; i < result.binary_parts.size(); i++) {
                     std::cout << "    二进制[" << i << "]: 大小=" << result.binary_parts[i].size()
-                             << ", 16进制=" << buffer_to_hex(result.binary_parts[i]) << std::endl;
+                             << ", 16进制=" << packet_printer::buffer_to_hex(result.binary_parts[i]) << std::endl;
                 }
                 
                 // 手动复制字段，避免直接赋值不可复制的rtc::Buffer
@@ -271,7 +193,7 @@ void test_async_combiner() {
                 std::cout << "\n合并结果回调 (" << data_array.size() << " 个元素):" << std::endl;
                 for (size_t i = 0; i < data_array.size(); i++) {
                     std::cout << "  [" << i << "]: ";
-                    print_json_value(data_array[i]);
+                    packet_printer::print_json_value(data_array[i]);
                 }
                 received_data = data_array;
                 callback_called = true;
@@ -302,22 +224,12 @@ void test_async_combiner() {
         original_array.push_back(Json::Value("binary_event"));
         
         // 创建包含二进制数据的对象
-        Json::Value binary_obj(Json::objectValue);
-        binary_obj["_binary_data"] = true;
-        binary_obj["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&original_buffer)));
-        original_array.push_back(binary_obj);
+        original_array.push_back(sio::binary_helper::create_binary_value(original_buffer));
         
         original_array.push_back(Json::Value(3.14159));
         original_array.push_back(Json::Value("字符串"));
         
-        std::cout << "原始数据数组 (" << original_array.size() << " 个元素):" << std::endl;
-        for (size_t i = 0; i < original_array.size(); i++) {
-            std::cout << "  [" << i << "]: ";
-            bool is_binary = original_array[i].isObject() && 
-                           original_array[i].isMember("_binary_data") && 
-                           original_array[i]["_binary_data"].asBool();
-            print_json_value(original_array[i], "", is_binary);
-        }
+        packet_printer::print_data_array(original_array, "原始数据数组:");
         
         // 拆分
         PacketSplitter<Json::Value>::SplitResult split_result;
@@ -331,7 +243,7 @@ void test_async_combiner() {
                 std::cout << "  二进制部分数量: " << result.binary_parts.size() << std::endl;
                 
                 if (!result.binary_parts.empty()) {
-                    std::cout << "  二进制数据16进制: " << buffer_to_hex(result.binary_parts[0]) << std::endl;
+                    std::cout << "  二进制数据16进制: " << packet_printer::buffer_to_hex(result.binary_parts[0]) << std::endl;
                 }
                 
                 split_result.text_part = result.text_part;
@@ -348,40 +260,33 @@ void test_async_combiner() {
         assert(split_callback_called);
         
         std::cout << "\n用于合并的数据:" << std::endl;
-        std::cout << "  文本部分: " << split_result.text_part << std::endl;
-        std::cout << "  二进制部分数量: " << split_result.binary_parts.size() << std::endl;
-        if (!split_result.binary_parts.empty()) {
-            std::cout << "  二进制数据: " << buffer_to_hex(split_result.binary_parts[0]) << std::endl;
+    std::cout << "  文本部分: " << split_result.text_part << std::endl;
+    std::cout << "  二进制部分数量: " << split_result.binary_parts.size() << std::endl;
+    if (!split_result.binary_parts.empty()) {
+        std::cout << "  二进制数据: " << packet_printer::buffer_to_hex(split_result.binary_parts[0]) << std::endl;
+    }
+    
+    // 异步合并
+    std::vector<Json::Value> combined_data;
+    bool combine_callback_called = false;
+    
+    PacketSplitter<Json::Value>::combine_to_data_array_async(
+        split_result.text_part,
+        split_result.binary_parts,
+        [&combined_data, &combine_callback_called](const std::vector<Json::Value>& data_array) {
+            packet_printer::print_data_array(data_array, "\n合并结果:");
+            combined_data = data_array;
+            combine_callback_called = true;
         }
-        
-        // 异步合并
-        std::vector<Json::Value> combined_data;
-        bool combine_callback_called = false;
-        
-        PacketSplitter<Json::Value>::combine_to_data_array_async(
-            split_result.text_part,
-            split_result.binary_parts,
-            [&combined_data, &combine_callback_called](const std::vector<Json::Value>& data_array) {
-                std::cout << "\n合并结果 (" << data_array.size() << " 个元素):" << std::endl;
-                for (size_t i = 0; i < data_array.size(); i++) {
-                    std::cout << "  [" << i << "]: ";
-                    bool is_binary = data_array[i].isObject() && 
-                                   data_array[i].isMember("_binary_data") && 
-                                   data_array[i]["_binary_data"].asBool();
-                    print_json_value(data_array[i], "", is_binary);
-                }
-                combined_data = data_array;
-                combine_callback_called = true;
-            }
-        );
-        
-        assert(combine_callback_called);
-        assert(combined_data.size() == 4);
-        assert(combined_data[0].asString() == "binary_event");
-        assert(std::abs(combined_data[2].asDouble() - 3.14159) < 0.001);
-        assert(combined_data[3].asString() == "字符串");
-        
-        std::cout << "\n测试2通过" << std::endl;
+    );
+    
+    assert(combine_callback_called);
+    assert(combined_data.size() == 4);
+    assert(combined_data[0].asString() == "binary_event");
+    assert(std::abs(combined_data[2].asDouble() - 3.14159) < 0.001);
+    assert(combined_data[3].asString() == "字符串");
+    
+    std::cout << "\n测试2通过" << std::endl;
     }
 }
 
@@ -418,43 +323,17 @@ void test_nested_structures() {
     
     // 测试1：基本二进制数据测试
     std::cout << "\n=== 二进制测试1: 基本二进制数据 ===" << std::endl;
-    std::cout << "数据类型: 连续数值序列" << std::endl;
-    std::cout << "数据大小: " << binary_data.size() << " 字节" << std::endl;
-    std::cout << "十六进制内容: " << buffer_to_hex(binary_data) << std::endl;
+    packet_printer::print_binary_data(binary_data, "数据类型: 连续数值序列");
     
     // 测试2：PNG图片数据测试
     std::cout << "\n=== 二进制测试2: PNG图片数据 ===" << std::endl;
-    std::cout << "数据类型: PNG图片" << std::endl;
-    std::cout << "图片大小: " << image_buffer.size() << " 字节" << std::endl;
-    std::cout << "PNG签名验证: ";
-    
-    // 验证PNG签名
-    const uint8_t png_signature[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-    bool is_valid_png = true;
-    for (int i = 0; i < 8; i++) {
-        if (image_buffer.data()[i] != png_signature[i]) {
-            is_valid_png = false;
-            break;
-        }
-    }
-    std::cout << (is_valid_png ? "有效" : "无效") << std::endl;
-    
-    std::cout << "前8字节 (PNG签名): ";
-    for (int i = 0; i < 8; i++) {
-        std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0') 
-                  << static_cast<int>(image_buffer.data()[i]) << " ";
-    }
-    std::cout << std::dec << std::endl;
+    packet_printer::print_png_data(image_buffer);
     
     // 创建包含二进制数据1的对象
-    Json::Value binary_obj1(Json::objectValue);
-    binary_obj1["_binary_data"] = true;
-    binary_obj1["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&binary_data)));
+    Json::Value binary_obj1 = sio::binary_helper::create_binary_value(binary_data);
     
     // 创建包含二进制数据2的对象
-    Json::Value binary_obj2(Json::objectValue);
-    binary_obj2["_binary_data"] = true;
-    binary_obj2["_buffer_ptr"] = Json::Value(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&image_buffer)));
+    Json::Value binary_obj2 = sio::binary_helper::create_binary_value(image_buffer);
     
     // 创建客户端数据对象
     Json::Value client_data(Json::objectValue);
@@ -471,28 +350,7 @@ void test_nested_structures() {
     complex_array.push_back(Json::Value("binaryEvent"));
     complex_array.push_back(client_data);
     
-    std::cout << "原始复杂数据数组 (" << complex_array.size() << " 个元素):" << std::endl;
-    for (size_t i = 0; i < complex_array.size(); i++) {
-        std::cout << "  [" << i << "]: ";
-        bool is_binary = complex_array[i].isObject() && 
-                       complex_array[i].isMember("_binary_data") && 
-                       complex_array[i]["_binary_data"].asBool();
-        print_json_value(complex_array[i], "", is_binary);
-        
-        // 检查是否包含嵌套的binaryData字段
-        if (complex_array[i].isObject() && complex_array[i].isMember("binaryData")) {
-            const Json::Value& binary_data_field = complex_array[i]["binaryData"];
-            if (binary_data_field.isObject() && 
-                binary_data_field.isMember("_binary_data") && 
-                binary_data_field["_binary_data"].asBool()) {
-                uint64_t buffer_ptr_val = binary_data_field["_buffer_ptr"].asUInt64();
-                rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
-                if (buffer_ptr) {
-                    std::cout << "      binaryData十六进制内容: " << buffer_to_hex(*buffer_ptr) << std::endl;
-                }
-            }
-        }
-    }
+    packet_printer::print_data_array(complex_array, "原始复杂数据数组:");
     
     // 异步拆分
     std::cout << "\n=== 测试异步拆分嵌套结构 ===" << std::endl;
@@ -500,13 +358,14 @@ void test_nested_structures() {
     PacketSplitter<Json::Value>::split_data_array_async(
         complex_array,
         [](const PacketSplitter<Json::Value>::SplitResult& result) {
+            // 打印拆分结果
             std::cout << "\n拆分结果:" << std::endl;
             std::cout << "  文本部分长度: " << result.text_part.length() << std::endl;
             std::cout << "  二进制部分数量: " << result.binary_parts.size() << std::endl;
             
             for (size_t i = 0; i < result.binary_parts.size(); i++) {
                 std::cout << "    二进制[" << i << "]: 大小=" << result.binary_parts[i].size()
-                         << ", 16进制=" << buffer_to_hex(result.binary_parts[i]) << std::endl;
+                         << ", 16进制=" << packet_printer::buffer_to_hex(result.binary_parts[i]) << std::endl;
             }
             
             // 验证拆分结果
@@ -524,28 +383,8 @@ void test_nested_structures() {
                 result.text_part,
                 result.binary_parts,
                 [&combined_data, &combine_callback_called](const std::vector<Json::Value>& data_array) {
-                    std::cout << "\n合并结果 (" << data_array.size() << " 个元素):" << std::endl;
-                    for (size_t i = 0; i < data_array.size(); i++) {
-                        std::cout << "  [" << i << "]: ";
-                        bool is_binary = data_array[i].isObject() && 
-                                       data_array[i].isMember("_binary_data") && 
-                                       data_array[i]["_binary_data"].asBool();
-                        print_json_value(data_array[i], "", is_binary);
-                        
-                        // 检查是否包含嵌套的binaryData字段
-                        if (data_array[i].isObject() && data_array[i].isMember("binaryData")) {
-                            const Json::Value& binary_data_field = data_array[i]["binaryData"];
-                            if (binary_data_field.isObject() && 
-                                binary_data_field.isMember("_binary_data") && 
-                                binary_data_field["_binary_data"].asBool()) {
-                                uint64_t buffer_ptr_val = binary_data_field["_buffer_ptr"].asUInt64();
-                                rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
-                                if (buffer_ptr) {
-                                    std::cout << "      binaryData十六进制内容: " << buffer_to_hex(*buffer_ptr) << std::endl;
-                                }
-                            }
-                        }
-                    }
+                    // 打印合并结果
+                    packet_printer::print_data_array(data_array, "\n合并结果:");
                     combined_data = data_array;
                     combine_callback_called = true;
                 }
@@ -651,7 +490,7 @@ void test_packet_sender_receiver() {
     
     sender.set_binary_callback([&sent_binaries](const rtc::Buffer& binary) {
         std::cout << "PacketSender发送二进制部分 (大小: " << binary.size() << " 字节):" << std::endl;
-        std::cout << "16进制: " << buffer_to_hex(binary) << std::endl;
+        std::cout << "16进制: " << packet_printer::buffer_to_hex(binary) << std::endl;
         
         rtc::Buffer buffer_copy;
         buffer_copy.SetData(binary.data(), binary.size());
@@ -664,28 +503,7 @@ void test_packet_sender_receiver() {
     
     // 设置接收完成回调
     receiver.set_complete_callback([&receiver_complete, &received_data](const std::vector<Json::Value>& data_array) {
-        std::cout << "\nPacketReceiver接收完成，收到 " << data_array.size() << " 个元素:" << std::endl;
-        for (size_t i = 0; i < data_array.size(); i++) {
-            std::cout << "  [" << i << "]: ";
-            bool is_binary = data_array[i].isObject() && 
-                           data_array[i].isMember("_binary_data") && 
-                           data_array[i]["_binary_data"].asBool();
-            print_json_value(data_array[i], "", is_binary);
-            
-            // 检查是否包含嵌套的binaryData字段
-            if (data_array[i].isObject() && data_array[i].isMember("binaryData")) {
-                const Json::Value& binary_data_field = data_array[i]["binaryData"];
-                if (binary_data_field.isObject() && 
-                    binary_data_field.isMember("_binary_data") && 
-                    binary_data_field["_binary_data"].asBool()) {
-                    uint64_t buffer_ptr_val = binary_data_field["_buffer_ptr"].asUInt64();
-                    rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(static_cast<uintptr_t>(buffer_ptr_val));
-                    if (buffer_ptr) {
-                        std::cout << "      binaryData十六进制内容: " << buffer_to_hex(*buffer_ptr) << std::endl;
-                    }
-                }
-            }
-        }
+        packet_printer::print_data_array(data_array, "\nPacketReceiver接收完成，收到");
         received_data = data_array;
         receiver_complete = true;
     });

@@ -602,7 +602,11 @@ bool Value::operator==(const Value& other) const {
 bool Value::operator!=(const Value& other) const { return !(*this == other); }
 
 bool Value::isBinary() const {
-  return type() == nullValue; // jsoncpp没有专门的二进制类型，这里根据实际情况返回
+  return type() == objectValue && 
+         isMember("_binary_data") && 
+         (*this)["_binary_data"].isBool() && 
+         (*this)["_binary_data"].asBool() && 
+         isMember("_buffer_ptr");
 }
 
 const char* Value::asCString() const {

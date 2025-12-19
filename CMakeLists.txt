@@ -78,6 +78,7 @@ set(HEADER_FILES
     Source/RTCVPACKManager.h
     Source/RTCVPProbe.h
     Source/sio_packet.h
+    Source/sio_jsoncpp_binary_helper.h
     
     # Source 目录 - utils
     Source/utils/NSString+RTCVPSocketIO.h
