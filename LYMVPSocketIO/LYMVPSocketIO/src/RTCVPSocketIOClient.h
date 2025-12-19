@@ -1,7 +1,14 @@
-// RTCVPSocketIOClient.h
+
+
+#ifndef RTCVPSocketIOClient_H
+#define RTCVPSocketIOClient_H
+
+
 #import <Foundation/Foundation.h>
-#import "RTCVPSocketIOClientProtocol.h"
-#import "RTCVPSocketIOConfig.h"
+#import <LYMVPSocketIO/RTCVPSocketIOClientProtocol.h>
+#import <LYMVPSocketIO/RTCVPSocketIOConfig.h>
+
+
 
 // 事件类型
 typedef NS_ENUM(NSUInteger, RTCVPSocketClientEvent) {
@@ -171,3 +178,4 @@ ackBlock:(void(^_Nonnull)(NSArray * _Nullable data, NSError * _Nullable error))a
 - (void)stopNetworkMonitoring;
 
 @end
+#endif // RTCVPSocketIOClient_H

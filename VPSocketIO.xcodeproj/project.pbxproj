@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -26,25 +26,12 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		1B3D8C8829F21AE9001DEC5D /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		1B364D7C282A029300CCC820 /* VPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VPSocketIO.framework; path = framework/VPSocketIO.framework; sourceTree = "<group>"; };
-		1B5D261B2EF1522C00D7875F /* VPSocketIOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VPSocketIOAppTests.m; sourceTree = "<group>"; };
 		1B91EEFE26281D35003120A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1BF5BD202EF5282800966BB3 /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = LYMVPSocketIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPSocketIOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06B19311F71466D003E81B1 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		F06B19331F71466D003E81B1 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -57,18 +44,7 @@
 		F06B19411F71466D003E81B1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		1B5D261C2EF1522C00D7875F /* VPSocketIOTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VPSocketIOTests; sourceTree = "<group>"; };
-/* End PBXFileSystemSynchronizedRootGroup section */
-
 /* Begin PBXFrameworksBuildPhase section */
-		1B5D26182EF1522C00D7875F /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1B91EEF726281D35003120A7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -98,6 +74,7 @@
 		1BF8BF8624AAD274003B5EA3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				1BF5BD202EF5282800966BB3 /* LYMVPSocketIO.framework */,
 				1B364D7C282A029300CCC820 /* VPSocketIO.framework */,
 			);
 			name = Frameworks;
@@ -108,7 +85,6 @@
 			children = (
 				F06B192F1F71466C003E81B1 /* VPSocketIO */,
 				1B91EEFB26281D35003120A7 /* VPSocketIOAppTests */,
-				1B5D261C2EF1522C00D7875F /* VPSocketIOTests */,
 				F06B192E1F71466C003E81B1 /* Products */,
 				1BF8BF8624AAD274003B5EA3 /* Frameworks */,
 			);
@@ -119,7 +95,6 @@
 			children = (
 				F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */,
 				1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */,
-				1B5D261B2EF1522C00D7875F /* VPSocketIOTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -151,28 +126,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1B5D261A2EF1522C00D7875F /* VPSocketIOTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 1B5D26222EF1522C00D7875F /* Build configuration list for PBXNativeTarget "VPSocketIOTests" */;
-			buildPhases = (
-				1B5D26172EF1522C00D7875F /* Sources */,
-				1B5D26182EF1522C00D7875F /* Frameworks */,
-				1B5D26192EF1522C00D7875F /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				1B5D261C2EF1522C00D7875F /* VPSocketIOTests */,
-			);
-			name = VPSocketIOTests;
-			packageProductDependencies = (
-			);
-			productName = VPSocketIOTests;
-			productReference = 1B5D261B2EF1522C00D7875F /* VPSocketIOTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 		1B91EEF926281D35003120A7 /* VPSocketIOAppTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1B91EF0326281D35003120A7 /* Build configuration list for PBXNativeTarget "VPSocketIOAppTests" */;
@@ -198,7 +151,6 @@
 				F06B19291F71466C003E81B1 /* Sources */,
 				F06B192A1F71466C003E81B1 /* Frameworks */,
 				F06B192B1F71466C003E81B1 /* Resources */,
-				1B3D8C8829F21AE9001DEC5D /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -218,9 +170,6 @@
 				LastUpgradeCheck = 1420;
 				ORGANIZATIONNAME = "Vasily Popov";
 				TargetAttributes = {
-					1B5D261A2EF1522C00D7875F = {
-						CreatedOnToolsVersion = 16.1;
-					};
 					1B91EEF926281D35003120A7 = {
 						CreatedOnToolsVersion = 12.4;
 						DevelopmentTeam = WBAAXLQG52;
@@ -249,19 +198,11 @@
 			targets = (
 				F06B192C1F71466C003E81B1 /* VPSocketIOApp */,
 				1B91EEF926281D35003120A7 /* VPSocketIOAppTests */,
-				1B5D261A2EF1522C00D7875F /* VPSocketIOTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		1B5D26192EF1522C00D7875F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1B91EEF826281D35003120A7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -282,13 +223,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		1B5D26172EF1522C00D7875F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		1B91EEF626281D35003120A7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -337,55 +271,6 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		1B5D26232EF1522C00D7875F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WBAAXLQG52;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.VPSocketIOTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		1B5D26242EF1522C00D7875F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WBAAXLQG52;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
-				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.VPSocketIOTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		1B91EF0126281D35003120A7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -403,11 +288,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = VPSocketIOAppTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.mediasoupTest.VPSocketIOAppTests;
@@ -434,11 +315,7 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = VPSocketIOAppTests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vrv.mediasoupTest.VPSocketIOAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -573,10 +450,7 @@
 					"\"$(SRCROOT)/frameworks\"",
 				);
 				INFOPLIST_FILE = VPSocketIO/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.vascome.VPSocketIOApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -598,10 +472,7 @@
 					"\"$(SRCROOT)/frameworks\"",
 				);
 				INFOPLIST_FILE = VPSocketIO/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.vascome.VPSocketIOApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -611,15 +482,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1B5D26222EF1522C00D7875F /* Build configuration list for PBXNativeTarget "VPSocketIOTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				1B5D26232EF1522C00D7875F /* Debug */,
-				1B5D26242EF1522C00D7875F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		1B91EF0326281D35003120A7 /* Build configuration list for PBXNativeTarget "VPSocketIOAppTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

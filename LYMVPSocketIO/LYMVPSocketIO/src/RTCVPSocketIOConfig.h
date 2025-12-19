@@ -6,11 +6,20 @@
 //  Copyright © 2025 Vasily Popov. All rights reserved.
 //
 
+
+#ifndef RTCVPSocketIOConfig_H
+#define RTCVPSocketIOConfig_H
 // RTCVPSocketIOConfig.h
 #import <Foundation/Foundation.h>
-#import "RTCVPSocketIOProtocolVersion.h"
+#import <LYMVPSocketIO/RTCVPSocketIOClientProtocol.h>
+#import <LYMVPSocketIO/RTCVPSocketIOProtocolVersion.h>
+
+
+
 
 NS_ASSUME_NONNULL_BEGIN
+
+
 
 @class RTCVPSocketLogger;
 
@@ -141,3 +150,5 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOTransport) {
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif // RTCVPSocketIOConfig_H

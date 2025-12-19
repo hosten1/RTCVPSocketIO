@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+#ifndef RTCVPSocketIOProtocolVersion_H
+#define RTCVPSocketIOProtocolVersion_H
 NS_ASSUME_NONNULL_BEGIN
 
 
@@ -21,3 +23,4 @@ typedef NS_ENUM(NSInteger, RTCVPSocketIOProtocolVersion) {
 static const RTCVPSocketIOProtocolVersion kRTCVPSocketIOProtocolVersionDefault = RTCVPSocketIOProtocolVersion2;
 
 NS_ASSUME_NONNULL_END
+#endif // RTCVPSocketIOProtocolVersion_H

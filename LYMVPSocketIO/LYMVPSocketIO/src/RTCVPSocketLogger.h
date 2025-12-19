@@ -6,8 +6,13 @@
 //  Copyright © 2017 Vasily Popov. All rights reserved.
 //
 
+#ifndef RTCVPSocketLogger_H
+#define RTCVPSocketLogger_H
+
 // RTCVPSocketLogger.h
 #import <Foundation/Foundation.h>
+
+
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -36,3 +41,4 @@ typedef NS_ENUM(NSInteger, RTCLogLevel) {
 @end
 
 NS_ASSUME_NONNULL_END
+#endif // RTCVPSocketLogger_H

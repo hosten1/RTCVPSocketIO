@@ -356,10 +356,10 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         [self.engine connect];
         
         if (timeout > 0) {
-            __weak typeof(self) weakSelf = self;
+            __weak __typeof(self) weakSelf = self;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)),
                           self.handleQueue, ^{
-                __strong typeof(weakSelf) strongSelf = weakSelf;
+                __strong __typeof(weakSelf) strongSelf = weakSelf;
                 if (strongSelf &&
                     (strongSelf.status == RTCVPSocketIOClientStatusConnecting ||
                      strongSelf.status == RTCVPSocketIOClientStatusNotConnected)) {
@@ -528,13 +528,13 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     
     // 如果需要ACK，设置回调
     if (ack >= 0) {
-        __weak typeof(self) weakSelf = self;
+        __weak __typeof(self) weakSelf = self;
         [packet setupAckCallbacksWithSuccess:^(NSArray * _Nullable response) {
-            __strong typeof(weakSelf) strongSelf = weakSelf;
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
             [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"ACK回调执行: %@, 响应: %@", @(ack), response]
                                           type:strongSelf.logType];
         } error:^(NSError * _Nullable error) {
-            __strong typeof(weakSelf) strongSelf = weakSelf;
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
             if (error) {
                 [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"ACK错误: %@, 错误: %@", @(ack), error.localizedDescription]
                                               type:strongSelf.logType];
@@ -599,16 +599,16 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
                                                             requiresAck:YES];
     
     // 设置回调
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     [packet setupAckCallbacksWithSuccess:^(NSArray * _Nullable response) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf && ackBlock) {
             dispatch_async(strongSelf.handleQueue, ^{
                 ackBlock(response, nil);
             });
         }
     } error:^(NSError * _Nullable error) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf && ackBlock) {
             dispatch_async(strongSelf.handleQueue, ^{
                 ackBlock(nil, error);
@@ -706,9 +706,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
                 // 创建ACK发射器（如果需要ACK）
                 RTCVPSocketAckEmitter *emitter = nil;
                 if (ack >= 0) {
-                    __weak typeof(self) weakSelf = self;
+                    __weak __typeof(self) weakSelf = self;
                     emitter = [[RTCVPSocketAckEmitter alloc] initWithAckId:ack emitBlock:^(NSArray *items) {
-                        __strong typeof(weakSelf) strongSelf = weakSelf;
+                        __strong __typeof(weakSelf) strongSelf = weakSelf;
                         [strongSelf sendAck:ack withData:items];
                     }];
                 }
@@ -795,11 +795,11 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     
     NSUUID *uuid = [NSUUID UUID];
     
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     RTCVPSocketEventHandler *handler = [[RTCVPSocketEventHandler alloc] initWithEvent:event
                                                                                  uuid:uuid
                                                                           andCallback:^(NSArray *data, RTCVPSocketAckEmitter *emitter) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf offWithID:uuid];
             callback(data, emitter);
@@ -870,7 +870,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 }
 
 - (void)setReconnectTimer {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     // 指数退避策略：baseDelay * (2 ^ (attempt - 1))，但不超过最大值60秒
     NSTimeInterval delay = MIN(self.reconnectWait * pow(2, self.currentReconnectAttempt - 1), 60.0);
@@ -879,7 +879,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
                   self.handleQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
             if (strongSelf.reconnects && strongSelf->_reconnecting) {
                 if (strongSelf.status != RTCVPSocketIOClientStatusConnected) {
@@ -903,9 +903,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         [self.networkManager startMonitoring];
         self.currentNetworkStatus = RTCVPAFNetworkReachabilityStatusUnknown;
         
-        __weak typeof(self) weakSelf = self;
+        __weak __typeof(self) weakSelf = self;
         [self.networkManager setReachabilityStatusChangeBlock:^(RTCVPAFNetworkReachabilityStatus status) {
-            __strong typeof(weakSelf) strongSelf = weakSelf;
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
             [strongSelf handleNetworkStatusChange:status];
         }];
     }
@@ -987,9 +987,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 #pragma mark - RTCVPSocketEngineClient
 
 - (void)engineDidError:(NSString *)reason {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     dispatch_async(self.handleQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf _engineDidError:reason];
         }
@@ -1006,9 +1006,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 }
 
 - (void)engineDidClose:(NSString *)reason {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     dispatch_async(self.handleQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf _engineDidClose:reason];
         }
@@ -1032,9 +1032,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Should parse message: %@", msg]
                                   type:self.logType];
     
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     dispatch_async(self.handleQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf parseSocketMessage:msg];
         }
@@ -1042,9 +1042,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 }
 
 - (void)parseEngineBinaryData:(NSData *)data {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     dispatch_async(self.handleQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf parseBinaryData:data];
         }

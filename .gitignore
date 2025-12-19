@@ -11,3 +11,5 @@ testServer/logs/
 third_part/libwebrtc/build/
 third_part/libwebrtc/build_ios/
 RTCVOSocketIO.xcworkspace/xcuserdata/
+LYMVPSocketIO/LYMVPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/
+LYMVPSocketIO/LYMVPSocketIO.xcodeproj/xcuserdata/

@@ -4,4 +4,7 @@
    <FileRef
       location = "group:LYMVPSocketIO/LYMVPSocketIO.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:VPSocketIO.xcodeproj">
+   </FileRef>
 </Workspace>

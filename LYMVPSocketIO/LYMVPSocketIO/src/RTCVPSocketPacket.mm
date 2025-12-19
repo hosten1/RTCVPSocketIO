@@ -148,10 +148,10 @@
                                error:(nullable RTCVPPacketErrorCallback)error
                              timeout:(NSTimeInterval)timeout {
     
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     dispatch_async(_stateQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
             return;
         }
@@ -168,10 +168,10 @@
 }
 
 - (void)startTimeoutTimer {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) return;
         
         [strongSelf.timeoutTimer invalidate];
@@ -184,10 +184,10 @@
 }
 
 - (void)handleTimeout {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     dispatch_async(_stateQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
             return;
         }
@@ -215,10 +215,10 @@
 #pragma mark - ACK处理
 
 - (void)acknowledgeWithData:(nullable NSArray *)data {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     dispatch_async(_stateQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
             return;
         }
@@ -240,10 +240,10 @@
 }
 
 - (void)failWithError:(nullable NSError *)error {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     dispatch_async(_stateQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
             return;
         }
@@ -262,10 +262,10 @@
 }
 
 - (void)cancel {
-    __weak typeof(self) weakSelf = self;
+    __weak __typeof(self) weakSelf = self;
     
     dispatch_async(_stateQueue, ^{
-        __strong typeof(weakSelf) strongSelf = weakSelf;
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf || strongSelf.packetState != RTCVPPacketStatePending) {
             return;
         }
