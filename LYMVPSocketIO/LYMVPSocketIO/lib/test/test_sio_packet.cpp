@@ -621,159 +621,258 @@ void test_version_compatibility() {
     // 准备测试数据
     print_test_section("准备测试数据");
     
-    SmartBuffer test_binary;
-    test_binary.set_data(TEST_BINARY_DATA_1.data(), TEST_BINARY_DATA_1.size());
+    // 单个二进制测试数据
+    SmartBuffer test_binary1;
+    test_binary1.set_data(TEST_BINARY_DATA_1.data(), TEST_BINARY_DATA_1.size());
     
-    Json::Value binary_obj = binary_helper::create_binary_value(test_binary.buffer());
+    Json::Value binary_obj1 = binary_helper::create_binary_value(test_binary1.buffer());
     
-    Json::Value test_data(Json::objectValue);
-    test_data["message"] = Json::Value("版本兼容性测试");
-    test_data["count"] = Json::Value(100);
-    test_data["float_val"] = Json::Value(2.71828);
-    test_data["binary"] = binary_obj;
-    test_data["array"] = Json::Value(Json::arrayValue);
-    test_data["array"].append(Json::Value("item1"));
-    test_data["array"].append(Json::Value(200));
-    test_data["array"].append(Json::Value(true));
+    // 第二个二进制测试数据
+    SmartBuffer test_binary2;
+    test_binary2.set_data(TEST_BINARY_DATA_2.data(), TEST_BINARY_DATA_2.size());
     
-    std::vector<Json::Value> test_array;
-    test_array.push_back(Json::Value("version_test"));
-    test_array.push_back(test_data);
+    Json::Value binary_obj2 = binary_helper::create_binary_value(test_binary2.buffer());
     
-    std::cout << "测试数据数组 (" << test_array.size() << "个元素):" << std::endl;
-    for (size_t i = 0; i < test_array.size(); i++) {
-        std::cout << "  [" << i << "]: ";
-        packet_printer::print_json_value(test_array[i]);
+    // 单个二进制数据的测试场景
+    Json::Value test_data_single(Json::objectValue);
+    test_data_single["message"] = Json::Value("版本兼容性测试 - 单个二进制");
+    test_data_single["count"] = Json::Value(100);
+    test_data_single["float_val"] = Json::Value(2.71828);
+    test_data_single["binary"] = binary_obj1;
+    test_data_single["array"] = Json::Value(Json::arrayValue);
+    test_data_single["array"].append(Json::Value("item1"));
+    test_data_single["array"].append(Json::Value(200));
+    test_data_single["array"].append(Json::Value(true));
+    
+    // 两个二进制数据的测试场景
+    Json::Value test_data_double(Json::objectValue);
+    test_data_double["message"] = Json::Value("版本兼容性测试 - 两个二进制");
+    test_data_double["count"] = Json::Value(200);
+    test_data_double["float_val"] = Json::Value(3.14159);
+    test_data_double["binary1"] = binary_obj1;
+    test_data_double["binary2"] = binary_obj2;
+    test_data_double["array"] = Json::Value(Json::arrayValue);
+    test_data_double["array"].append(Json::Value("item1"));
+    test_data_double["array"].append(Json::Value(300));
+    test_data_double["array"].append(Json::Value(false));
+    
+    // 测试场景1：单个二进制数据
+    std::vector<Json::Value> test_array_single;
+    test_array_single.push_back(Json::Value("version_test_single"));
+    test_array_single.push_back(test_data_single);
+    
+    // 测试场景2：两个二进制数据
+    std::vector<Json::Value> test_array_double;
+    test_array_double.push_back(Json::Value("version_test_double"));
+    test_array_double.push_back(test_data_double);
+    
+    // 所有测试场景
+    std::vector<std::pair<std::string, std::vector<Json::Value>>> test_scenarios;
+    test_scenarios.emplace_back("单个二进制数据", test_array_single);
+    test_scenarios.emplace_back("两个二进制数据", test_array_double);
+    
+    // 打印测试数据
+    for (const auto& scenario : test_scenarios) {
+        const auto& scenario_name = scenario.first;
+        const auto& test_array = scenario.second;
+        
+        std::cout << "\n测试场景: " << scenario_name << std::endl;
+        std::cout << "测试数据数组 (" << test_array.size() << "个元素):" << std::endl;
+        for (size_t i = 0; i < test_array.size(); i++) {
+            std::cout << "  [" << i << "]: ";
+            packet_printer::print_json_value(test_array[i]);
+        }
     }
     
     // 测试不同版本
     const std::vector<SocketIOVersion> versions = {SocketIOVersion::V2, SocketIOVersion::V3};
     
-    for (const auto& version : versions) {
-        std::string version_str = (version == SocketIOVersion::V2) ? "v2" : "v3";
-        print_test_section("测试 " + version_str + " 版本");
+    // 遍历所有测试场景
+    for (const auto& scenario : test_scenarios) {
+        const auto& scenario_name = scenario.first;
+        const auto& test_array = scenario.second;
         
-        // 创建版本特定的发送器和接收器
-        PacketSender<Json::Value> sender(version);
-        PacketReceiver<Json::Value> receiver(version);
+        std::cout << "\n\n===============================================\n";
+        std::cout << "测试场景: " << scenario_name << std::endl;
+        std::cout << "===============================================\n";
         
-        // 发送数据
-        std::promise<std::string> send_promise;
-        std::future<std::string> send_future = send_promise.get_future();
-        
-        std::vector<SmartBuffer> sent_binaries;
-        
-        sender.set_text_callback([&send_promise, version_str](const std::string& text) {
-        std::cout << "\n[" << version_str << " Sender] 发送文本包:" << std::endl;
-        std::cout << "  长度: " << text.length() << " 字节" << std::endl;
-        std::cout << "  内容: " << text << std::endl;
-        send_promise.set_value(text);
-        return true;
-    });
-        
-        sender.set_binary_callback([&sent_binaries, version_str](const SmartBuffer& binary) {
-            std::cout << "\n[" << version_str << " Sender] 发送二进制数据: " 
-                     << binary.size() << " 字节" << std::endl;
-            SmartBuffer copy;
-            copy.set_data(binary.data(), binary.size());
-            sent_binaries.push_back(std::move(copy));
-            return true;
-        });
-        
-        // 接收数据
-        std::promise<std::vector<Json::Value>> receive_promise;
-        std::future<std::vector<Json::Value>> receive_future = receive_promise.get_future();
-        
-        receiver.set_complete_callback([&receive_promise, version_str](const std::vector<Json::Value>& data) {
-            std::cout << "\n[" << version_str << " Receiver] 接收完成: " 
-                     << data.size() << " 个元素" << std::endl;
-            receive_promise.set_value(data);
-        });
-        
-        // 开始发送
-        sender.prepare_data_array_async(test_array, PacketType::EVENT);
-        
-        // 获取发送的文本包
-        std::string sent_text;
-        try {
-            sent_text = send_future.get();
-        } catch (const std::exception& e) {
-            print_test_result(false, "发送文本包失败: " + std::string(e.what()));
-            continue;
-        }
-        
-        // 接收文本包
-        bool text_received = receiver.receive_text(sent_text);
-        print_test_result(text_received, "接收文本包");
-        
-        if (!text_received) {
-            print_test_result(false, "接收文本包失败");
-            continue;
-        }
-        
-        // 接收二进制数据
-        for (size_t i = 0; i < sent_binaries.size(); i++) {
-            bool binary_received = receiver.receive_binary(sent_binaries[i]);
-            print_test_result(binary_received, "接收二进制数据[" + std::to_string(i) + "]");
+        for (const auto& version : versions) {
+            std::string version_str = (version == SocketIOVersion::V2) ? "v2" : "v3";
+            print_test_section("测试 " + version_str + " 版本");
             
-            if (!binary_received) {
-                print_test_result(false, "接收二进制数据[" + std::to_string(i) + "]失败");
-            }
-        }
-        
-        // 获取接收的数据
-        std::vector<Json::Value> received_data;
-        try {
-            received_data = receive_future.get();
-        } catch (const std::exception& e) {
-            print_test_result(false, "接收数据失败: " + std::string(e.what()));
-            continue;
-        }
-        
-        // 验证接收的数据
-        bool version_success = true;
-        
-        if (received_data.size() != test_array.size()) {
-            version_success = false;
-            print_test_result(false, "数据数量不匹配");
-        } else {
-            print_test_result(true, "数据数量匹配");
+            // 创建版本特定的发送器和接收器
+            PacketSender<Json::Value> sender(version);
+            PacketReceiver<Json::Value> receiver(version);
             
-            // 验证数据内容
-            if (received_data[0].asString() != "version_test") {
-                version_success = false;
-                print_test_result(false, "事件名称不匹配");
-            } else {
-                print_test_result(true, "事件名称正确");
+            // 发送数据
+            std::promise<std::string> send_promise;
+            std::future<std::string> send_future = send_promise.get_future();
+            
+            std::vector<SmartBuffer> sent_binaries;
+            
+            sender.set_text_callback([&send_promise, version_str, scenario_name](const std::string& text) {
+                std::cout << "\n[" << version_str << " Sender] 发送文本包 - " << scenario_name << ":" << std::endl;
+                std::cout << "  长度: " << text.length() << " 字节" << std::endl;
+                std::cout << "  内容: " << text << std::endl;
+                send_promise.set_value(text);
+                return true;
+            });
+            
+            sender.set_binary_callback([&sent_binaries, version_str, scenario_name](const SmartBuffer& binary) {
+                std::cout << "\n[" << version_str << " Sender] 发送二进制数据 - " << scenario_name << ": " 
+                         << binary.size() << " 字节" << std::endl;
+                SmartBuffer copy;
+                copy.set_data(binary.data(), binary.size());
+                sent_binaries.push_back(std::move(copy));
+                return true;
+            });
+            
+            // 接收数据
+            std::promise<std::vector<Json::Value>> receive_promise;
+            std::future<std::vector<Json::Value>> receive_future = receive_promise.get_future();
+            
+            receiver.set_complete_callback([&receive_promise, version_str, scenario_name](const std::vector<Json::Value>& data) {
+                std::cout << "\n[" << version_str << " Receiver] 接收完成 - " << scenario_name << ": " 
+                         << data.size() << " 个元素" << std::endl;
+                receive_promise.set_value(data);
+            });
+            
+            // 开始发送
+            sender.prepare_data_array_async(test_array, PacketType::EVENT);
+            
+            // 获取发送的文本包
+            std::string sent_text;
+            try {
+                sent_text = send_future.get();
+            } catch (const std::exception& e) {
+                print_test_result(false, "发送文本包失败: " + std::string(e.what()));
+                continue;
             }
             
-            const Json::Value& received_obj = received_data[1];
-            if (!received_obj.isObject()) {
-                version_success = false;
-                print_test_result(false, "事件数据不是对象");
-            } else {
-                print_test_result(received_obj["message"].asString() == "版本兼容性测试",
-                                 "消息内容匹配");
+            // 接收文本包
+            bool text_received = receiver.receive_text(sent_text);
+            print_test_result(text_received, "接收文本包");
+            
+            if (!text_received) {
+                print_test_result(false, "接收文本包失败");
+                continue;
+            }
+            
+            // 接收二进制数据
+            for (size_t i = 0; i < sent_binaries.size(); i++) {
+                bool binary_received = receiver.receive_binary(sent_binaries[i]);
+                print_test_result(binary_received, "接收二进制数据[" + std::to_string(i) + "]");
                 
-                print_test_result(received_obj["count"].asInt() == 100,
-                                 "count字段匹配");
-                
-                print_test_result(std::abs(received_obj["float_val"].asDouble() - 2.71828) < 0.00001,
-                                 "float_val字段匹配");
-                
-                if (binary_helper::is_binary(received_obj["binary"])) {
-                    SmartBuffer recovered = binary_helper::get_binary(received_obj["binary"]);
-                    bool match = compare_binary_data(recovered, test_binary);
-                    print_test_result(match, "二进制数据匹配");
-                    version_success = version_success && match;
-                } else {
-                    version_success = false;
-                    print_test_result(false, "binary字段不是二进制对象");
+                if (!binary_received) {
+                    print_test_result(false, "接收二进制数据[" + std::to_string(i) + "]失败");
                 }
             }
+            
+            // 获取接收的数据
+            std::vector<Json::Value> received_data;
+            try {
+                received_data = receive_future.get();
+            } catch (const std::exception& e) {
+                print_test_result(false, "接收数据失败: " + std::string(e.what()));
+                continue;
+            }
+            
+            // 打印解析后的数组
+            std::cout << "\n[" << version_str << " Receiver] 解析后的数组 (" << received_data.size() << "个元素):" << std::endl;
+            for (size_t i = 0; i < received_data.size(); i++) {
+                std::cout << "  [" << i << "]: ";
+                packet_printer::print_json_value(received_data[i]);
+            }
+            
+            // 验证接收的数据
+            bool version_success = true;
+            
+            if (received_data.size() != test_array.size()) {
+                version_success = false;
+                print_test_result(false, "数据数量不匹配");
+            } else {
+                print_test_result(true, "数据数量匹配");
+                
+                // 验证数据内容
+                if (scenario_name == "单个二进制数据") {
+                    if (received_data[0].asString() != "version_test_single") {
+                        version_success = false;
+                        print_test_result(false, "事件名称不匹配");
+                    } else {
+                        print_test_result(true, "事件名称正确");
+                    }
+                    
+                    const Json::Value& received_obj = received_data[1];
+                    if (!received_obj.isObject()) {
+                        version_success = false;
+                        print_test_result(false, "事件数据不是对象");
+                    } else {
+                        print_test_result(received_obj["message"].asString() == "版本兼容性测试 - 单个二进制",
+                                         "消息内容匹配");
+                        
+                        print_test_result(received_obj["count"].asInt() == 100,
+                                         "count字段匹配");
+                        
+                        print_test_result(std::abs(received_obj["float_val"].asDouble() - 2.71828) < 0.00001,
+                                         "float_val字段匹配");
+                        
+                        if (binary_helper::is_binary(received_obj["binary"])) {
+                            SmartBuffer recovered = binary_helper::get_binary(received_obj["binary"]);
+                            bool match = compare_binary_data(recovered, test_binary1);
+                            print_test_result(match, "二进制数据匹配");
+                            version_success = version_success && match;
+                        } else {
+                            version_success = false;
+                            print_test_result(false, "binary字段不是二进制对象");
+                        }
+                    }
+                } else if (scenario_name == "两个二进制数据") {
+                    if (received_data[0].asString() != "version_test_double") {
+                        version_success = false;
+                        print_test_result(false, "事件名称不匹配");
+                    } else {
+                        print_test_result(true, "事件名称正确");
+                    }
+                    
+                    const Json::Value& received_obj = received_data[1];
+                    if (!received_obj.isObject()) {
+                        version_success = false;
+                        print_test_result(false, "事件数据不是对象");
+                    } else {
+                        print_test_result(received_obj["message"].asString() == "版本兼容性测试 - 两个二进制",
+                                         "消息内容匹配");
+                        
+                        print_test_result(received_obj["count"].asInt() == 200,
+                                         "count字段匹配");
+                        
+                        print_test_result(std::abs(received_obj["float_val"].asDouble() - 3.14159) < 0.00001,
+                                         "float_val字段匹配");
+                        
+                        if (binary_helper::is_binary(received_obj["binary1"])) {
+                            SmartBuffer recovered1 = binary_helper::get_binary(received_obj["binary1"]);
+                            bool match1 = compare_binary_data(recovered1, test_binary1);
+                            print_test_result(match1, "binary1数据匹配");
+                            version_success = version_success && match1;
+                        } else {
+                            version_success = false;
+                            print_test_result(false, "binary1字段不是二进制对象");
+                        }
+                        
+                        if (binary_helper::is_binary(received_obj["binary2"])) {
+                            SmartBuffer recovered2 = binary_helper::get_binary(received_obj["binary2"]);
+                            bool match2 = compare_binary_data(recovered2, test_binary2);
+                            print_test_result(match2, "binary2数据匹配");
+                            version_success = version_success && match2;
+                        } else {
+                            version_success = false;
+                            print_test_result(false, "binary2字段不是二进制对象");
+                        }
+                    }
+                }
+            }
+            
+            print_test_result(version_success, version_str + " 版本测试 - " + scenario_name + (version_success ? "通过" : "失败"));
         }
-        
-        print_test_result(version_success, version_str + " 版本测试" + (version_success ? "通过" : "失败"));
     }
     
     // 测试PacketHelper
@@ -781,7 +880,7 @@ void test_version_compatibility() {
     
     SocketIOPacketResult helper_result = PacketHelper::build_event_packet(
         "helper_test",
-        test_data,
+        test_data_single,
         777,
         "/test_namespace"
     );
