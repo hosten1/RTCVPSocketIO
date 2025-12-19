@@ -147,7 +147,7 @@ std::string PacketParser::readString(const std::string& str, size_t& cursor) {
                         if (cursor + 4 < str.length()) {
                             std::string hex = str.substr(cursor + 1, 4);
                             try {
-                                unsigned long code = std::stoul(hex, nullptr, 16);
+                                unsigned int code = static_cast<unsigned int>(std::stoul(hex, nullptr, 16));
                                 // 简化处理：只支持基本多文种平面
                                 if (code <= 0x7F) {
                                     result += static_cast<char>(code);
@@ -872,7 +872,7 @@ std::string PacketParser::unescapeJsonString(const std::string& str) {
                     if (i + 4 < str.length()) {
                         std::string hex = str.substr(i + 1, 4);
                         try {
-                            unsigned int code = std::stoul(hex, nullptr, 16);
+                            unsigned int code = static_cast<unsigned int>(std::stoul(hex, nullptr, 16));
                             if (code <= 0x7F) {
                                 result += static_cast<char>(code);
                             } else if (code <= 0x7FF) {

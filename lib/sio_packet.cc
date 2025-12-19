@@ -7,6 +7,7 @@
 //
 
 #include "sio_packet.h"
+#include <iostream>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
