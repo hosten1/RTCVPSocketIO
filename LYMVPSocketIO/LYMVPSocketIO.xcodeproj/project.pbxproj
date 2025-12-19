@@ -430,6 +430,7 @@
 		1BF5BADB2EF5074900966BB3 /* LYMVPSocketIO.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LYMVPSocketIO.m; sourceTree = "<group>"; };
 		1BF5BB602EF50B8400966BB3 /* sio_packet_parser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet_parser.h; sourceTree = "<group>"; };
 		1BF5BB612EF50B8400966BB3 /* sio_packet_parser.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_packet_parser.cc; sourceTree = "<group>"; };
+		1BF5BB632EF50E6100966BB3 /* sio_smart_buffer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = sio_smart_buffer.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -492,6 +493,7 @@
 				1BF5B95F2EF5074900966BB3 /* sio_packet_impl.h */,
 				1BF5B9602EF5074900966BB3 /* sio_packet_impl.cc */,
 				1BF5B9632EF5074900966BB3 /* sio_packet_printer.hpp */,
+				1BF5BB632EF50E6100966BB3 /* sio_smart_buffer.hpp */,
 			);
 			path = lib;
 			sourceTree = "<group>";

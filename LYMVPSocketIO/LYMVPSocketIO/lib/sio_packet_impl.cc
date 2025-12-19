@@ -65,16 +65,10 @@ void PacketSender<T>::prepare_data_array_async(
                                                   state_->text_queue
                                                       .push(encoded);
                                               },
-                                              [this](const rtc::Buffer& binary_part,
+                                              [this](const SmartBuffer& binary_part,
                                                      size_t index) {
-                                                         // 创建数据的拷贝
-                                                         rtc::Buffer buffer_copy;
-                                                         buffer_copy
-                                                             .SetData(binary_part.data(),
-                                                                      binary_part
-                                                                      .size());
-                                                         state_->binary_queue
-                                                             .push(std::move(buffer_copy));
+                                                         // SmartBuffer已经使用智能指针，直接使用
+                                                         state_->binary_queue.push(binary_part);
                                                      }
                                               );
     
@@ -88,7 +82,7 @@ void PacketSender<T>::set_text_callback(std::function<void(const std::string& te
 }
 
 template <typename T>
-void PacketSender<T>::set_binary_callback(std::function<void(const rtc::Buffer& binary)> callback) {
+void PacketSender<T>::set_binary_callback(std::function<void(const SmartBuffer& binary)> callback) {
     state_->binary_callback = callback;
 }
 
@@ -112,7 +106,7 @@ void PacketSender<T>::process_next_item() {
         // 然后发送所有二进制
         while (!state_->binary_queue.empty()) {
             // 获取二进制数据
-            rtc::Buffer binary = std::move(state_->binary_queue.front());
+            SmartBuffer binary = state_->binary_queue.front();
             state_->binary_queue.pop();
             
             if (state_->binary_callback) {
@@ -132,7 +126,7 @@ void PacketSender<T>::process_next_item() {
 template <typename T>
 void PacketSender<T>::reset() {
     state_->text_queue = std::queue<std::string>();
-    state_->binary_queue = std::queue<rtc::Buffer>();
+    state_->binary_queue = std::queue<SmartBuffer>();
     state_->expecting_binary = false;
     state_->text_callback = nullptr;
     state_->binary_callback = nullptr;
@@ -194,15 +188,13 @@ bool PacketReceiver<T>::receive_text(const std::string& text) {
 }
 
 template <typename T>
-bool PacketReceiver<T>::receive_binary(const rtc::Buffer& binary) {
+bool PacketReceiver<T>::receive_binary(const SmartBuffer& binary) {
     if (!state_->expecting_binary) {
         return false;
     }
     
-    // 创建数据的拷贝
-    rtc::Buffer buffer_copy;
-    buffer_copy.SetData(binary.data(), binary.size());
-    state_->received_binaries.push_back(std::move(buffer_copy));
+    // SmartBuffer已经使用智能指针，直接使用
+    state_->received_binaries.push_back(binary);
     
     // 检查是否已接收完所有预期的二进制数据
     if (state_->received_binaries.size() >= state_->expected_binaries.size()) {
@@ -212,13 +204,14 @@ bool PacketReceiver<T>::receive_binary(const rtc::Buffer& binary) {
     
     return true;
 }
+
 template <typename T>
 void PacketReceiver<T>::check_and_trigger_complete() {
     if (state_->complete_callback &&
         (!state_->expecting_binary || state_->received_binaries.size() >= state_->expected_binaries.size())) {
         
         // 1. 解析数据包
-        auto parse_result = PacketParser::parsePacket(state_->current_text);
+        auto parse_result = PacketParser::getInstance().parsePacket(state_->current_text);
         if (!parse_result.success || parse_result.json_data.empty()) {
             state_->complete_callback(std::vector<T>());
             return;
@@ -271,7 +264,7 @@ void PacketReceiver<T>::reset() {
 template <>
 Json::Value PacketSplitter<Json::Value>::data_to_json(
                                                       const Json::Value& value,
-                                                      std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback,
+                                                      std::function<void(const SmartBuffer& binary_part, size_t index)> binary_callback,
                                                       int& placeholder_counter) {
     
     // 基本类型直接返回
@@ -303,7 +296,7 @@ Json::Value PacketSplitter<Json::Value>::data_to_json(
             
                 // 创建二进制数据
                 std::string binary_str = value["data"].asString();
-                rtc::Buffer buffer(binary_str.data(), binary_str.size());
+                SmartBuffer buffer(binary_str.data(), binary_str.size());
             
                 // 调用二进制回调
                 if (binary_callback) {
@@ -320,14 +313,16 @@ Json::Value PacketSplitter<Json::Value>::data_to_json(
         if (value.isMember("_binary_data") && value["_binary_data"].isBool() &&
             value["_binary_data"].asBool() && value.isMember("_buffer_ptr")) {
             
-            // 获取二进制数据指针
-            uint64_t buffer_ptr_val = value["_buffer_ptr"].asUInt64();
-            rtc::Buffer* buffer_ptr = reinterpret_cast<rtc::Buffer*>(buffer_ptr_val);
+            // 获取二进制数据智能指针
+            auto buffer_ptr = sio::binary_helper::get_binary_shared_ptr(value);
             
             if (buffer_ptr) {
+                // 创建SmartBuffer
+                SmartBuffer buffer(buffer_ptr);
+                
                 // 调用二进制回调
                 if (binary_callback) {
-                    binary_callback(*buffer_ptr, placeholder_counter);
+                    binary_callback(buffer, placeholder_counter);
                 }
                 
                 // 创建占位符
@@ -339,13 +334,16 @@ Json::Value PacketSplitter<Json::Value>::data_to_json(
         
         // 检查是否是二进制数据对象 - 使用binary_helper
         if (sio::binary_helper::is_binary(value)) {
-            // 获取二进制数据指针
-            rtc::Buffer* buffer_ptr = sio::binary_helper::get_binary_ptr(value);
+            // 获取二进制数据智能指针
+            auto buffer_ptr = sio::binary_helper::get_binary_shared_ptr(value);
             
             if (buffer_ptr) {
+                // 创建SmartBuffer
+                SmartBuffer buffer(buffer_ptr);
+                
                 // 调用二进制回调
                 if (binary_callback) {
-                    binary_callback(*buffer_ptr, placeholder_counter);
+                    binary_callback(buffer, placeholder_counter);
                 }
                 
                 // 创建占位符
@@ -372,7 +370,7 @@ Json::Value PacketSplitter<Json::Value>::data_to_json(
 template <>
 Json::Value PacketSplitter<Json::Value>::json_to_data(
                                                       const Json::Value& json,
-                                                      const std::vector<rtc::Buffer>& binaries) {
+                                                      const std::vector<SmartBuffer>& binaries) {
     
     // 基本类型直接返回
     if (json.isNull() || json.isBool() || json.isInt() ||
@@ -396,10 +394,12 @@ Json::Value PacketSplitter<Json::Value>::json_to_data(
             int index = get_placeholder_index(json);
             if (index >= 0 && index < static_cast<int>(binaries.size())) {
                 // 获取二进制数据
-                const rtc::Buffer& buffer = binaries[index];
+                const SmartBuffer& buffer = binaries[index];
                 
                 // 使用binary_helper创建包含二进制数据的对象
-                return sio::binary_helper::create_binary_value(buffer);
+                if (!buffer.empty()) {
+                    return sio::binary_helper::create_binary_value(buffer.buffer());
+                }
             }
             return Json::Value(Json::nullValue);
         }
@@ -415,6 +415,8 @@ Json::Value PacketSplitter<Json::Value>::json_to_data(
     
     return Json::Value(Json::nullValue);
 }
+
+// 显式实例化
 template class PacketSender<Json::Value>;
 template class PacketReceiver<Json::Value>;
 } //namespace sio end

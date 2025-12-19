@@ -20,6 +20,7 @@
 #include "rtc_base/buffer.h"
 #include "sio_packet.h"
 #include "sio_jsoncpp_binary_helper.hpp"
+#include "sio_smart_buffer.hpp"
 
 namespace sio {
 
@@ -42,7 +43,7 @@ public:
     void set_text_callback(std::function<void(const std::string& text)> callback);
     
     // 设置二进制数据回调
-    void set_binary_callback(std::function<void(const rtc::Buffer& binary)> callback);
+    void set_binary_callback(std::function<void(const SmartBuffer& binary)> callback);
     
     // 重置发送状态
     void reset();
@@ -50,10 +51,10 @@ public:
 private:
     struct SendState {
         std::queue<std::string> text_queue;
-        std::queue<rtc::Buffer> binary_queue;
+        std::queue<SmartBuffer> binary_queue;
         bool expecting_binary;
         std::function<void(const std::string& text)> text_callback;
-        std::function<void(const rtc::Buffer& binary)> binary_callback;
+        std::function<void(const SmartBuffer& binary)> binary_callback;
         std::function<void()> on_complete;
     };
     
@@ -77,7 +78,7 @@ public:
     bool receive_text(const std::string& text);
     
     // 接收二进制部分
-    bool receive_binary(const rtc::Buffer& binary);
+    bool receive_binary(const SmartBuffer& binary);
     
     // 重置接收状态
     void reset();
@@ -85,8 +86,8 @@ public:
 private:
     struct ReceiveState {
         std::string current_text;
-        std::vector<rtc::Buffer> received_binaries;
-        std::vector<rtc::Buffer> expected_binaries;
+        std::vector<SmartBuffer> received_binaries;
+        std::vector<SmartBuffer> expected_binaries;
         bool expecting_binary;
         std::function<void(const std::vector<T>& data_array)> complete_callback;
     };

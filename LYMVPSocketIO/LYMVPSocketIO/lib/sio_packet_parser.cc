@@ -120,69 +120,6 @@ int PacketParser::readNumber(const std::string& str, size_t& cursor) {
     return negative ? -result : result;
 }
 
-std::string PacketParser::readString(const std::string& str, size_t& cursor) {
-    if (cursor >= str.length() || str[cursor] != '"') {
-        return "";
-    }
-    
-    cursor++; // 跳过开头的双引号
-    std::string result;
-    
-    while (cursor < str.length() && str[cursor] != '"') {
-        // 处理转义字符
-        if (str[cursor] == '\\') {
-            cursor++;
-            if (cursor < str.length()) {
-                switch (str[cursor]) {
-                    case '"': result += '"'; break;
-                    case '\\': result += '\\'; break;
-                    case '/': result += '/'; break;
-                    case 'b': result += '\b'; break;
-                    case 'f': result += '\f'; break;
-                    case 'n': result += '\n'; break;
-                    case 'r': result += '\r'; break;
-                    case 't': result += '\t'; break;
-                    case 'u': {
-                        // Unicode转义序列
-                        if (cursor + 4 < str.length()) {
-                            std::string hex = str.substr(cursor + 1, 4);
-                            try {
-                                unsigned int code = static_cast<unsigned int>(std::stoul(hex, nullptr, 16));
-                                // 简化处理：只支持基本多文种平面
-                                if (code <= 0x7F) {
-                                    result += static_cast<char>(code);
-                                } else if (code <= 0x7FF) {
-                                    result += static_cast<char>(0xC0 | (code >> 6));
-                                    result += static_cast<char>(0x80 | (code & 0x3F));
-                                } else if (code <= 0xFFFF) {
-                                    result += static_cast<char>(0xE0 | (code >> 12));
-                                    result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
-                                    result += static_cast<char>(0x80 | (code & 0x3F));
-                                }
-                            } catch (...) {
-                                // 转换失败
-                            }
-                            cursor += 4;
-                        }
-                        break;
-                    }
-                    default:
-                        result += str[cursor];
-                        break;
-                }
-            }
-        } else {
-            result += str[cursor];
-        }
-        cursor++;
-    }
-    
-    if (cursor < str.length() && str[cursor] == '"') {
-        cursor++; // 跳过结尾的双引号
-    }
-    
-    return result;
-}
 
 std::string PacketParser::readUntil(const std::string& str, size_t& cursor, char delimiter) {
     size_t start = cursor;
@@ -807,6 +744,7 @@ PacketType PacketParser::getPacketType(const std::string& packet_str) {
     return PacketType::ERROR;
 }
 
+// 修复的静态函数调用和类型转换
 int PacketParser::getPacketId(const std::string& packet_str) {
     ParseResult result = getInstance().parsePacket(packet_str);
     return result.packet.id;
@@ -820,6 +758,123 @@ std::string PacketParser::getNamespace(const std::string& packet_str) {
 bool PacketParser::validatePacket(const std::string& packet_str) {
     ParseResult result = getInstance().parsePacket(packet_str);
     return result.success;
+}
+
+// 修复std::stoul返回值类型问题
+std::string PacketParser::readString(const std::string& str, size_t& cursor) {
+    if (cursor >= str.length() || str[cursor] != '"') {
+        return "";
+    }
+    
+    cursor++; // 跳过开头的双引号
+    std::string result;
+    
+    while (cursor < str.length() && str[cursor] != '"') {
+        // 处理转义字符
+        if (str[cursor] == '\\') {
+            cursor++;
+            if (cursor < str.length()) {
+                switch (str[cursor]) {
+                    case '"': result += '"'; break;
+                    case '\\': result += '\\'; break;
+                    case '/': result += '/'; break;
+                    case 'b': result += '\b'; break;
+                    case 'f': result += '\f'; break;
+                    case 'n': result += '\n'; break;
+                    case 'r': result += '\r'; break;
+                    case 't': result += '\t'; break;
+                    case 'u': {
+                        // Unicode转义序列
+                        if (cursor + 4 < str.length()) {
+                            std::string hex = str.substr(cursor + 1, 4);
+                            try {
+                                unsigned long code = std::stoul(hex, nullptr, 16); // 修复这里
+                                // 简化处理：只支持基本多文种平面
+                                if (code <= 0x7F) {
+                                    result += static_cast<char>(code);
+                                } else if (code <= 0x7FF) {
+                                    result += static_cast<char>(0xC0 | (code >> 6));
+                                    result += static_cast<char>(0x80 | (code & 0x3F));
+                                } else if (code <= 0xFFFF) {
+                                    result += static_cast<char>(0xE0 | (code >> 12));
+                                    result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+                                    result += static_cast<char>(0x80 | (code & 0x3F));
+                                }
+                            } catch (...) {
+                                // 转换失败
+                            }
+                            cursor += 4;
+                        }
+                        break;
+                    }
+                    default:
+                        result += str[cursor];
+                        break;
+                }
+            }
+        } else {
+            result += str[cursor];
+        }
+        cursor++;
+    }
+    
+    if (cursor < str.length() && str[cursor] == '"') {
+        cursor++; // 跳过结尾的双引号
+    }
+    
+    return result;
+}
+
+// 同样的修复在unescapeJsonString中
+std::string PacketParser::unescapeJsonString(const std::string& str) {
+    std::string result;
+    
+    for (size_t i = 0; i < str.length(); i++) {
+        if (str[i] == '\\' && i + 1 < str.length()) {
+            i++;
+            switch (str[i]) {
+                case '"': result += '"'; break;
+                case '\\': result += '\\'; break;
+                case '/': result += '/'; break;
+                case 'b': result += '\b'; break;
+                case 'f': result += '\f'; break;
+                case 'n': result += '\n'; break;
+                case 'r': result += '\r'; break;
+                case 't': result += '\t'; break;
+                case 'u': {
+                    // Unicode转义序列
+                    if (i + 4 < str.length()) {
+                        std::string hex = str.substr(i + 1, 4);
+                        try {
+                            unsigned long code = std::stoul(hex, nullptr, 16); // 修复这里
+                            if (code <= 0x7F) {
+                                result += static_cast<char>(code);
+                            } else if (code <= 0x7FF) {
+                                result += static_cast<char>(0xC0 | (code >> 6));
+                                result += static_cast<char>(0x80 | (code & 0x3F));
+                            } else if (code <= 0xFFFF) {
+                                result += static_cast<char>(0xE0 | (code >> 12));
+                                result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
+                                result += static_cast<char>(0x80 | (code & 0x3F));
+                            }
+                        } catch (...) {
+                            // 转换失败，保留原字符
+                            result += "\\u" + hex;
+                        }
+                        i += 4;
+                    }
+                    break;
+                }
+                default:
+                    result += str[i];
+                    break;
+            }
+        } else {
+            result += str[i];
+        }
+    }
+    
+    return result;
 }
 
 // ==================== 工具方法 ====================
@@ -850,57 +905,6 @@ std::string PacketParser::escapeJsonString(const std::string& str) {
     }
     
     return ss.str();
-}
-
-std::string PacketParser::unescapeJsonString(const std::string& str) {
-    std::string result;
-    
-    for (size_t i = 0; i < str.length(); i++) {
-        if (str[i] == '\\' && i + 1 < str.length()) {
-            i++;
-            switch (str[i]) {
-                case '"': result += '"'; break;
-                case '\\': result += '\\'; break;
-                case '/': result += '/'; break;
-                case 'b': result += '\b'; break;
-                case 'f': result += '\f'; break;
-                case 'n': result += '\n'; break;
-                case 'r': result += '\r'; break;
-                case 't': result += '\t'; break;
-                case 'u': {
-                    // Unicode转义序列
-                    if (i + 4 < str.length()) {
-                        std::string hex = str.substr(i + 1, 4);
-                        try {
-                            unsigned int code = static_cast<unsigned int>(std::stoul(hex, nullptr, 16));
-                            if (code <= 0x7F) {
-                                result += static_cast<char>(code);
-                            } else if (code <= 0x7FF) {
-                                result += static_cast<char>(0xC0 | (code >> 6));
-                                result += static_cast<char>(0x80 | (code & 0x3F));
-                            } else if (code <= 0xFFFF) {
-                                result += static_cast<char>(0xE0 | (code >> 12));
-                                result += static_cast<char>(0x80 | ((code >> 6) & 0x3F));
-                                result += static_cast<char>(0x80 | (code & 0x3F));
-                            }
-                        } catch (...) {
-                            // 转换失败，保留原字符
-                            result += "\\u" + hex;
-                        }
-                        i += 4;
-                    }
-                    break;
-                }
-                default:
-                    result += str[i];
-                    break;
-            }
-        } else {
-            result += str[i];
-        }
-    }
-    
-    return result;
 }
 
 // ==================== 验证和辅助方法 ====================

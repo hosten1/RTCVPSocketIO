@@ -17,7 +17,7 @@
 #if !defined(WEBRTC_EXTERNAL_JSON)
 #include "rtc_base/strings/json.h"
 #else
-#include "third_party/jsoncpp/json.h"
+#include "json/json.h"
 #endif
 
 namespace rtc {

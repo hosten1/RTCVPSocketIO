@@ -70,7 +70,7 @@ namespace {
         ss << "  data: " << packet.data << std::endl;
         ss << "  attachments: " << packet.attachments.size() << " 个二进制附件" << std::endl;
         for (size_t i = 0; i < packet.attachments.size(); ++i) {
-            const rtc::Buffer& buffer = packet.attachments[i];
+            const SmartBuffer& buffer = packet.attachments[i];
             ss << "    [" << i << "]: 大小=" << buffer.size() << " 字节, 前16字节=";
             // 只打印前16字节的十六进制
             size_t print_size = std::min(buffer.size(), size_t(16));
@@ -157,7 +157,7 @@ int PacketSplitter<T>::parse_binary_count(const std::string& text) {
 template <typename T>
 Json::Value PacketSplitter<T>::data_to_json(
     const T& value,
-    std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback,
+    std::function<void(const SmartBuffer& binary_part, size_t index)> binary_callback,
     int& placeholder_counter) {
     
     // 默认实现，对于不支持的类型返回null
@@ -168,7 +168,7 @@ Json::Value PacketSplitter<T>::data_to_json(
 template <typename T>
 Json::Value PacketSplitter<T>::convert_to_json_with_placeholders(
     const std::vector<T>& data_array,
-    std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback,
+    std::function<void(const SmartBuffer& binary_part, size_t index)> binary_callback,
     int& placeholder_counter) {
     
     Json::Value json_array(Json::arrayValue);
@@ -181,7 +181,7 @@ Json::Value PacketSplitter<T>::convert_to_json_with_placeholders(
 // 将 JSON 转换为数据，将占位符替换为二进制数据
 template <typename T>
 T PacketSplitter<T>::json_to_data(const Json::Value& json,
-                               const std::vector<rtc::Buffer>& binaries) {
+                               const std::vector<SmartBuffer>& binaries) {
     // 默认实现 - 用户需要为特定类型提供特化
     return T();
 }
@@ -189,7 +189,7 @@ T PacketSplitter<T>::json_to_data(const Json::Value& json,
 // 将 JSON 数组转换为数据数组
 template <typename T>
 std::vector<T> PacketSplitter<T>::json_array_to_data_array(const Json::Value& json_array,
-                               const std::vector<rtc::Buffer>& binaries) {
+                               const std::vector<SmartBuffer>& binaries) {
     std::vector<T> data_array;
     if (json_array.isArray()) {
         for (Json::ArrayIndex i = 0; i < json_array.size(); i++) {
@@ -204,7 +204,7 @@ template <typename T>
 void PacketSplitter<T>::split_data_array_async(
     const std::vector<T>& data_array,
     std::function<void(const std::string& text_part)> text_callback,
-    std::function<void(const rtc::Buffer& binary_part, size_t index)> binary_callback) {
+    std::function<void(const SmartBuffer& binary_part, size_t index)> binary_callback) {
     
     if (data_array.empty()) {
         Json::FastWriter writer;
@@ -239,22 +239,20 @@ void PacketSplitter<T>::split_data_array_async(
     SplitResult result;
     
     // 使用第一个异步接口，收集所有二进制数据
-    std::vector<rtc::Buffer> collected_binaries;
+    std::vector<SmartBuffer> collected_binaries;
     
     split_data_array_async(
         data_array,
         [&result](const std::string& text_part) {
             result.text_part = text_part;
         },
-        [&collected_binaries](const rtc::Buffer& binary_part, size_t index) {
+        [&collected_binaries](const SmartBuffer& binary_part, size_t index) {
             // 确保有足够的空间
             if (collected_binaries.size() <= index) {
                 collected_binaries.resize(index + 1);
             }
-            // 创建数据的拷贝
-            rtc::Buffer buffer_copy;
-            buffer_copy.SetData(binary_part.data(), binary_part.size());
-            collected_binaries[index] = std::move(buffer_copy);
+            // 使用SmartBuffer的拷贝构造函数
+            collected_binaries[index] = binary_part;
         }
     );
     
@@ -266,7 +264,7 @@ void PacketSplitter<T>::split_data_array_async(
 template <typename T>
 void PacketSplitter<T>::combine_to_data_array_async(
     const std::string& text_part,
-    const std::vector<rtc::Buffer>& binary_parts,
+    const std::vector<SmartBuffer>& binary_parts,
     std::function<void(const std::vector<T>& data_array)> callback) {
     
     if (!callback) return;
@@ -289,7 +287,7 @@ void PacketSplitter<T>::combine_to_data_array_async(
 template <typename T>
 void PacketSplitter<T>::combine_streaming_async(
     const std::string& text_part,
-    std::function<void(const rtc::Buffer& binary_part, size_t index)> request_binary_callback,
+    std::function<void(const SmartBuffer& binary_part, size_t index)> request_binary_callback,
     std::function<void(const std::vector<T>& data_array)> complete_callback) {
     
     if (!complete_callback) return;
@@ -304,12 +302,12 @@ void PacketSplitter<T>::combine_streaming_async(
     }
     
     // 收集所有二进制数据
-    std::vector<rtc::Buffer> binary_parts(binary_count);
+    std::vector<SmartBuffer> binary_parts(binary_count);
     
     // 请求所有二进制数据
     for (int i = 0; i < binary_count; i++) {
         if (request_binary_callback) {
-            request_binary_callback(rtc::Buffer(), i);
+            request_binary_callback(SmartBuffer(), i);
         }
     }
     
@@ -326,15 +324,13 @@ typename PacketSplitter<T>::SplitResult PacketSplitter<T>::split_data_array(cons
         [&result](const std::string& text_part) {
             result.text_part = text_part;
         },
-        [&result](const rtc::Buffer& binary_part, size_t index) {
+        [&result](const SmartBuffer& binary_part, size_t index) {
             // 确保有足够的空间
             if (result.binary_parts.size() <= index) {
                 result.binary_parts.resize(index + 1);
             }
-            // 创建数据的拷贝
-            rtc::Buffer buffer_copy;
-            buffer_copy.SetData(binary_part.data(), binary_part.size());
-            result.binary_parts[index] = std::move(buffer_copy);
+            // 使用SmartBuffer的拷贝构造函数
+            result.binary_parts[index] = binary_part;
         }
     );
     
@@ -344,7 +340,7 @@ typename PacketSplitter<T>::SplitResult PacketSplitter<T>::split_data_array(cons
 template <typename T>
 std::vector<T> PacketSplitter<T>::combine_to_data_array(
     const std::string& text_part,
-    const std::vector<rtc::Buffer>& binary_parts) {
+    const std::vector<SmartBuffer>& binary_parts) {
     
     std::vector<T> result;
     
@@ -358,8 +354,6 @@ std::vector<T> PacketSplitter<T>::combine_to_data_array(
     
     return result;
 }
-
-
 
 // 实现Packet::to_string()方法
 std::string Packet::to_string() const {
