@@ -245,8 +245,6 @@
 		1B6AE2822EF2B4E9000F65E6 /* network_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B6AE2732EF2B4E9000F65E6 /* network_constants.h */; };
 		1B6AE2852EF2B8F5000F65E6 /* physical_socket_server.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1B6AE2842EF2B8F5000F65E6 /* physical_socket_server.cc */; };
 		1B6AE2862EF2B8F5000F65E6 /* physical_socket_server.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B6AE2832EF2B8F5000F65E6 /* physical_socket_server.h */; };
-		1B8678712EF399CA003DEC3A /* sio_packet.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B86786F2EF399CA003DEC3A /* sio_packet.h */; };
-		1B8678722EF399CA003DEC3A /* sio_packet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1B8678702EF399CA003DEC3A /* sio_packet.cpp */; };
 		1B8678B82EF39E51003DEC3A /* reader.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B8678A62EF39E51003DEC3A /* reader.h */; };
 		1B8678B92EF39E51003DEC3A /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B8678A82EF39E51003DEC3A /* version.h */; };
 		1B8678BA2EF39E51003DEC3A /* config.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B8678A22EF39E51003DEC3A /* config.h */; };
@@ -270,6 +268,14 @@
 		1BC443E52EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */; };
 		1BE37A742EEBC2AD003ABC59 /* RTCVPACKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */; };
 		1BE37A752EEBC2AD003ABC59 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */; };
+		1BF5ACDC2EF4F7AF00966BB3 /* sio_packet_impl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5ACD72EF4F7AF00966BB3 /* sio_packet_impl.cpp */; };
+		1BF5ACDD2EF4F7AF00966BB3 /* sio_packet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5ACD52EF4F7AF00966BB3 /* sio_packet.cpp */; };
+		1BF5ACDE2EF4F7AF00966BB3 /* sio_packet_parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5ACD92EF4F7AF00966BB3 /* sio_packet_parser.cpp */; };
+		1BF5ACDF2EF4F7AF00966BB3 /* sio_packet_parser.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5ACD82EF4F7AF00966BB3 /* sio_packet_parser.h */; };
+		1BF5ACE02EF4F7AF00966BB3 /* sio_packet_impl.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5ACD62EF4F7AF00966BB3 /* sio_packet_impl.h */; };
+		1BF5ACE12EF4F7AF00966BB3 /* sio_jsoncpp_binary_helper.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5ACD32EF4F7AF00966BB3 /* sio_jsoncpp_binary_helper.hpp */; };
+		1BF5ACE22EF4F7AF00966BB3 /* sio_packet_printer.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5ACDA2EF4F7AF00966BB3 /* sio_packet_printer.hpp */; };
+		1BF5ACE32EF4F7AF00966BB3 /* sio_packet.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5ACD42EF4F7AF00966BB3 /* sio_packet.h */; };
 		F06B19321F71466D003E81B1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19311F71466D003E81B1 /* main.m */; };
 		F06B19351F71466D003E81B1 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19341F71466D003E81B1 /* AppDelegate.m */; };
 		F06B19381F71466D003E81B1 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19371F71466D003E81B1 /* ViewController.m */; };
@@ -554,8 +560,6 @@
 		1B6AE2762EF2B4E9000F65E6 /* network_monitor.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = network_monitor.cc; sourceTree = "<group>"; };
 		1B6AE2832EF2B8F5000F65E6 /* physical_socket_server.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = physical_socket_server.h; sourceTree = "<group>"; };
 		1B6AE2842EF2B8F5000F65E6 /* physical_socket_server.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = physical_socket_server.cc; sourceTree = "<group>"; };
-		1B86786F2EF399CA003DEC3A /* sio_packet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet.h; sourceTree = "<group>"; };
-		1B8678702EF399CA003DEC3A /* sio_packet.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_packet.cpp; sourceTree = "<group>"; };
 		1B8678A02EF39E51003DEC3A /* allocator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = allocator.h; sourceTree = "<group>"; };
 		1B8678A12EF39E51003DEC3A /* assertions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = assertions.h; sourceTree = "<group>"; };
 		1B8678A22EF39E51003DEC3A /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
@@ -581,6 +585,14 @@
 		1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOProtocolVersion.h; sourceTree = "<group>"; };
 		1BE37A722EEBC2AD003ABC59 /* RTCVPACKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPACKManager.h; sourceTree = "<group>"; };
 		1BE37A732EEBC2AD003ABC59 /* RTCVPACKManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPACKManager.m; sourceTree = "<group>"; };
+		1BF5ACD32EF4F7AF00966BB3 /* sio_jsoncpp_binary_helper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = sio_jsoncpp_binary_helper.hpp; sourceTree = "<group>"; };
+		1BF5ACD42EF4F7AF00966BB3 /* sio_packet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet.h; sourceTree = "<group>"; };
+		1BF5ACD52EF4F7AF00966BB3 /* sio_packet.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_packet.cpp; sourceTree = "<group>"; };
+		1BF5ACD62EF4F7AF00966BB3 /* sio_packet_impl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet_impl.h; sourceTree = "<group>"; };
+		1BF5ACD72EF4F7AF00966BB3 /* sio_packet_impl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_packet_impl.cpp; sourceTree = "<group>"; };
+		1BF5ACD82EF4F7AF00966BB3 /* sio_packet_parser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet_parser.h; sourceTree = "<group>"; };
+		1BF5ACD92EF4F7AF00966BB3 /* sio_packet_parser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_packet_parser.cpp; sourceTree = "<group>"; };
+		1BF5ACDA2EF4F7AF00966BB3 /* sio_packet_printer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = sio_packet_printer.hpp; sourceTree = "<group>"; };
 		F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPSocketIOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06B19311F71466D003E81B1 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		F06B19331F71466D003E81B1 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -669,8 +681,6 @@
 				1BAA0A312EE96F3700DB39A2 /* RTCVPProbe.h */,
 				1BAA0A322EE96F3700DB39A2 /* RTCVPProbe.m */,
 				1BC443E22EEA50A200C8E846 /* RTCVPSocketIOProtocolVersion.h */,
-				1B86786F2EF399CA003DEC3A /* sio_packet.h */,
-				1B8678702EF399CA003DEC3A /* sio_packet.cpp */,
 			);
 			path = Source;
 			sourceTree = SOURCE_ROOT;
@@ -1179,6 +1189,21 @@
 			path = third_part;
 			sourceTree = SOURCE_ROOT;
 		};
+		1BF5ACDB2EF4F7AF00966BB3 /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				1BF5ACD32EF4F7AF00966BB3 /* sio_jsoncpp_binary_helper.hpp */,
+				1BF5ACD42EF4F7AF00966BB3 /* sio_packet.h */,
+				1BF5ACD52EF4F7AF00966BB3 /* sio_packet.cpp */,
+				1BF5ACD62EF4F7AF00966BB3 /* sio_packet_impl.h */,
+				1BF5ACD72EF4F7AF00966BB3 /* sio_packet_impl.cpp */,
+				1BF5ACD82EF4F7AF00966BB3 /* sio_packet_parser.h */,
+				1BF5ACD92EF4F7AF00966BB3 /* sio_packet_parser.cpp */,
+				1BF5ACDA2EF4F7AF00966BB3 /* sio_packet_printer.hpp */,
+			);
+			path = lib;
+			sourceTree = SOURCE_ROOT;
+		};
 		1BF8BF8624AAD274003B5EA3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -1213,6 +1238,7 @@
 		F06B192F1F71466C003E81B1 /* VPSocketIO */ = {
 			isa = PBXGroup;
 			children = (
+				1BF5ACDB2EF4F7AF00966BB3 /* lib */,
 				1BDCBFB72EF28CE0004050F7 /* third_part */,
 				F06B19331F71466D003E81B1 /* AppDelegate.h */,
 				F06B19341F71466D003E81B1 /* AppDelegate.m */,
@@ -1281,6 +1307,11 @@
 				1B8678B82EF39E51003DEC3A /* reader.h in Headers */,
 				1B8678B92EF39E51003DEC3A /* version.h in Headers */,
 				1B8678BA2EF39E51003DEC3A /* config.h in Headers */,
+				1BF5ACDF2EF4F7AF00966BB3 /* sio_packet_parser.h in Headers */,
+				1BF5ACE02EF4F7AF00966BB3 /* sio_packet_impl.h in Headers */,
+				1BF5ACE12EF4F7AF00966BB3 /* sio_jsoncpp_binary_helper.hpp in Headers */,
+				1BF5ACE22EF4F7AF00966BB3 /* sio_packet_printer.hpp in Headers */,
+				1BF5ACE32EF4F7AF00966BB3 /* sio_packet.h in Headers */,
 				1B8678BB2EF39E51003DEC3A /* forwards.h in Headers */,
 				1B8678BC2EF39E51003DEC3A /* json_features.h in Headers */,
 				1B8678BD2EF39E51003DEC3A /* json.h in Headers */,
@@ -1302,7 +1333,6 @@
 				1B6AE1382EF29488000F65E6 /* queued_task.h in Headers */,
 				1B6AE1392EF29488000F65E6 /* message_handler.h in Headers */,
 				1B6AE13B2EF29488000F65E6 /* time_delta.h in Headers */,
-				1B8678712EF399CA003DEC3A /* sio_packet.h in Headers */,
 				1B6AE13D2EF29488000F65E6 /* network_state_predictor.h in Headers */,
 				1B6AE13E2EF29488000F65E6 /* net_helper.h in Headers */,
 				1B6AE13F2EF29488000F65E6 /* cpu_features_wrapper.h in Headers */,
@@ -1640,7 +1670,6 @@
 				1B6AE0BB2EF29488000F65E6 /* zero_memory.cc in Sources */,
 				1B6AE0BE2EF29488000F65E6 /* aligned_malloc.cc in Sources */,
 				1B6AE0C22EF29488000F65E6 /* async_socket.cc in Sources */,
-				1B8678722EF399CA003DEC3A /* sio_packet.cpp in Sources */,
 				1B6AE0C32EF29488000F65E6 /* platform_thread.cc in Sources */,
 				1B6AE0C62EF29488000F65E6 /* async_resolver_interface.cc in Sources */,
 				1B6AE0C92EF29488000F65E6 /* net_helper.cc in Sources */,
@@ -1694,6 +1723,9 @@
 				1B6AE10B2EF29488000F65E6 /* frequency.cc in Sources */,
 				1B6AE10C2EF29488000F65E6 /* log_sinks.cc in Sources */,
 				1B6AE10E2EF29488000F65E6 /* yield_policy.cc in Sources */,
+				1BF5ACDC2EF4F7AF00966BB3 /* sio_packet_impl.cpp in Sources */,
+				1BF5ACDD2EF4F7AF00966BB3 /* sio_packet.cpp in Sources */,
+				1BF5ACDE2EF4F7AF00966BB3 /* sio_packet_parser.cpp in Sources */,
 				1B6AE10F2EF29488000F65E6 /* net_helpers.cc in Sources */,
 				1B6AE1102EF29488000F65E6 /* random.cc in Sources */,
 				1B6AE1112EF29488000F65E6 /* repeating_task.cc in Sources */,
