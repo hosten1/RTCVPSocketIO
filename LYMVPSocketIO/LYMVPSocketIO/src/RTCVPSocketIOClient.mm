@@ -15,7 +15,7 @@
 #import "NSString+RTCVPSocketIO.h"
 #import "RTCVPAFNetworkReachabilityManager.h"
 #import "RTCVPTimer.h"
-#import "RTCVPSocketIOConfig.h"
+//#import "RTCVPSocketIOConfig.h"
 
 #include "api/task_queue/default_task_queue_factory.h"
 #include "rtc_base/task_queue.h"

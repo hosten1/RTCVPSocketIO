@@ -47,6 +47,80 @@ set(LIBWEBRTC_INCLUDE_DIRS
     "${LIBWEBRTC_DIR}/third_part/jsoncpp/include"
 )
 
+# ============================================
+# 关键修改1：创建框架头文件目录结构
+# ============================================
+
+# 创建框架头文件目录
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/LYMVPSocketIO)
+
+# 收集所有头文件
+set(ALL_HEADER_FILES
+    # 根目录
+    ${CMAKE_CURRENT_SOURCE_DIR}/LYMVPSocketIO.h
+    
+    # Source 目录 - 根目录
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOClient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngine.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngine+Private.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngineProtocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketPacket.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOConfig.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOProtocolVersion.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketLogger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPStringReader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPACKManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPProbe.h
+    
+    # Source 目录 - utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/NSString+RTCVPSocketIO.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/NSString+Random.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCDefaultSocketLogger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPSocketIOClientProtocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPAFNetworkReachabilityManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPTimer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPTimeoutManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPWebSocketProtocolFixer.h
+    
+    # Category 目录
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category/RTCVPSocketEngine+EnginePollable.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category/RTCVPSocketEngine+EngineWebsocket.h
+    
+    # jetfire 目录
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRSecurity.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRWebSocket.h
+    
+    # lib 目录
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_impl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_parser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_jsoncpp_binary_helper.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_printer.hpp
+)
+
+# ============================================
+# 关键修改2：复制头文件到框架目录结构
+# ============================================
+
+# 自定义目标：复制头文件到框架结构
+add_custom_target(copy_framework_headers ALL
+    COMMENT "Copying headers to framework structure"
+)
+
+# 遍历所有头文件，为每个创建复制命令
+foreach(header ${ALL_HEADER_FILES})
+    get_filename_component(header_name ${header} NAME)
+    
+    add_custom_command(
+        TARGET copy_framework_headers
+        PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${header}
+            ${CMAKE_BINARY_DIR}/LYMVPSocketIO/${header_name}
+        COMMENT "Copying ${header_name} to framework directory"
+    )
+endforeach()
+
 # 添加源文件
 set(SOURCE_FILES
     # Source 目录 - 根目录
@@ -80,53 +154,17 @@ set(SOURCE_FILES
     jetfire/RTCJFRWebSocket.m
 )
 
-# 添加头文件
-set(HEADER_FILES
-    # 根目录
-    LYMVPSocketIO.h
-    
-    # Source 目录 - 根目录
-    src/RTCVPSocketIOClient.h
-    src/RTCVPSocketEngine.h
-    src/RTCVPSocketEngine+Private.h
-    src/RTCVPSocketEngineProtocol.h
-    src/RTCVPSocketPacket.h
-    src/RTCVPSocketIOConfig.h
-    src/RTCVPSocketIOProtocolVersion.h
-    src/RTCVPSocketLogger.h
-    src/RTCVPStringReader.h
-    src/RTCVPACKManager.h
-    src/RTCVPProbe.h
-    lib/sio_packet.h
-    lib/sio_packet_impl.h
-    lib/sio_packet_parser.h
-    lib/sio_jsoncpp_binary_helper.hpp
-    lib/sio_packet_printer.hpp
-    
-    # Source 目录 - utils
-    src/utils/NSString+RTCVPSocketIO.h
-    src/utils/NSString+Random.h
-    src/utils/RTCDefaultSocketLogger.h
-    src/utils/RTCVPSocketIOClientProtocol.h
-    src/utils/RTCVPAFNetworkReachabilityManager.h
-    src/utils/RTCVPTimer.h
-    src/utils/RTCVPTimeoutManager.h
-    src/utils/RTCVPWebSocketProtocolFixer.h
-    
-    # Category 目录
-    Category/RTCVPSocketEngine+EnginePollable.h
-    Category/RTCVPSocketEngine+EngineWebsocket.h
-    
-    # jetfire 目录
-    jetfire/RTCJFRSecurity.h
-    jetfire/RTCJFRWebSocket.h
-)
-
 # 创建静态 framework
 add_library(libVPSocketIO STATIC
     ${SOURCE_FILES}
-    ${HEADER_FILES}
 )
+
+# 依赖头文件复制目标
+add_dependencies(libVPSocketIO copy_framework_headers)
+
+# ============================================
+# 关键修改3：设置正确的包含目录
+# ============================================
 
 # 设置为 framework 类型
 set_target_properties(libVPSocketIO PROPERTIES
@@ -144,8 +182,18 @@ set_target_properties(libVPSocketIO PROPERTIES
     OUTPUT_NAME "LYMVPSocketIO"
 )
 
-# 添加 include 目录
+# ============================================
+# 关键修改4：设置包含目录 - 支持 <LYMVPSocketIO/...>
+# ============================================
+
+# 添加 include 目录 - 这是支持 <LYMVPSocketIO/...> 的关键
 target_include_directories(libVPSocketIO
+    PUBLIC
+    # 构建目录，这样 #include <LYMVPSocketIO/xxx.h> 就能工作
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
+    
+    # 原始源文件目录（用于.cpp/.mm文件）
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -153,6 +201,17 @@ target_include_directories(libVPSocketIO
     ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# ============================================
+# 关键修改5：修改头文件中的包含路径
+# ============================================
+
+# 如果不想修改现有头文件，可以在CMake中添加定义
+# 让头文件在CMake构建时使用双引号，在Xcode构建时使用角括号
+target_compile_definitions(libVPSocketIO
+    PRIVATE
+    -DRTCVPSOCKETIO_CMAKE_BUILD=1  # 定义这个宏，让头文件知道是CMake构建
 )
 
 # 链接库
@@ -183,6 +242,24 @@ install(TARGETS libVPSocketIO
     PUBLIC_HEADER DESTINATION include
 )
 
+# ============================================
+# 可选：创建符号链接，而不是复制文件（更快）
+# ============================================
+
+# 如果想用符号链接而不是复制，可以用下面的代码替代上面的复制部分
+# （注意：符号链接在某些平台可能不可用）
+if(UNIX)
+    add_custom_target(create_framework_symlinks ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LYMVPSocketIO
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_BINARY_DIR}/LYMVPSocketIO
+        COMMENT "Creating symbolic links for framework headers"
+    )
+    
+    add_dependencies(libVPSocketIO create_framework_symlinks)
+endif()
+
 # 添加测试目标
 source_group("Test" FILES 
     lib/test/test_sio_packet.cpp
@@ -209,6 +286,8 @@ target_include_directories(test_sio_packet
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    # 测试目标也需要框架包含路径
+    ${CMAKE_BINARY_DIR}
 )
 
 # 为测试目标设置链接库

@@ -4,10 +4,22 @@
 #define RTCVPSocketIOClient_H
 
 
-#import <Foundation/Foundation.h>
-#import <LYMVPSocketIO/RTCVPSocketIOClientProtocol.h>
-#import <LYMVPSocketIO/RTCVPSocketIOConfig.h>
 
+
+// 修改后
+#ifdef RTCVPSOCKETIO_CMAKE_BUILD
+// CMake构建：使用双引号
+#import "RTCVPSocketIOClientProtocol.h"
+#import "RTCVPSocketIOProtocolVersion.h"
+#import "RTCVPSocketIOClient.h"
+#import "RTCVPSocketIOConfig.h"
+#else
+// Xcode框架构建：使用角括号
+#import <LYMVPSocketIO/RTCVPSocketIOClientProtocol.h>
+#import <LYMVPSocketIO/RTCVPSocketIOClient.h>
+#import <LYMVPSocketIO/RTCVPSocketIOProtocolVersion.h>
+#import <LYMVPSocketIO/RTCVPSocketIOConfig.h>
+#endif
 
 
 // 事件类型
@@ -46,6 +58,7 @@ extern NSString * _Nullable const RTCVPSocketStatusConnected;
 
 // 全局事件类前向声明
 @class RTCVPSocketAnyEvent;
+@class RTCVPSocketIOConfig;
 
 // ACK发射器类
 extern NSString * _Nonnull const kRTCVPSocketAckEmitterErrorDomain;

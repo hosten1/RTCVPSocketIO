@@ -11,11 +11,18 @@
 #define RTCVPSocketIOConfig_H
 // RTCVPSocketIOConfig.h
 #import <Foundation/Foundation.h>
+
+
+// 修改后
+#ifdef RTCVPSOCKETIO_CMAKE_BUILD
+#import "RTCVPSocketIOClientProtocol.h"
+#import "RTCVPSocketIOProtocolVersion.h"
+#import "RTCVPSocketIOClient.h"
+#else
 #import <LYMVPSocketIO/RTCVPSocketIOClientProtocol.h>
+#import <LYMVPSocketIO/RTCVPSocketIOClient.h>
 #import <LYMVPSocketIO/RTCVPSocketIOProtocolVersion.h>
-
-
-
+#endif
 
 NS_ASSUME_NONNULL_BEGIN
 

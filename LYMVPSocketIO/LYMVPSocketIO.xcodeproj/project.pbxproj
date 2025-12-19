@@ -1948,20 +1948,21 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
-					WEBRTC_POSIX,
-					WEBRTC_IOS,
-					WEBRTC_EXTERNAL_JSON,
+					"WEBRTC_POSIX=1",
+					"WEBRTC_IOS=1",
+					"WEBRTC_EXTERNAL_JSON=1",
+					"RTCVPSOCKETIO_FRAMEWORK_BUILD=1",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part/jsoncpp/include\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/lib\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/src\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/Category\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/lib\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/src\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/Category\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"/**",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1997,20 +1998,21 @@
 				ENABLE_MODULE_VERIFIER = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					WEBRTC_POSIX,
-					WEBRTC_IOS,
-					WEBRTC_EXTERNAL_JSON,
+					"WEBRTC_POSIX=1",
+					"WEBRTC_IOS=1",
+					"WEBRTC_EXTERNAL_JSON=1",
+					"RTCVPSOCKETIO_FRAMEWORK_BUILD=1",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part/jsoncpp/include\"",
 					"\"$(SRCROOT)/LYMVPSocketIO/third_party/libwebrtc/third_part\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/lib\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/src\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/Category\"",
-					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"",
+					"\"$(SRCROOT)/LYMVPSocketIO/lib\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/src\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/Category\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"/**",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";

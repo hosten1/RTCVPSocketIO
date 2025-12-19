@@ -432,7 +432,7 @@ void test_packet_sender_receiver() {
     sender.set_text_callback([send_data](const std::string& text) {
         std::cout << "\n[PacketSender] 发送文本包:" << std::endl;
         std::cout << "  长度: " << text.length() << " 字节" << std::endl;
-        std::cout << "  内容: " << text.substr(0, 100) << (text.length() > 100 ? "..." : "") << std::endl;
+        std::cout << "  内容: " << text << std::endl;
         
         // 检查是否是二进制包
         if (!text.empty() && isdigit(text[0])) {
@@ -470,6 +470,13 @@ void test_packet_sender_receiver() {
     receiver.set_complete_callback([&receive_promise](const std::vector<Json::Value>& received_array) {
         std::cout << "\n[PacketReceiver] 接收完成:" << std::endl;
         std::cout << "  接收到的数据数量: " << received_array.size() << std::endl;
+        
+        // 打印接收到的数据内容
+        for (size_t i = 0; i < received_array.size(); i++) {
+            std::cout << "  数据[" << i << "]: ";
+            packet_printer::print_json_value(received_array[i]);
+        }
+        
         receive_promise.set_value(received_array);
     });
     
@@ -657,12 +664,12 @@ void test_version_compatibility() {
         std::vector<SmartBuffer> sent_binaries;
         
         sender.set_text_callback([&send_promise, version_str](const std::string& text) {
-            std::cout << "\n[" << version_str << " Sender] 发送文本包:" << std::endl;
-            std::cout << "  长度: " << text.length() << " 字节" << std::endl;
-            std::cout << "  内容摘要: " << text.substr(0, 80) << (text.length() > 80 ? "..." : "") << std::endl;
-            send_promise.set_value(text);
-            return true;
-        });
+        std::cout << "\n[" << version_str << " Sender] 发送文本包:" << std::endl;
+        std::cout << "  长度: " << text.length() << " 字节" << std::endl;
+        std::cout << "  内容: " << text << std::endl;
+        send_promise.set_value(text);
+        return true;
+    });
         
         sender.set_binary_callback([&sent_binaries, version_str](const SmartBuffer& binary) {
             std::cout << "\n[" << version_str << " Sender] 发送二进制数据: " 

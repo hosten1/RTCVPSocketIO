@@ -475,17 +475,33 @@ bool PacketReceiver<T>::receive_text(const std::string& text) {
     // 检查是否是二进制包
     if (parse_result.is_binary_packet) {
         // 需要二进制数据
-        state_->expected_binaries.resize(parse_result.binary_count);
-        state_->received_binaries.clear();
-        state_->received_binaries.reserve(parse_result.binary_count);
-        state_->expecting_binary = (parse_result.binary_count > 0);
+        int binary_count = parse_result.binary_count;
         
-        if (parse_result.binary_count == 0) {
+        // 如果binary_count为0，从JSON数据中计算占位符数量
+        if (binary_count == 0 && !parse_result.json_data.empty()) {
+            // 简单实现：统计JSON数据中的"_placeholder":true出现次数
+            size_t pos = 0;
+            std::string placeholder = "\"_placeholder\":true";
+            while ((pos = parse_result.json_data.find(placeholder, pos)) != std::string::npos) {
+                binary_count++;
+                pos += placeholder.length();
+            }
+        }
+        
+        // 设置预期的二进制数据数量
+        state_->expected_binaries.resize(binary_count);
+        state_->received_binaries.clear();
+        state_->received_binaries.reserve(binary_count);
+        state_->expecting_binary = (binary_count > 0);
+        
+        if (binary_count == 0) {
             // 虽然是二进制包类型，但没有实际的二进制数据
+            state_->expecting_binary = false;
             check_and_trigger_complete();
         }
     } else {
         // 普通包，已经完整
+        state_->expecting_binary = false;
         check_and_trigger_complete();
     }
     
@@ -552,7 +568,7 @@ bool PacketReceiver<T>::receive_binary(const SmartBuffer& binary) {
     state_->received_binaries.push_back(binary);
     
     // 检查是否已接收完所有预期的二进制数据
-    if (state_->received_binaries.size() >= state_->expected_binaries.size()) {
+    if (state_->received_binaries.size() == state_->expected_binaries.size()) {
         state_->expecting_binary = false;
         check_and_trigger_complete();
     }
@@ -562,41 +578,52 @@ bool PacketReceiver<T>::receive_binary(const SmartBuffer& binary) {
 
 template <typename T>
 void PacketReceiver<T>::check_and_trigger_complete() {
-    if (state_->complete_callback &&
-        (!state_->expecting_binary || state_->received_binaries.size() >= state_->expected_binaries.size())) {
+    if (state_->complete_callback) {
+        bool should_complete = false;
         
-        // 如果当前文本为空，说明没有数据
-        if (state_->current_text.empty()) {
-            state_->complete_callback(std::vector<T>());
-            return;
+        if (state_->packet_info.type == PacketType::BINARY_EVENT || state_->packet_info.type == PacketType::BINARY_ACK) {
+            // 二进制包：只有当所有二进制数据都接收完成时才合并
+            should_complete = !state_->expecting_binary && 
+                             state_->received_binaries.size() == state_->expected_binaries.size();
+        } else {
+            // 普通包：直接合并
+            should_complete = true;
         }
         
-        // 临时设置包版本进行解析
-        ParserConfig original_config = PacketParser::getInstance().getConfig();
-        
-        ParserConfig temp_config = original_config;
-        temp_config.version = state_->packet_version;
-        temp_config.allow_numeric_nsp = (static_cast<int>(state_->packet_version) >= 3);
-        PacketParser::getInstance().setConfig(temp_config);
-        
-        // 解析数据包以获取JSON数据
-        auto parse_result = PacketParser::getInstance().parsePacket(state_->current_text);
-        
-        // 恢复原始配置
-        PacketParser::getInstance().setConfig(original_config);
-        
-        if (!parse_result.success || parse_result.json_data.empty()) {
-            // 如果解析失败或没有JSON数据，返回空数组
-            state_->complete_callback(std::vector<T>());
-            return;
+        if (should_complete) {
+            // 如果当前文本为空，说明没有数据
+            if (state_->current_text.empty()) {
+                state_->complete_callback(std::vector<T>());
+                return;
+            }
+            
+            // 临时设置包版本进行解析
+            ParserConfig original_config = PacketParser::getInstance().getConfig();
+            
+            ParserConfig temp_config = original_config;
+            temp_config.version = state_->packet_version;
+            temp_config.allow_numeric_nsp = (static_cast<int>(state_->packet_version) >= 3);
+            PacketParser::getInstance().setConfig(temp_config);
+            
+            // 解析数据包以获取JSON数据
+            auto parse_result = PacketParser::getInstance().parsePacket(state_->current_text);
+            
+            // 恢复原始配置
+            PacketParser::getInstance().setConfig(original_config);
+            
+            if (!parse_result.success || parse_result.json_data.empty()) {
+                // 如果解析失败或没有JSON数据，返回空数组
+                state_->complete_callback(std::vector<T>());
+                return;
+            }
+            
+            // 合并数据数组
+            PacketSplitter<T>::combine_to_data_array_async(
+                parse_result.json_data,
+                state_->received_binaries,
+                state_->complete_callback
+            );
         }
-        
-        // 合并数据数组
-        PacketSplitter<T>::combine_to_data_array_async(
-            parse_result.json_data,
-            state_->received_binaries,
-            state_->complete_callback
-        );
     }
 }
 
