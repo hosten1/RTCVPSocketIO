@@ -148,7 +148,7 @@ class TaskQueueGcdFactory final : public TaskQueueFactory {
 }  // namespace
 
 std::unique_ptr<TaskQueueFactory> CreateTaskQueueGcdFactory() {
-    return absl::make_unique<TaskQueueGcdFactory>();
+    return std::unique_ptr<TaskQueueFactory>(new TaskQueueGcdFactory());
 }
 
 }  // namespace webrtc

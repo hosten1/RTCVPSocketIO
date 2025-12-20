@@ -23,8 +23,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 定义库类型
 add_library(libwebrtc STATIC
     libwebrtc_empty.cpp
+    # 只保留空文件，避免内部编译错误
 )
 set_target_properties(libwebrtc PROPERTIES LINKER_LANGUAGE CXX)
+
+# 根据操作系统添加特定源文件和链接库
+if(APPLE)
+    if(NOT IOS)
+        # macOS 特有文件
+        target_sources(libwebrtc PRIVATE
+            rtc_base/logging_mac.mm
+            rtc_base/logging_mac.h
+        )
+    endif()
+endif()
 
 # 根据操作系统设置宏定义
 if(APPLE)

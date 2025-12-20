@@ -38,8 +38,8 @@ set(API_TASK_QUEUE_COMMON_SOURCES
 )
 
 # task_queue目录 - 平台特定文件
-# iOS平台（GCD）
-if(APPLE AND IOS)
+# iOS平台和macOS平台（GCD）
+if(APPLE)
     set(API_TASK_QUEUE_IOS_SOURCES
         task_queue/default_task_queue_factory_gcd.cc
         # task_queue/default_task_queue_factory_gcd.h  # 头文件已包含

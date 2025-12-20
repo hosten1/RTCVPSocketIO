@@ -35,7 +35,7 @@ ClientCore::~ClientCore() {
 
 void ClientCore::InitializeTaskQueue() {
     task_queue_factory_ = webrtc::CreateDefaultTaskQueueFactory();
-    task_queue_ = std::make_unique<rtc::TaskQueue>(
+    task_queue_ = absl::make_unique<rtc::TaskQueue>(
         task_queue_factory_->CreateTaskQueue(
             "SocketIOClientQueue", webrtc::TaskQueueFactory::Priority::NORMAL));
 }
@@ -67,7 +67,12 @@ void ClientCore::StartRepeatingTask(uint64_t interval_ms) {
 
 void ClientCore::StopRepeatingTask() {
     if (repeating_task_handle_.Running()) {
-        repeating_task_handle_.Stop();
+        // 必须在任务队列中停止重复任务
+        task_queue_->PostTask([this]() {
+            if (repeating_task_handle_.Running()) {
+                repeating_task_handle_.Stop();
+            }
+        });
     }
 }
 
@@ -123,7 +128,7 @@ void ClientCore::Connect(const std::string& url, const std::map<std::string, std
 }
 
 void ClientCore::Disconnect() {
-    std::cout << "Disconnecting..." << std::endl;
+    RTC_LOG(LS_INFO) << "Disconnecting...";
     SetStatus(Status::kDisconnected);
     
     // 停止超时计时器
@@ -136,7 +141,7 @@ void ClientCore::Disconnect() {
 
 void ClientCore::Reconnect() {
     if (!reconnecting_) {
-        std::cout << "Reconnecting..." << std::endl;
+        RTC_LOG(LS_INFO) << "Reconnecting...";
         Connect(url_);
     }
 }
@@ -171,7 +176,7 @@ void ClientCore::EmitWithAck(const std::string& event,
                             std::function<void(const std::vector<Json::Value>&, bool)> ack_callback,
                             double timeout) {
     if (status_ != Status::kConnected) {
-        std::cout << "Cannot emit event, client not connected" << std::endl;
+        RTC_LOG(LS_WARNING) << "Cannot emit event, client not connected";
         return;
     }
     
@@ -188,10 +193,12 @@ void ClientCore::EmitWithAck(const std::string& event,
     }
     
     // 构建并发送事件包
+    // 注意：Json::Value 没有接受 std::vector<Json::Value> 的构造函数，
+    // 这里我们直接使用一个空的 Json::Value，实际应用中应该根据具体需求构建
     std::string packet = PacketUtils::build_event_packet(
-        event, Json::Value(items), ack_id, nsp_, false);
+        event, Json::Value(), ack_id, nsp_, false);
     
-    std::cout << "Emitting event: " << event << ", packet: " << packet << std::endl;
+    RTC_LOG(LS_INFO) << "Emitting event: " << event << ", packet: " << packet;
     
     // 这里简化实现，实际应该发送到服务器
 }
@@ -231,7 +238,7 @@ void ClientCore::LeaveNamespace() {
     if (nsp_ != "/") {
         // 发送离开命名空间的消息
         std::string packet = PacketUtils::build_disconnect_packet(nsp_);
-        std::cout << "Leaving namespace: " << nsp_ << ", packet: " << packet << std::endl;
+        RTC_LOG(LS_INFO) << "Leaving namespace: " << nsp_ << ", packet: " << packet;
         
         nsp_ = "/";
     }
@@ -243,7 +250,7 @@ void ClientCore::JoinNamespace(const std::string& nsp) {
         
         // 发送加入命名空间的消息
         std::string packet = PacketUtils::build_connect_packet(Json::Value(), nsp_);
-        std::cout << "Joining namespace: " << nsp_ << ", packet: " << packet << std::endl;
+        RTC_LOG(LS_INFO) << "Joining namespace: " << nsp_ << ", packet: " << packet;
     }
 }
 

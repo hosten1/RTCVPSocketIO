@@ -295,7 +295,7 @@ class TaskQueueStdlibFactory final : public TaskQueueFactory {
 }  // namespace
 
 std::unique_ptr<TaskQueueFactory> CreateTaskQueueStdlibFactory() {
-  return std::make_unique<TaskQueueStdlibFactory>();
+  return std::unique_ptr<TaskQueueFactory>(new TaskQueueStdlibFactory());
 }
 
 }  // namespace webrtc

@@ -12,6 +12,7 @@
 #include "json/json.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/string_encode.h"
+#include "rtc_base/logging.h"
 #include "sio_jsoncpp_binary_helper.hpp"
 #include <iostream>
 #include <iomanip>
@@ -64,10 +65,10 @@ public:
     static void print_binary_hex(const Json::Value& binary_value, const std::string& prefix) {
         try {
             rtc::Buffer buffer = binary_helper::get_binary(binary_value);
-            std::cout << prefix << rtc::hex_encode_with_delimiter(reinterpret_cast<const char*>(buffer.data()), buffer.size(), ' ') << std::endl;
+            RTC_LOG(LS_INFO) << prefix << rtc::hex_encode_with_delimiter(reinterpret_cast<const char*>(buffer.data()), buffer.size(), ' ');
         } catch (const std::exception& e) {
             // 如果获取二进制数据失败，打印错误信息
-            std::cout << prefix << "[获取二进制数据失败: " << e.what() << "]" << std::endl;
+            RTC_LOG(LS_ERROR) << prefix << "[获取二进制数据失败: " << e.what() << "]";
         }
     }
     
@@ -82,28 +83,28 @@ public:
             // 只打印二进制数据的十六进制内容，不添加额外描述
             print_binary_hex(value, prefix);
         } else if (value.isNull()) {
-            std::cout << prefix << "null" << std::endl;
+            RTC_LOG(LS_INFO) << prefix << "null";
         } else if (value.isBool()) {
-            std::cout << prefix << (value.asBool() ? "true" : "false") << std::endl;
+            RTC_LOG(LS_INFO) << prefix << (value.asBool() ? "true" : "false");
         } else if (value.isInt()) {
-            std::cout << prefix << value.asInt() << std::endl;
+            RTC_LOG(LS_INFO) << prefix << value.asInt();
         } else if (value.isUInt()) {
-            std::cout << prefix << value.asUInt() << std::endl;
+            RTC_LOG(LS_INFO) << prefix << value.asUInt();
         } else if (value.isDouble()) {
-            std::cout << prefix << value.asDouble() << std::endl;
+            RTC_LOG(LS_INFO) << prefix << value.asDouble();
         } else if (value.isString()) {
-            std::cout << prefix << "\"" << value.asString() << "\"" << std::endl;
+            RTC_LOG(LS_INFO) << prefix << '"' << value.asString() << '"';
         } else if (value.isArray()) {
-            std::cout << prefix << "数组[" << value.size() << "]:" << std::endl;
+            RTC_LOG(LS_INFO) << prefix << "数组[" << value.size() << "]:";
             for (Json::ArrayIndex i = 0; i < value.size(); i++) {
-                std::cout << prefix << "  [" << i << "]: ";
+                RTC_LOG(LS_INFO) << prefix << "  [" << i << "]: ";
                 print_json_value(value[i], "", binary_helper::is_binary(value[i]));
             }
         } else if (value.isObject()) {
-            std::cout << prefix << "对象{" << value.size() << "}:" << std::endl;
+            RTC_LOG(LS_INFO) << prefix << "对象{" << value.size() << "}:";
             Json::Value::const_iterator it = value.begin();
             for (; it != value.end(); ++it) {
-                std::cout << prefix << "  \"" << it.key().asString() << "\": ";
+                RTC_LOG(LS_INFO) << prefix << "  \"" << it.key().asString() << "\": ";
                 print_json_value(*it, "", binary_helper::is_binary(*it));
             }
         }
@@ -117,12 +118,12 @@ public:
     template <typename T>
     static void print_data_array(const std::vector<T>& data_array, const std::string& description = "") {
         if (!description.empty()) {
-            std::cout << description << std::endl;
+            RTC_LOG(LS_INFO) << description;
         }
         
-        std::cout << "数据数组 (" << data_array.size() << " 个元素):" << std::endl;
+        RTC_LOG(LS_INFO) << "数据数组 (" << data_array.size() << " 个元素):";
         for (size_t i = 0; i < data_array.size(); i++) {
-            std::cout << "  [" << i << "]: ";
+            RTC_LOG(LS_INFO) << "  [" << i << "]: ";
             print_json_value(data_array[i], "", binary_helper::is_binary(data_array[i]));
         }
     }

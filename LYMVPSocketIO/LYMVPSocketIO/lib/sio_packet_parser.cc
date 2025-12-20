@@ -1,4 +1,5 @@
 #include "sio_packet_parser.h"
+#include "rtc_base/logging.h"
 #include <sstream>
 #include <cctype>
 #include <algorithm>
@@ -983,12 +984,12 @@ int PacketParser::parseBinaryPlaceholder(const Json::Value& json) {
 
 void PacketParser::logError(const std::string& message) const {
     // 在实际项目中，这里应该使用日志系统
-    std::cerr << "[Socket.IO Parser Error] " << message << std::endl;
+    RTC_LOG(LS_ERROR) << "[Socket.IO Parser Error] " << message;
 }
 
 void PacketParser::logDebug(const std::string& message) const {
     // 在实际项目中，这里应该使用日志系统
-    std::cout << "[Socket.IO Parser Debug] " << message << std::endl;
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser Debug] " << message;
 }
 
 } // namespace sio

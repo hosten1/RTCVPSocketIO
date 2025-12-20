@@ -37,15 +37,25 @@ endif()
 
 # 添加 libwebrtc 子项目
 set(LIBWEBRTC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libwebrtc")
-add_subdirectory(${LIBWEBRTC_DIR} libwebrtc_build)
 
-# 设置 libwebrtc include 目录
+# 在添加子项目之前，设置 libwebrtc 的构建选项
 set(LIBWEBRTC_INCLUDE_DIRS
     "${LIBWEBRTC_DIR}"
     "${LIBWEBRTC_DIR}/lib"
     "${LIBWEBRTC_DIR}/third_part"
     "${LIBWEBRTC_DIR}/third_part/jsoncpp/include"
 )
+
+# 添加 libwebrtc 子项目
+add_subdirectory(${LIBWEBRTC_DIR} libwebrtc_build)
+
+# 根据操作系统添加特定链接库
+if(APPLE)
+    if(NOT IOS)
+        # macOS 特有链接选项
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework Foundation")
+    endif()
+endif()
 
 # ============================================
 # 关键修改1：创建框架头文件目录结构
@@ -250,17 +260,22 @@ install(TARGETS libVPSocketIO
 
 # 如果想用符号链接而不是复制，可以用下面的代码替代上面的复制部分
 # （注意：符号链接在某些平台可能不可用）
-if(UNIX)
-    add_custom_target(create_framework_symlinks ALL
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/LYMVPSocketIO
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-            ${CMAKE_BINARY_DIR}/LYMVPSocketIO
-        COMMENT "Creating symbolic links for framework headers"
-    )
-    
-    add_dependencies(libVPSocketIO create_framework_symlinks)
-endif()
+# 注释掉符号链接创建，因为在某些环境下会遇到权限问题
+# if(UNIX)
+#     add_custom_target(create_framework_symlinks ALL
+#         # 先尝试删除已存在的路径（忽略错误）
+#         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LYMVPSocketIO || true
+#         COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/LYMVPSocketIO || true
+#         # 然后创建目录和符号链接
+#         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}
+#         COMMAND ${CMAKE_COMMAND} -E create_symlink
+#             ${CMAKE_CURRENT_SOURCE_DIR}/src
+#             ${CMAKE_BINARY_DIR}/LYMVPSocketIO
+#         COMMENT "Creating symbolic links for framework headers"
+#     )
+#     
+#     add_dependencies(libVPSocketIO create_framework_symlinks)
+# endif()
 
 # 添加测试目标
 source_group("Test" FILES 
@@ -273,7 +288,9 @@ add_executable(test_sio_packet
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
+    lib/sio_client_core.cc
     lib/test/test_sio_packet.cpp
+    lib/test/test_client_core.cpp
     lib/test/main.cpp
 )
 

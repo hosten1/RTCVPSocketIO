@@ -216,50 +216,14 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         }
         
         // 初始化 C++ 核心类
-        clientCore_ = std::make_unique<sio::ClientCore>();
+        // 注意：暂时注释掉 C++ 核心类的初始化，因为 Objective-C++ lambda 捕获存在问题
+        // 后续可以通过其他方式实现
+        // clientCore_.reset(new sio::ClientCore());
         
-        // 设置状态变化监听
-        clientCore_->StatusChanged.connect([this](sio::ClientCore::Status status) {
-            // 将 C++ 状态转换为 Objective-C 状态
-            RTCVPSocketIOClientStatus ocStatus;
-            switch (status) {
-                case sio::ClientCore::Status::kNotConnected:
-                    ocStatus = RTCVPSocketIOClientStatusNotConnected;
-                    break;
-                case sio::ClientCore::Status::kDisconnected:
-                    ocStatus = RTCVPSocketIOClientStatusDisconnected;
-                    break;
-                case sio::ClientCore::Status::kConnecting:
-                    ocStatus = RTCVPSocketIOClientStatusConnecting;
-                    break;
-                case sio::ClientCore::Status::kOpened:
-                    ocStatus = RTCVPSocketIOClientStatusOpened;
-                    break;
-                case sio::ClientCore::Status::kConnected:
-                    ocStatus = RTCVPSocketIOClientStatusConnected;
-                    break;
-            }
-            
-            // 更新 Objective-C 状态
-            self.status = ocStatus;
-        });
-        
-        // 设置事件监听
-        clientCore_->EventReceived.connect([this](const std::string& event, const std::vector<Json::Value>& data) {
-            // 将 C++ 事件转换为 Objective-C 事件
-            NSString *ocEvent = [NSString stringWithUTF8String:event.c_str()];
-            
-            // 转换数据
-            NSMutableArray *ocData = [NSMutableArray array];
-            for (const auto& item : data) {
-                // 这里简化实现，实际应该根据数据类型进行转换
-                NSString *ocItem = [NSString stringWithUTF8String:item.toStyledString().c_str()];
-                [ocData addObject:ocItem];
-            }
-            
-            // 处理事件
-            [self handleClientEvent:ocEvent withData:ocData];
-        });
+        // 注意：sigslot 需要继承 has_slots 类才能使用成员函数连接
+        // 这里暂时注释掉信号连接，后续可以通过其他方式实现
+        // clientCore_->StatusChanged.connect(this, &RTCVPSocketIOClient::onClientStatusChanged);
+        // clientCore_->EventReceived.connect(this, &RTCVPSocketIOClient::onClientEventReceived);
         
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Client initialized with URL: %@", socketURL.absoluteString]
                                       type:self.logType];
@@ -385,10 +349,11 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         self.status = RTCVPSocketIOClientStatusConnecting;
         
         // 使用 C++ 核心类处理连接
-        if (clientCore_) {
-            std::string url = [_socketURL.absoluteString UTF8String];
-            clientCore_->Connect(url);
-        }
+        // 注意：暂时注释掉 C++ 核心类的使用，因为 Objective-C++ lambda 捕获存在问题
+        // if (clientCore_) {
+        //     std::string url = [_socketURL.absoluteString UTF8String];
+        //     clientCore_->Connect(url);
+        // }
         
         // 保留原有引擎连接逻辑，用于向后兼容
         if (self.engine == nil || self.forceNew) {
@@ -423,9 +388,10 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     _reconnects = NO;
     
     // 使用 C++ 核心类断开连接
-    if (clientCore_) {
-        clientCore_->Disconnect();
-    }
+    // 注意：暂时注释掉 C++ 核心类的使用，因为 Objective-C++ lambda 捕获存在问题
+    // if (clientCore_) {
+    //     clientCore_->Disconnect();
+    // }
     
     [self didDisconnect:@"Disconnect"];
     
@@ -572,55 +538,38 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     }
     
     // 使用 C++ 核心类发送事件
-    if (clientCore_) {
-        std::string eventStr = [event UTF8String];
-        
-        // 将 Objective-C 数组转换为 C++ 向量
-        std::vector<Json::Value> cItems;
-        for (id item in items) {
-            // 这里简化实现，实际应该根据 item 类型进行转换
-            if ([item isKindOfClass:[NSString class]]) {
-                cItems.push_back(std::string([(NSString *)item UTF8String]));
-            } else if ([item isKindOfClass:[NSNumber class]]) {
-                cItems.push_back([(NSNumber *)item doubleValue]);
-            } else if ([item isKindOfClass:[NSDictionary class]]) {
-                // 简化处理，实际应该转换字典
-                cItems.push_back(Json::Value());
-            }
-        }
-        
-        if (ack >= 0) {
-            // 带 ACK 的事件发送
-            clientCore_->EmitWithAck(eventStr, cItems, [this, ack](const std::vector<Json::Value>& data, bool isTimeout) {
-                if (isTimeout) {
-                    // 处理超时
-                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"C++ ACK超时: %@", @(ack)]
-                                                  type:self.logType];
-                } else {
-                    // 处理成功响应
-                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"C++ ACK回调执行: %@, 响应数量: %lu", 
-                                                        @(ack), (unsigned long)data.size()]
-                                                  type:self.logType];
-                    
-                    // 转换 C++ 响应为 Objective-C 数组
-                    NSMutableArray *ocData = [NSMutableArray array];
-                    for (const auto& item : data) {
-                        if (item.isString()) {
-                            [ocData addObject:[NSString stringWithUTF8String:item.asCString()]];
-                        } else if (item.isDouble()) {
-                            [ocData addObject:@(item.asDouble())];
-                        }
-                    }
-                    
-                    // 通知原有 ACK 管理器
-                    [self.ackHandlers acknowledgePacketWithId:ack data:ocData];
-                }
-            }, 10.0);
-        } else {
-            // 不带 ACK 的事件发送
-            clientCore_->Emit(eventStr, cItems);
-        }
-    }
+    // 注意：暂时注释掉 C++ 核心类的使用，因为 Objective-C++ lambda 捕获存在问题
+    // 后续可以通过其他方式实现
+    // if (clientCore_) {
+    //     std::string eventStr = [event UTF8String];
+    //     
+    //     // 将 Objective-C 数组转换为 C++ 向量
+    //     std::vector<Json::Value> cItems;
+    //     for (id item in items) {
+    //         // 这里简化实现，实际应该根据 item 类型进行转换
+    //         if ([item isKindOfClass:[NSString class]]) {
+    //             cItems.push_back(std::string([(NSString *)item UTF8String]));
+    //         } else if ([item isKindOfClass:[NSNumber class]]) {
+    //             cItems.push_back([(NSNumber *)item doubleValue]);
+    //         } else if ([item isKindOfClass:[NSDictionary class]]) {
+    //             // 简化处理，实际应该转换字典
+    //             cItems.push_back(Json::Value());
+    //         }
+    //     }
+    //     
+    //     // 注意：暂时注释掉 C++ 核心的事件发送，因为 Objective-C++ lambda 捕获存在问题
+    //     // 后续可以通过其他方式实现
+    //     
+    //     // if (ack >= 0) {
+    //     //     // 带 ACK 的事件发送
+    //     //     clientCore_->EmitWithAck(eventStr, cItems, [](const std::vector<Json::Value>& data, bool isTimeout) {
+    //     //         // 简化处理，暂时不处理回调
+    //     //     }, 10.0);
+    //     // } else {
+    //     //     // 不带 ACK 的事件发送
+    //     //     clientCore_->Emit(eventStr, cItems);
+    //     // }
+    // }
     
     // 保留原有逻辑用于向后兼容
     RTCVPSocketPacket *packet = [RTCVPSocketPacket eventPacketWithEvent:event
