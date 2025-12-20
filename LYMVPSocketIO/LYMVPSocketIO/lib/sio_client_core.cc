@@ -12,7 +12,7 @@
 
 namespace sio {
 
-ClientCore::ClientCore()
+ClientCore::ClientCore(Version version)
     : status_(Status::kNotConnected),
       nsp_("/"),
       reconnects_(true),
@@ -21,7 +21,8 @@ ClientCore::ClientCore()
       current_reconnect_attempt_(0),
       reconnecting_(false),
       current_ack_id_(-1),
-      timeout_interval_ms_(1000) {
+      timeout_interval_ms_(1000),
+      version_(version) {
     
     InitializeTaskQueue();
 }
@@ -193,10 +194,22 @@ void ClientCore::EmitWithAck(const std::string& event,
     }
     
     // 构建并发送事件包
-    // 注意：Json::Value 没有接受 std::vector<Json::Value> 的构造函数，
-    // 这里我们直接使用一个空的 Json::Value，实际应用中应该根据具体需求构建
+    // 将 std::vector<Json::Value> 转换为 Json::Value
+    Json::Value data;
+    if (items.size() == 1) {
+        // 如果只有一个元素，直接使用该元素
+        data = items[0];
+    } else if (items.size() > 1) {
+        // 如果有多个元素，创建一个数组
+        data = Json::Value(Json::arrayValue);
+        for (const auto& item : items) {
+            data.append(item);
+        }
+    }
+    // 否则，使用空的 Json::Value
+    
     std::string packet = PacketUtils::build_event_packet(
-        event, Json::Value(), ack_id, nsp_, false);
+        event, data, ack_id, nsp_, false);
     
     RTC_LOG(LS_INFO) << "Emitting event: " << event << ", packet: " << packet;
     

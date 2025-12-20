@@ -59,15 +59,133 @@ static const uint8_t image_data[] = {
     // Put teardown code here. This method is called after the invocation of each test method in the class.
 }
 
-- (void)testExample {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+// 测试基本初始化
+- (void)testSocketIOClientInitialization {
+    // 使用默认配置初始化
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    XCTAssertNotNil(client);
+    XCTAssertEqual(client.status, RTCVPSocketIOClientStatusNotConnected);
+    XCTAssertEqualObjects(client.socketURL, url);
+    XCTAssertNotNil(client.handleQueue);
+}
+
+// 测试配置设置
+- (void)testSocketIOConfigSettings {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    config.forceNew = YES;
+    config.reconnects = YES;
+    config.reconnectAttempts = 5;
+    config.reconnectWait = 3.0;
+    
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    XCTAssertTrue(client.forceNew);
+    XCTAssertTrue(client.reconnects);
+    XCTAssertEqual(client.reconnectAttempts, 5);
+    XCTAssertEqual(client.reconnectWait, 3.0);
+}
+
+// 测试连接状态管理
+- (void)testSocketIOClientStatusManagement {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    // 初始状态应该是未连接
+    XCTAssertEqual(client.status, RTCVPSocketIOClientStatusNotConnected);
+    
+    // 测试断开连接状态
+    [client disconnect];
+    XCTAssertEqual(client.status, RTCVPSocketIOClientStatusDisconnected);
+}
+
+// 测试事件发射方法
+- (void)testSocketIOClientEmitMethods {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    // 测试无参数事件
+    [client emit:@"test_event"];
+    
+    // 测试带参数事件
+    [client emit:@"test_event" withArgs:@"arg1", @123, @3.14, nil];
+    
+    // 测试数组参数事件
+    NSArray *items = @[@"item1", @456, @{@"key": @"value"}];
+    [client emit:@"test_event" items:items];
+}
+
+// 测试带 ACK 的事件发射
+- (void)testSocketIOClientEmitWithAck {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    NSArray *items = @[@"ack_test", @"test_value"];
+    
+    // 测试带 ACK 的事件发射
+    [client emitWithAck:@"test_ack_event" 
+                 items:items 
+              ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+                  // 这里只是测试方法调用，实际测试需要模拟服务器响应
+                  XCTAssertNotNil(data);
+                  XCTAssertNil(error);
+              }];
+}
+
+// 测试命名空间管理
+- (void)testSocketIOClientNamespaceManagement {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    // 测试加入命名空间
+    [client joinNamespace:@"/test_namespace"];
+    
+    // 测试离开命名空间
+    [client leaveNamespace];
+}
+
+// 测试移除事件处理器
+- (void)testSocketIOClientRemoveHandlers {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    // 测试移除所有事件处理器
+    [client removeAllHandlers];
+}
+
+// 测试网络监控
+- (void)testSocketIOClientNetworkMonitoring {
+    RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+    NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+    RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+    
+    // 测试开始网络监控
+    [client startNetworkMonitoring];
+    
+    // 测试停止网络监控
+    [client stopNetworkMonitoring];
 }
 
 - (void)testPerformanceExample {
     // This is an example of a performance test case.
-    [self measureBlock:^{
+    [self measureBlock:^{        
         // Put the code you want to measure the time of here.
+        RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
+        NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
+        RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
+        
+        // 测试事件发射性能
+        for (int i = 0; i < 100; i++) {
+            [client emit:@"test_performance" withArgs:@"arg1", @(i), nil];
+        }
     }];
 }
 

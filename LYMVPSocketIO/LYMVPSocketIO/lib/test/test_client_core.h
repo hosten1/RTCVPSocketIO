@@ -26,6 +26,9 @@ void test_client_core_emit_data();
 void test_client_core_emit_with_ack();
 void test_client_core_timeout();
 void test_client_core_status_changes();
+void test_client_core_version_specific_events();
+void test_client_core_version_switching();
+void test_client_core_event_listeners();
 
 
 

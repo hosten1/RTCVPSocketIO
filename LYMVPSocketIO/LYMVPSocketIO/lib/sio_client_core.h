@@ -47,8 +47,15 @@ public:
         kStatusChange
     };
 
+    // Socket.IO 版本
+    enum class Version {
+        V2 = 2,
+        V3 = 3,
+        V4 = 4
+    };
+
     // 构造函数和析构函数
-    ClientCore();
+    ClientCore(Version version = Version::V3);
     ~ClientCore();
 
     // 连接管理
@@ -56,6 +63,8 @@ public:
     void Disconnect();
     void Reconnect();
     Status GetStatus() const { return status_; }
+    Version GetVersion() const { return version_; }
+    void SetVersion(Version version) { version_ = version; }
 
     // 事件发送
     void Emit(const std::string& event, const std::vector<Json::Value>& items = {});
@@ -117,6 +126,9 @@ private:
     std::map<std::string, std::vector<std::function<void(const std::vector<Json::Value>&)>>> event_handlers_;
     std::function<void(const std::string&, const std::vector<Json::Value>&)> any_handler_;
 
+    // Socket.IO 版本
+    Version version_;
+    
     // 任务队列和计时器
     std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory_;
     std::unique_ptr<rtc::TaskQueue> task_queue_;
