@@ -22,6 +22,9 @@
 #include "rtc_base/task_utils/repeating_task.h"
 #include "rtc_base/time_utils.h"
 
+// 引入 C++ 核心类
+#include "lib/sio_client_core.h"
+
 #pragma mark - 常量定义
 
 NSString *const RTCVPSocketEventConnect = @"connect";
@@ -138,6 +141,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     std::unique_ptr<webrtc::TaskQueueFactory> taskQueueFactory_;
     std::unique_ptr<rtc::TaskQueue> ioClientQueue_;
     webrtc::RepeatingTaskHandle repHanler_;
+    
+    // C++ 核心类实例
+    std::unique_ptr<sio::ClientCore> clientCore_;
 
 }
 
@@ -209,22 +215,51 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
             [self startNetworkMonitoring];
         }
         
-        const uint64_t interval = 1000;
-        taskQueueFactory_ = webrtc::CreateDefaultTaskQueueFactory();
-        ioClientQueue_ = absl::make_unique<rtc::TaskQueue>(
-            taskQueueFactory_->CreateTaskQueue(
-                "WavFileWriterQueue", webrtc::TaskQueueFactory::Priority::NORMAL));
-        repHanler_ =  webrtc::RepeatingTaskHandle::Start(ioClientQueue_->Get(), [=]() {
-            auto startTime = std::chrono::steady_clock::now();
-            // 这里放置你想要每次触发定时器时执行的代码
+        // 初始化 C++ 核心类
+        clientCore_ = std::make_unique<sio::ClientCore>();
+        
+        // 设置状态变化监听
+        clientCore_->StatusChanged.connect([this](sio::ClientCore::Status status) {
+            // 将 C++ 状态转换为 Objective-C 状态
+            RTCVPSocketIOClientStatus ocStatus;
+            switch (status) {
+                case sio::ClientCore::Status::kNotConnected:
+                    ocStatus = RTCVPSocketIOClientStatusNotConnected;
+                    break;
+                case sio::ClientCore::Status::kDisconnected:
+                    ocStatus = RTCVPSocketIOClientStatusDisconnected;
+                    break;
+                case sio::ClientCore::Status::kConnecting:
+                    ocStatus = RTCVPSocketIOClientStatusConnecting;
+                    break;
+                case sio::ClientCore::Status::kOpened:
+                    ocStatus = RTCVPSocketIOClientStatusOpened;
+                    break;
+                case sio::ClientCore::Status::kConnected:
+                    ocStatus = RTCVPSocketIOClientStatusConnected;
+                    break;
+            }
             
-//          repHanler_.Stop();
-            auto endTime = std::chrono::steady_clock::now();
-            auto diffTime = duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-                         uint64_t diffTimer = static_cast<uint64_t>(diffTime);
-            NSLog(@"===========> RepeatingTaskHandle");
-           return webrtc::TimeDelta::ms(diffTimer < interval?(interval - diffTimer):interval);
-         });
+            // 更新 Objective-C 状态
+            self.status = ocStatus;
+        });
+        
+        // 设置事件监听
+        clientCore_->EventReceived.connect([this](const std::string& event, const std::vector<Json::Value>& data) {
+            // 将 C++ 事件转换为 Objective-C 事件
+            NSString *ocEvent = [NSString stringWithUTF8String:event.c_str()];
+            
+            // 转换数据
+            NSMutableArray *ocData = [NSMutableArray array];
+            for (const auto& item : data) {
+                // 这里简化实现，实际应该根据数据类型进行转换
+                NSString *ocItem = [NSString stringWithUTF8String:item.toStyledString().c_str()];
+                [ocData addObject:ocItem];
+            }
+            
+            // 处理事件
+            [self handleClientEvent:ocEvent withData:ocData];
+        });
         
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Client initialized with URL: %@", socketURL.absoluteString]
                                       type:self.logType];
@@ -349,6 +384,13 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     if (_status != RTCVPSocketIOClientStatusConnected) {
         self.status = RTCVPSocketIOClientStatusConnecting;
         
+        // 使用 C++ 核心类处理连接
+        if (clientCore_) {
+            std::string url = [_socketURL.absoluteString UTF8String];
+            clientCore_->Connect(url);
+        }
+        
+        // 保留原有引擎连接逻辑，用于向后兼容
         if (self.engine == nil || self.forceNew) {
             [self addEngine];
         }
@@ -379,8 +421,18 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 - (void)disconnect {
     [RTCDefaultSocketLogger.logger log:@"Closing socket" type:self.logType];
     _reconnects = NO;
+    
+    // 使用 C++ 核心类断开连接
+    if (clientCore_) {
+        clientCore_->Disconnect();
+    }
+    
     [self didDisconnect:@"Disconnect"];
-    repHanler_.Stop();
+    
+    // 停止旧的重复任务（如果还在运行）
+    if (repHanler_.Running()) {
+        repHanler_.Stop();
+    }
 }
 
 - (void)disconnectWithHandler:(RTCVPSocketIOVoidHandler)handler {
@@ -519,7 +571,58 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         return;
     }
     
-    // 创建包
+    // 使用 C++ 核心类发送事件
+    if (clientCore_) {
+        std::string eventStr = [event UTF8String];
+        
+        // 将 Objective-C 数组转换为 C++ 向量
+        std::vector<Json::Value> cItems;
+        for (id item in items) {
+            // 这里简化实现，实际应该根据 item 类型进行转换
+            if ([item isKindOfClass:[NSString class]]) {
+                cItems.push_back(std::string([(NSString *)item UTF8String]));
+            } else if ([item isKindOfClass:[NSNumber class]]) {
+                cItems.push_back([(NSNumber *)item doubleValue]);
+            } else if ([item isKindOfClass:[NSDictionary class]]) {
+                // 简化处理，实际应该转换字典
+                cItems.push_back(Json::Value());
+            }
+        }
+        
+        if (ack >= 0) {
+            // 带 ACK 的事件发送
+            clientCore_->EmitWithAck(eventStr, cItems, [this, ack](const std::vector<Json::Value>& data, bool isTimeout) {
+                if (isTimeout) {
+                    // 处理超时
+                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"C++ ACK超时: %@", @(ack)]
+                                                  type:self.logType];
+                } else {
+                    // 处理成功响应
+                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"C++ ACK回调执行: %@, 响应数量: %lu", 
+                                                        @(ack), (unsigned long)data.size()]
+                                                  type:self.logType];
+                    
+                    // 转换 C++ 响应为 Objective-C 数组
+                    NSMutableArray *ocData = [NSMutableArray array];
+                    for (const auto& item : data) {
+                        if (item.isString()) {
+                            [ocData addObject:[NSString stringWithUTF8String:item.asCString()]];
+                        } else if (item.isDouble()) {
+                            [ocData addObject:@(item.asDouble())];
+                        }
+                    }
+                    
+                    // 通知原有 ACK 管理器
+                    [self.ackHandlers acknowledgePacketWithId:ack data:ocData];
+                }
+            }, 10.0);
+        } else {
+            // 不带 ACK 的事件发送
+            clientCore_->Emit(eventStr, cItems);
+        }
+    }
+    
+    // 保留原有逻辑用于向后兼容
     RTCVPSocketPacket *packet = [RTCVPSocketPacket eventPacketWithEvent:event
                                                                   items:items
                                                                packetId:ack

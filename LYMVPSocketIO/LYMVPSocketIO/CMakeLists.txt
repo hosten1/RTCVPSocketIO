@@ -96,6 +96,7 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_parser.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_jsoncpp_binary_helper.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_printer.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_client_core.h
 )
 
 # ============================================
@@ -135,6 +136,7 @@ set(SOURCE_FILES
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
+    lib/sio_client_core.cc
     
     # Source 目录 - utils
     src/utils/NSString+RTCVPSocketIO.m
