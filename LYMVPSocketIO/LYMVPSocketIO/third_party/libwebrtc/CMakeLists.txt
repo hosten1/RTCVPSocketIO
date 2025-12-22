@@ -8,6 +8,12 @@ project(libwebrtc CXX)
 # 设置项目根目录变量
 set(LIBWEBRTC_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+# 编译选项：控制是否编译特定模块，默认关闭
+option(LIBWEBRTC_ENABLE_STUN "Enable STUN related source code and headers" OFF)
+option(LIBWEBRTC_ENABLE_RTP "Enable RTP packet related source code and headers" OFF)
+option(LIBWEBRTC_ENABLE_RED "Enable RED (Redundant Audio Data) related source code and headers" OFF)
+option(LIBWEBRTC_ENABLE_GOOG_GCC "Enable goog-gcc related source code and headers" OFF)
+
 # 为所有目标添加项目根目录和third_part目录到包含路径
 include_directories(${LIBWEBRTC_ROOT_DIR})
 include_directories(${LIBWEBRTC_ROOT_DIR}/third_part)

@@ -30,8 +30,4 @@ install(TARGETS absl
     ARCHIVE DESTINATION lib
 )
 
-# 安装头文件，保持目录结构
-foreach(HEADER ${THIRD_PARTY_ABSL_HEADER_FILES})
-    get_filename_component(HEADER_DIR ${HEADER} DIRECTORY)
-    install(FILES ${HEADER} DESTINATION include/absl/${HEADER_DIR})
-endforeach()
+install(FILES ${THIRD_PARTY_ABSL_HEADER_FILES} DESTINATION include/absl)

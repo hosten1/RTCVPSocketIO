@@ -33,9 +33,4 @@ install(TARGETS jsoncpp
     ARCHIVE DESTINATION lib
 )
 
-# 安装头文件，保持目录结构
-foreach(HEADER ${HEADER_FILES})
-    get_filename_component(HEADER_DIR ${HEADER} DIRECTORY)
-    string(REPLACE "include/" "" INSTALL_DIR ${HEADER_DIR})
-    install(FILES ${HEADER} DESTINATION include/${INSTALL_DIR})
-endforeach()
+install(FILES ${HEADER_FILES} DESTINATION include/json)
