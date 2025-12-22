@@ -14,9 +14,28 @@ target_include_directories(jsoncpp
     $<INSTALL_INTERFACE:include/json>
 )
 
+# 明确列出所有头文件，不使用统配方式
+set(HEADER_FILES
+    include/json/allocator.h
+    include/json/assertions.h
+    include/json/config.h
+    include/json/forwards.h
+    include/json/json.h
+    include/json/json_features.h
+    include/json/reader.h
+    include/json/value.h
+    include/json/version.h
+    include/json/writer.h
+)
+
 # 安装规则
 install(TARGETS jsoncpp
     ARCHIVE DESTINATION lib
 )
 
-install(DIRECTORY include/json DESTINATION include)
+# 安装头文件，保持目录结构
+foreach(HEADER ${HEADER_FILES})
+    get_filename_component(HEADER_DIR ${HEADER} DIRECTORY)
+    string(REPLACE "include/" "" INSTALL_DIR ${HEADER_DIR})
+    install(FILES ${HEADER} DESTINATION include/${INSTALL_DIR})
+endforeach()

@@ -143,6 +143,4 @@ endif()
 install(TARGETS libwebrtc
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
-    )
-
-install(DIRECTORY include/ DESTINATION include)
+)

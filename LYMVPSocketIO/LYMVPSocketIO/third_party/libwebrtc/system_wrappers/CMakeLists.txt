@@ -16,9 +16,20 @@ target_include_directories(system_wrappers
     $<INSTALL_INTERFACE:include/system_wrappers>
 )
 
+# 明确列出所有头文件，不使用统配方式
+set(HEADER_FILES
+    include/clock.h
+    include/cpu_features_wrapper.h
+    include/event_wrapper.h
+    include/field_trial.h
+    include/metrics.h
+    include/ntp_time.h
+    include/sleep.h
+)
+
 # 安装规则
 install(TARGETS system_wrappers
     ARCHIVE DESTINATION lib
 )
 
-install(DIRECTORY include/ DESTINATION include/system_wrappers)
+install(FILES ${HEADER_FILES} DESTINATION include/system_wrappers)

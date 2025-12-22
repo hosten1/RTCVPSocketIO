@@ -1,14 +1,9 @@
-
-
-set(RTC_BASE_NETWORK_SOURCES
-    send_packet.cc
-)
-set(RTC_BASE_NETWORK_HEADER_FILES
-    send_packet.h
+# 添加空源文件来满足CMake的静态库要求
+set(SOURCES
+    empty_network.cc
 )
 
-# network目录下没有源文件，创建一个空库
-add_library(rtc_base_network STATIC ${RTC_BASE_NETWORK_SOURCES})
+add_library(rtc_base_network STATIC ${SOURCES})
 
 target_include_directories(rtc_base_network
     PUBLIC
@@ -18,4 +13,3 @@ target_include_directories(rtc_base_network
 )
 
 install(TARGETS rtc_base_network ARCHIVE DESTINATION lib)
-install(FILES ${RTC_BASE_NETWORK_HEADER_FILES} DESTINATION include/rtc_base/network)

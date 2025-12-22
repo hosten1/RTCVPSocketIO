@@ -19,7 +19,7 @@
 #include "api/task_queue/default_task_queue_factory.h"
 #include "rtc_base/task_queue.h"
 #include "rtc_base/task_utils/repeating_task.h"
-#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/callback.h"
 #include "sio_packet.h"
 #include "sio_packet_types.h"
 
@@ -95,9 +95,12 @@ public:
     void StartTimeoutTimer(uint64_t interval_ms);
     void StopTimeoutTimer();
 
-    // 事件信号（用于与 Objective-C++ 层通信）
-    sigslot::signal<Status> StatusChanged;
-    sigslot::signal<const std::string&, const std::vector<Json::Value>&> EventReceived;
+    // 事件回调（用于与 Objective-C++ 层通信）
+    using StatusCallback = std::function<void(Status)>;
+    using EventCallback = std::function<void(const std::string&, const std::vector<Json::Value>&)>;
+    
+    void RegisterStatusCallback(StatusCallback callback) { status_callback_ = std::move(callback); }
+    void RegisterEventCallback(EventCallback callback) { event_callback_ = std::move(callback); }
 
 private:
     // 私有方法
@@ -134,6 +137,10 @@ private:
     std::unique_ptr<rtc::TaskQueue> task_queue_;
     webrtc::RepeatingTaskHandle repeating_task_handle_;
     uint64_t timeout_interval_ms_;
+    
+    // 事件回调
+    StatusCallback status_callback_;
+    EventCallback event_callback_;
 };
 
 // 模板方法实现

@@ -151,10 +151,12 @@ void ClientCore::SetStatus(Status status) {
     if (status_ != status) {
         status_ = status;
         
-        // 触发状态变化信号
-        StatusChanged(status);
+        // 触发状态变化回调
+        if (status_callback_) {
+            status_callback_(status);
+        }
         
-        // 触发事件
+        // 触发事件回调
         std::string status_str;
         switch (status) {
             case Status::kNotConnected: status_str = "notconnected"; break;
@@ -164,7 +166,9 @@ void ClientCore::SetStatus(Status status) {
             case Status::kConnected: status_str = "connected"; break;
         }
         
-        EventReceived("statusChange", {Json::Value(status_str)});
+        if (event_callback_) {
+            event_callback_("statusChange", {Json::Value(status_str)});
+        }
     }
 }
 
