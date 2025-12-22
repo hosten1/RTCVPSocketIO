@@ -129,7 +129,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
     return sio::SmartBuffer((const uint8_t *)data.bytes, data.length);
 }
 
-}
+} // namespace
 
 // 内部实现类
 @interface RTCVPSocketPacketBridge () {
@@ -221,7 +221,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
         cppDataArray,
         // 文本回调 - 获取生成的文本包
         [completion, self](const std::string& text_packet) -> bool {
-            dispatch_async(self.callbackQueue, ^{
+            dispatch_async(self.callbackQueue, ^{                
                 NSString *textPacket = [NSString stringWithUTF8String:text_packet.c_str()];
                 
                 // 这里只返回文本包，二进制数据在另一个回调中处理
@@ -237,9 +237,9 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
         },
         // 完成回调
         [completion, self](bool success, const std::string& error) {
-            dispatch_async(self.callbackQueue, ^{
+            dispatch_async(self.callbackQueue, ^{                
                 if (!success) {
-                    NSError *nsError = [NSError errorWithDomain:@"RTCVPSocketPacketBridge"
+                    NSError *nsError = [NSError errorWithDomain:@"RTCVPSocketPacketBridge" 
                                                            code:-1
                                                        userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:error.c_str()]}];
                     completion(nil, nil, NO, 0, nsError);
@@ -261,7 +261,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
     
     if (!completion) return;
     
-    dispatch_async(self.callbackQueue, ^{
+    dispatch_async(self.callbackQueue, ^{        
         @try {
             // 获取PacketParser单例
             auto& parser = sio::PacketParser::getInstance();
@@ -301,7 +301,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
             completion(resultTextPacket, nil, isBinaryPacket, binaryCount, nil);
             
         } @catch (const std::exception& e) {
-            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge"
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge" 
                                                  code:-2
                                              userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:e.what()]}];
             completion(nil, nil, NO, 0, error);
@@ -317,7 +317,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
     
     if (!completion) return;
     
-    dispatch_async(self.callbackQueue, ^{
+    dispatch_async(self.callbackQueue, ^{        
         @try {
             // 转换参数
             std::string textPacketStr = [textPacket UTF8String];
@@ -354,7 +354,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
             );
             
         } @catch (const std::exception& e) {
-            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge"
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge" 
                                                  code:-3
                                              userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:e.what()]}];
             completion(nil, 0, 0, -1, error);
@@ -368,7 +368,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
     
     if (!completion) return;
     
-    dispatch_async(self.callbackQueue, ^{
+    dispatch_async(self.callbackQueue, ^{        
         @try {
             // 转换文本包
             std::string textPacketStr = [textPacket UTF8String];
@@ -396,7 +396,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
                         Json::Reader reader;
                         if (reader.parse(parseResult.json_data, jsonData)) {
                             NSArray *resultArray = @[ConvertFromJsonValue(jsonData)];
-                            completion(resultArray,
+                            completion(resultArray, 
                                       static_cast<NSInteger>(parseResult.packet.type),
                                       parseResult.packet.nsp,
                                       parseResult.packet.id,
@@ -406,7 +406,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
                     }
                     
                     // 空数据
-                    completion(@[],
+                    completion(@[], 
                               static_cast<NSInteger>(parseResult.packet.type),
                               parseResult.packet.nsp,
                               parseResult.packet.id,
@@ -414,14 +414,14 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
                 }
             } else {
                 // 解析失败
-                NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge"
-                                                     code:-4
-                                                 userInfo:@{NSLocalizedDescriptionKey: @"解析文本包失败"}];
+                NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge" 
+                                                 code:-4
+                                             userInfo:@{NSLocalizedDescriptionKey: @"解析文本包失败"}];
                 completion(nil, 0, 0, -1, error);
             }
             
         } @catch (const std::exception& e) {
-            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge"
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge" 
                                                  code:-5
                                              userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:e.what()]}];
             completion(nil, 0, 0, -1, error);
@@ -441,7 +441,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
     
     if (!completion) return;
     
-    dispatch_async(self.callbackQueue, ^{
+    dispatch_async(self.callbackQueue, ^{        
         @try {
             // 构建事件数据
             Json::Value jsonData = ConvertToJsonValue(data);
@@ -490,7 +490,7 @@ sio::SmartBuffer ConvertNSDataToSmartBuffer(NSData* data) {
             }
             
         } @catch (const std::exception& e) {
-            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge"
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketPacketBridge" 
                                                  code:-6
                                              userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:e.what()]}];
             completion(nil, nil, NO, 0, error);
