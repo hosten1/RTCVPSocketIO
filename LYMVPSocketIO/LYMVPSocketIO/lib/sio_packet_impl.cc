@@ -11,15 +11,149 @@
 #include <atomic>
 #include <future>
 #include <iostream>
+#include <chrono>
+
+#include "absl/memory/memory.h"
 
 namespace sio {
+// ============================================================================
+// AckManager 类实现
+// ============================================================================
+
+AckManager::AckManager(std::shared_ptr<rtc::TaskQueue> task_queue):
+            task_queue_(task_queue),
+            next_ack_id_(0),
+            default_timeout_(std::chrono::milliseconds(30000)) {
+}
+
+AckManager::~AckManager() {
+    clear_all_acks();
+}
+
+int AckManager::generate_ack_id() {
+    // 生成唯一的ACK ID，原子操作确保线程安全
+    return next_ack_id_++;
+}
+
+void AckManager::register_ack_callback(int ack_id, AckCallback callback, std::chrono::milliseconds timeout) {
+    webrtc::MutexLock lock(&mutex_);
+    
+    // 创建ACK信息
+    auto ack_info = absl::make_unique<AckInfo>();
+    ack_info->callback = callback;
+    ack_info->timeout = timeout;
+    ack_info->start_time = std::chrono::steady_clock::now();
+    
+    // 保存ACK信息
+    acks_[ack_id] = std::move(ack_info);
+    
+    // 如果超时时间大于0，启动超时检查
+    if (timeout > std::chrono::milliseconds(0)) {
+        // 使用线程池或当前线程进行超时检查
+        task_queue_->PostDelayedTask(
+            [this, ack_id]() {
+                // 超时检查
+                webrtc::MutexLock lock(&mutex_);
+                auto it = acks_.find(ack_id);
+                if (it != acks_.end()) {
+                    // 检查是否真的超时
+                    auto now = std::chrono::steady_clock::now();
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second->start_time);
+                    if (elapsed >= it->second->timeout) {
+                        // 调用超时回调
+                        if (it->second->timeout_callback) {
+                            // 在超时线程中执行回调
+                            AckTimeoutCallback callback = it->second->timeout_callback;
+                            task_queue_->PostTask(
+                                [callback]() {
+                                    if (callback) {
+                                        callback();
+                                    }
+                                }
+                            );
+                        }
+                        // 移除ACK
+                        acks_.erase(it);
+                    }
+                }
+            },
+            static_cast<uint32_t>(timeout.count())
+        );
+    }
+}
+
+void AckManager::register_ack_timeout_callback(int ack_id, AckTimeoutCallback callback) {
+    webrtc::MutexLock lock(&mutex_);
+    
+    auto it = acks_.find(ack_id);
+    if (it != acks_.end()) {
+        it->second->timeout_callback = callback;
+    }
+}
+
+bool AckManager::handle_ack_response(int ack_id, const std::vector<Json::Value>& data_array) {
+    webrtc::MutexLock lock(&mutex_);
+    
+    auto it = acks_.find(ack_id);
+    if (it == acks_.end()) {
+        // ACK ID 不存在或已超时
+        return false;
+    }
+    
+    // 保存回调
+    AckCallback callback = it->second->callback;
+    
+    // 移除ACK
+    acks_.erase(it);
+
+    // 在当前线程中执行回调
+    if (callback) {
+        callback(data_array);
+    }
+    
+    return true;
+}
+
+bool AckManager::cancel_ack(int ack_id) {
+    webrtc::MutexLock lock(&mutex_);
+    
+    auto it = acks_.find(ack_id);
+    if (it == acks_.end()) {
+        return false;
+    }
+    
+    // 移除ACK
+    acks_.erase(it);
+    return true;
+}
+
+void AckManager::set_default_timeout(std::chrono::milliseconds timeout) {
+    webrtc::MutexLock lock(&mutex_);
+    default_timeout_ = timeout;
+}
+
+std::chrono::milliseconds AckManager::get_default_timeout() const {
+    webrtc::MutexLock lock(&mutex_);
+    return default_timeout_;
+}
+
+void AckManager::clear_all_acks() {
+    webrtc::MutexLock lock(&mutex_);
+    acks_.clear();
+}
+
 // ============================================================================
 // PacketSender 模板类实现
 // ============================================================================
 
 template <typename T>
-PacketSender<T>::PacketSender(SocketIOVersion version)
-    : version_(version), state_(new typename PacketSender<T>::SendState()) {
+PacketSender<T>::PacketSender(webrtc::TaskQueueFactory* task_queue_factory, SocketIOVersion version)
+    : task_queue_factory_(task_queue_factory),
+      task_queue_(absl::make_unique<rtc::TaskQueue>(
+          task_queue_factory_->CreateTaskQueue("packet_sender", webrtc::TaskQueueFactory::Priority::NORMAL))),
+      version_(version),
+      state_(new typename PacketSender<T>::SendState()),
+      ack_manager_(task_queue_) {  // 使用task_queue_初始化ack_manager_
     reset();
     update_parser_config();
 }
@@ -353,6 +487,56 @@ void PacketSender<T>::send_data_array_async_v3(
     PacketParser::getInstance().setConfig(original_config);
 }
 
+// 删除重复定义的函数，只保留一个版本
+template <typename T>
+void PacketSender<T>::send_data_array_with_ack_async(
+    const std::vector<T>& data_array,
+    std::function<bool(const std::string& text_packet)> text_callback,
+    std::function<bool(const SmartBuffer& binary_data, int index)> binary_callback,
+    std::function<void(bool success, const std::string& error)> complete_callback,
+    std::function<void(const std::vector<T>& data_array)> ack_callback,
+    std::function<void()> ack_timeout_callback,
+    std::chrono::milliseconds ack_timeout,
+    PacketType type,
+    int nsp) {
+    
+    // 生成唯一的ACK ID
+    int ack_id = ack_manager_.generate_ack_id();
+    
+    // 注册ACK回调
+    if (ack_callback) {
+        // 对于Json::Value类型的特化版本，可以直接处理Json::Value
+        ack_manager_.register_ack_callback(ack_id, [ack_callback](const std::vector<Json::Value>& data) {
+            // 转换为模板类型并调用回调
+            // 注意：这里假设T是Json::Value，如果不是需要特殊处理
+            std::vector<Json::Value> converted_data;
+            for (const auto& json : data) {
+                converted_data.push_back(json);
+            }
+            // 调用ACK回调
+            if (ack_callback) {
+                ack_callback(std::vector<Json::Value>(converted_data.begin(), converted_data.end()));
+            }
+        }, ack_timeout);
+    }
+    
+    // 注册ACK超时回调
+    if (ack_timeout_callback) {
+        ack_manager_.register_ack_timeout_callback(ack_id, ack_timeout_callback);
+    }
+    
+    // 使用带ACK ID的方式发送数据
+    send_data_array_async(
+        data_array,
+        text_callback,
+        binary_callback,
+        complete_callback,
+        type,
+        nsp,
+        ack_id
+    );
+}
+
 template <typename T>
 void PacketSender<T>::send_data_array_async(
     const std::vector<T>& data_array,
@@ -459,8 +643,13 @@ void PacketSender<T>::reset() {
 // ============================================================================
 
 template <typename T>
-PacketReceiver<T>::PacketReceiver(SocketIOVersion version)
-    : version_(version), state_(new typename PacketReceiver<T>::ReceiveState()) {
+PacketReceiver<T>::PacketReceiver(webrtc::TaskQueueFactory* task_queue_factory, SocketIOVersion version)
+    : task_queue_factory_(task_queue_factory),
+      task_queue_(absl::make_unique<rtc::TaskQueue>(
+          task_queue_factory_->CreateTaskQueue("packet_receiver", webrtc::TaskQueueFactory::Priority::NORMAL))),
+      version_(version),
+      state_(new typename PacketReceiver<T>::ReceiveState()),
+      ack_manager_(nullptr) {  // 初始化为nullptr
     reset();
     update_parser_config();
 }
@@ -481,6 +670,11 @@ void PacketReceiver<T>::update_parser_config() {
 template <typename T>
 void PacketReceiver<T>::set_complete_callback(std::function<void(const std::vector<T>& data_array)> callback) {
     state_->complete_callback = callback;
+}
+
+template <typename T>
+void PacketReceiver<T>::set_ack_manager(AckManager* ack_manager) {
+    ack_manager_ = ack_manager;
 }
 
 template <typename T>
@@ -627,7 +821,7 @@ void PacketReceiver<T>::check_and_trigger_complete() {
         
         if (state_->packet_info.type == PacketType::BINARY_EVENT || state_->packet_info.type == PacketType::BINARY_ACK) {
             // 二进制包：只有当所有二进制数据都接收完成时才合并
-            should_complete = !state_->expecting_binary && 
+            should_complete = !state_->expecting_binary &&
                              state_->received_binaries.size() == state_->expected_binaries.size();
         } else {
             // 普通包：直接合并
@@ -665,7 +859,26 @@ void PacketReceiver<T>::check_and_trigger_complete() {
             PacketSplitter<T>::combine_to_data_array_async(
                 parse_result.json_data,
                 state_->received_binaries,
-                state_->complete_callback
+                [this](const std::vector<T>& data_array) {
+                    // 检查是否是ACK包
+                    if ((state_->packet_info.type == PacketType::ACK ||
+                         state_->packet_info.type == PacketType::BINARY_ACK) &&
+                        state_->packet_info.id != -1 &&
+                        ack_manager_) {
+                        
+                        // 转换为Json::Value数组
+                        std::vector<Json::Value> json_array;
+                        for (const auto& data : data_array) {
+                            json_array.push_back(data);
+                        }
+                        
+                        // 处理ACK响应
+                        ack_manager_->handle_ack_response(state_->packet_info.id, json_array);
+                    }
+                    
+                    // 调用原始回调
+                    state_->complete_callback(data_array);
+                }
             );
         }
     }

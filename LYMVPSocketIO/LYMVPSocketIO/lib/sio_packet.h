@@ -66,6 +66,10 @@ public:
     // 从文本中解析二进制占位符数量 - 使用 PacketParser
     static int parse_binary_count(const std::string& text);
     
+    // 将 JSON 转换为数据，将占位符替换为二进制数据
+    static T json_to_data(const Json::Value& json,
+                             const std::vector<SmartBuffer>& binaries);
+    
 private:
     // 将数据转换为 JSON，提取二进制数据并替换为占位符
     static Json::Value data_to_json(const T& value,
@@ -77,10 +81,6 @@ private:
         const std::vector<T>& data_array,
         std::function<void(const SmartBuffer& binary_part, size_t index)> binary_callback,
         int& placeholder_counter);
-    
-    // 将 JSON 转换为数据，将占位符替换为二进制数据
-    static T json_to_data(const Json::Value& json,
-                               const std::vector<SmartBuffer>& binaries);
     
     // 将 JSON 数组转换为数据数组
     static std::vector<T> json_array_to_data_array(const Json::Value& json_array,

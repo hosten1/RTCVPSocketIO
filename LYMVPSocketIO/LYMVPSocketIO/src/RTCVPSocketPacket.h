@@ -9,6 +9,11 @@
 // RTCVPSocketPacket.h
 #import <Foundation/Foundation.h>
 
+// 条件编译，只在Objective-C++文件中引用C++桥接文件
+#ifdef __cplusplus
+#    import "RTCVPSocketPacketBridge.h"
+#endif
+
 NS_ASSUME_NONNULL_BEGIN
 
 // 数据包类型

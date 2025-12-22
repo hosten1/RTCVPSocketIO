@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B26428D2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */; };
+		1B26428E2EF9368D00E91641 /* RTCVPSocketPacketBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B26428B2EF9368D00E91641 /* RTCVPSocketPacketBridge.h */; };
+		1B26428F2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */; };
 		1BF5C04C2EF52D1A00966BB3 /* LYMVPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C0432EF52D1800966BB3 /* LYMVPSocketIO.framework */; };
 		1BF5C06C2EF52E5C00966BB3 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C06B2EF52E5C00966BB3 /* AVFoundation.framework */; };
 		1BF5C06E2EF52E6C00966BB3 /* libc++.1.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C06D2EF52E6700966BB3 /* libc++.1.tbd */; };
@@ -422,6 +425,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1B26428B2EF9368D00E91641 /* RTCVPSocketPacketBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketPacketBridge.h; sourceTree = "<group>"; };
+		1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RTCVPSocketPacketBridge.mm; sourceTree = "<group>"; };
 		1BF5C0432EF52D1800966BB3 /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LYMVPSocketIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BF5C04B2EF52D1A00966BB3 /* LYMVPSocketIOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LYMVPSocketIOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BF5C06B2EF52E5C00966BB3 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -848,6 +853,8 @@
 		1BF5C38B2EF52FC300966BB3 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				1B26428B2EF9368D00E91641 /* RTCVPSocketPacketBridge.h */,
+				1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */,
 				1BF5C3772EF52FC300966BB3 /* utils */,
 				1BF5C3782EF52FC300966BB3 /* RTCVPACKManager.h */,
 				1BF5C3792EF52FC300966BB3 /* RTCVPACKManager.m */,
@@ -1529,6 +1536,7 @@
 				1BF5C68D2EF52FC300966BB3 /* network_monitor.h in Headers */,
 				1BF5C68E2EF52FC300966BB3 /* string_to_number.h in Headers */,
 				1BF5C6902EF52FC300966BB3 /* field_trials_view.h in Headers */,
+				1B26428E2EF9368D00E91641 /* RTCVPSocketPacketBridge.h in Headers */,
 				1BF5C6922EF52FC300966BB3 /* forwards.h in Headers */,
 				1BF5C6942EF52FC300966BB3 /* log_sinks.h in Headers */,
 				1BF5C6952EF52FC300966BB3 /* frequency.h in Headers */,
@@ -1701,6 +1709,7 @@
 				1BF5C5902EF52FC300966BB3 /* metrics.cc in Sources */,
 				1BF5C5912EF52FC300966BB3 /* string_utils.cc in Sources */,
 				1BF5C5932EF52FC300966BB3 /* RTCVPAFNetworkReachabilityManager.m in Sources */,
+				1B26428F2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */,
 				1BF5C5942EF52FC300966BB3 /* bit_buffer.cc in Sources */,
 				1BF5C5952EF52FC300966BB3 /* RTCVPSocketEngine.m in Sources */,
 				1BF5C5962EF52FC300966BB3 /* repeating_task.cc in Sources */,
@@ -1813,6 +1822,7 @@
 				1BF5C5022EF52FC300966BB3 /* RTCVPAFNetworkReachabilityManager.m in Sources */,
 				1BF5C5032EF52FC300966BB3 /* bit_buffer.cc in Sources */,
 				1BF5C5042EF52FC300966BB3 /* RTCVPSocketEngine.m in Sources */,
+				1B26428D2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */,
 				1BF5C5052EF52FC300966BB3 /* repeating_task.cc in Sources */,
 				1BF5C5062EF52FC300966BB3 /* time_utils.cc in Sources */,
 				1BF5C5072EF52FC300966BB3 /* event.cc in Sources */,
