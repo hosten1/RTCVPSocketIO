@@ -1945,6 +1945,7 @@
 					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"/**",
 					"\"$(SRCROOT)/LYMVPSocketIO/Category\"/**",
 					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO\"",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -1995,6 +1996,7 @@
 					"\"$(SRCROOT)/LYMVPSocketIO/src/utils\"/**",
 					"\"$(SRCROOT)/LYMVPSocketIO/Category\"/**",
 					"\"$(SRCROOT)/LYMVPSocketIO/jetfire\"/**",
+					"\"$(SRCROOT)/LYMVPSocketIO\"",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
