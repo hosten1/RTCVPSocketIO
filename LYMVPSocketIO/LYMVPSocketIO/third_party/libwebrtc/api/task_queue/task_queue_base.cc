@@ -9,37 +9,16 @@
  */
 #include "api/task_queue/task_queue_base.h"
 
+#include "absl/base/attributes.h"
+#include "absl/base/config.h"
 #include "rtc_base/checks.h"
 
-// 检测编译器是否支持 thread_local
-#if (defined(__cplusplus) && __cplusplus >= 201103L) || \
-    (defined(_MSC_VER) && _MSC_VER >= 1900) || \
-    (defined(__GNUC__) && __GNUC__ >= 4 && __GNUC_MINOR__ >= 8) || \
-    defined(__clang__)
-#define WEBRTC_HAVE_THREAD_LOCAL 1
-#else
-#define WEBRTC_HAVE_THREAD_LOCAL 0
-#endif
-
-#if WEBRTC_HAVE_THREAD_LOCAL
+#if defined(ABSL_HAVE_THREAD_LOCAL)
 
 namespace webrtc {
 namespace {
 
-// 使用编译器特定的 constinit 属性（如果可用）
-#if defined(__has_cpp_attribute)
-#  if __has_cpp_attribute(clang::require_constant_initialization)
-#    define WEBRTC_CONST_INIT [[clang::require_constant_initialization]]
-#  elif __has_cpp_attribute(gnu::require_constant_initialization)
-#    define WEBRTC_CONST_INIT [[gnu::require_constant_initialization]]
-#  else
-#    define WEBRTC_CONST_INIT
-#  endif
-#else
-#  define WEBRTC_CONST_INIT
-#endif
-
-WEBRTC_CONST_INIT thread_local TaskQueueBase* current = nullptr;
+ABSL_CONST_INIT thread_local TaskQueueBase* current = nullptr;
 
 }  // namespace
 
@@ -65,15 +44,15 @@ TaskQueueBase::CurrentTaskQueueSetter::~CurrentTaskQueueSetter() {
 namespace webrtc {
 namespace {
 
-pthread_key_t g_queue_ptr_tls = 0;
-pthread_once_t g_init_once = PTHREAD_ONCE_INIT;
+ABSL_CONST_INIT pthread_key_t g_queue_ptr_tls = 0;
 
 void InitializeTls() {
   RTC_CHECK(pthread_key_create(&g_queue_ptr_tls, nullptr) == 0);
 }
 
 pthread_key_t GetQueuePtrTls() {
-  RTC_CHECK(pthread_once(&g_init_once, &InitializeTls) == 0);
+  static pthread_once_t init_once = PTHREAD_ONCE_INIT;
+  RTC_CHECK(pthread_once(&init_once, &InitializeTls) == 0);
   return g_queue_ptr_tls;
 }
 

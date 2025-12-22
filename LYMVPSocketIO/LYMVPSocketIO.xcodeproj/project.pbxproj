@@ -22,7 +22,6 @@
 		1BF5C4F62EF52FC300966BB3 /* net_helper.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4542EF52FC300966BB3 /* net_helper.cc */; };
 		1BF5C4F72EF52FC300966BB3 /* socket_address.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4712EF52FC300966BB3 /* socket_address.cc */; };
 		1BF5C4F82EF52FC300966BB3 /* mutex.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3D92EF52FC300966BB3 /* mutex.cc */; };
-		1BF5C4F92EF52FC300966BB3 /* sent_packet.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3C22EF52FC300966BB3 /* sent_packet.cc */; };
 		1BF5C4FB2EF52FC300966BB3 /* RTCDefaultSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C36D2EF52FC300966BB3 /* RTCDefaultSocketLogger.m */; };
 		1BF5C4FC2EF52FC300966BB3 /* RTCVPSocketIOConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3832EF52FC300966BB3 /* RTCVPSocketIOConfig.m */; };
 		1BF5C4FD2EF52FC300966BB3 /* RTCVPTimeoutManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3722EF52FC300966BB3 /* RTCVPTimeoutManager.m */; };
@@ -127,7 +126,6 @@
 		1BF5C5872EF52FC300966BB3 /* net_helper.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4542EF52FC300966BB3 /* net_helper.cc */; };
 		1BF5C5882EF52FC300966BB3 /* socket_address.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4712EF52FC300966BB3 /* socket_address.cc */; };
 		1BF5C5892EF52FC300966BB3 /* mutex.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3D92EF52FC300966BB3 /* mutex.cc */; };
-		1BF5C58A2EF52FC300966BB3 /* sent_packet.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3C22EF52FC300966BB3 /* sent_packet.cc */; };
 		1BF5C58C2EF52FC300966BB3 /* RTCDefaultSocketLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C36D2EF52FC300966BB3 /* RTCDefaultSocketLogger.m */; };
 		1BF5C58D2EF52FC300966BB3 /* RTCVPSocketIOConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3832EF52FC300966BB3 /* RTCVPSocketIOConfig.m */; };
 		1BF5C58E2EF52FC300966BB3 /* RTCVPTimeoutManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3722EF52FC300966BB3 /* RTCVPTimeoutManager.m */; };
@@ -370,7 +368,6 @@
 		1BF5C69A2EF52FC300966BB3 /* ref_count.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4672EF52FC300966BB3 /* ref_count.h */; };
 		1BF5C69B2EF52FC300966BB3 /* thread_checker.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4892EF52FC300966BB3 /* thread_checker.h */; };
 		1BF5C69C2EF52FC300966BB3 /* bit_buffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4212EF52FC300966BB3 /* bit_buffer.h */; };
-		1BF5C69D2EF52FC300966BB3 /* sent_packet.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3C12EF52FC300966BB3 /* sent_packet.h */; };
 		1BF5C69E2EF52FC300966BB3 /* rw_lock_wrapper.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3E32EF52FC300966BB3 /* rw_lock_wrapper.h */; };
 		1BF5C69F2EF52FC300966BB3 /* task_queue.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C47D2EF52FC300966BB3 /* task_queue.h */; };
 		1BF5C6A02EF52FC300966BB3 /* message_queue.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4512EF52FC300966BB3 /* message_queue.h */; };
@@ -522,8 +519,6 @@
 		1BF5C3BB2EF52FC300966BB3 /* aligned_malloc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = aligned_malloc.cc; sourceTree = "<group>"; };
 		1BF5C3BD2EF52FC300966BB3 /* fifo_buffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fifo_buffer.h; sourceTree = "<group>"; };
 		1BF5C3BE2EF52FC300966BB3 /* fifo_buffer.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = fifo_buffer.cc; sourceTree = "<group>"; };
-		1BF5C3C12EF52FC300966BB3 /* sent_packet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sent_packet.h; sourceTree = "<group>"; };
-		1BF5C3C22EF52FC300966BB3 /* sent_packet.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sent_packet.cc; sourceTree = "<group>"; };
 		1BF5C3C52EF52FC300966BB3 /* math_utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = math_utils.h; sourceTree = "<group>"; };
 		1BF5C3C62EF52FC300966BB3 /* mod_ops.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mod_ops.h; sourceTree = "<group>"; };
 		1BF5C3C72EF52FC300966BB3 /* moving_median_filter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = moving_median_filter.h; sourceTree = "<group>"; };
@@ -954,15 +949,6 @@
 			path = memory;
 			sourceTree = "<group>";
 		};
-		1BF5C3C32EF52FC300966BB3 /* network */ = {
-			isa = PBXGroup;
-			children = (
-				1BF5C3C12EF52FC300966BB3 /* sent_packet.h */,
-				1BF5C3C22EF52FC300966BB3 /* sent_packet.cc */,
-			);
-			path = network;
-			sourceTree = "<group>";
-		};
 		1BF5C3CE2EF52FC300966BB3 /* numerics */ = {
 			isa = PBXGroup;
 			children = (
@@ -1088,7 +1074,6 @@
 			children = (
 				1BF5C3B82EF52FC300966BB3 /* experiments */,
 				1BF5C3BF2EF52FC300966BB3 /* memory */,
-				1BF5C3C32EF52FC300966BB3 /* network */,
 				1BF5C3CE2EF52FC300966BB3 /* numerics */,
 				1BF5C3D62EF52FC300966BB3 /* strings */,
 				1BF5C3ED2EF52FC300966BB3 /* synchronization */,
@@ -1552,7 +1537,6 @@
 				1BF5C69A2EF52FC300966BB3 /* ref_count.h in Headers */,
 				1BF5C69B2EF52FC300966BB3 /* thread_checker.h in Headers */,
 				1BF5C69C2EF52FC300966BB3 /* bit_buffer.h in Headers */,
-				1BF5C69D2EF52FC300966BB3 /* sent_packet.h in Headers */,
 				1BF5C69E2EF52FC300966BB3 /* rw_lock_wrapper.h in Headers */,
 				1BF5C69F2EF52FC300966BB3 /* task_queue.h in Headers */,
 				1BF5C6A02EF52FC300966BB3 /* message_queue.h in Headers */,
@@ -1711,7 +1695,6 @@
 				1BF5C5872EF52FC300966BB3 /* net_helper.cc in Sources */,
 				1BF5C5882EF52FC300966BB3 /* socket_address.cc in Sources */,
 				1BF5C5892EF52FC300966BB3 /* mutex.cc in Sources */,
-				1BF5C58A2EF52FC300966BB3 /* sent_packet.cc in Sources */,
 				1BF5C58C2EF52FC300966BB3 /* RTCDefaultSocketLogger.m in Sources */,
 				1BF5C58D2EF52FC300966BB3 /* RTCVPSocketIOConfig.m in Sources */,
 				1BF5C58E2EF52FC300966BB3 /* RTCVPTimeoutManager.m in Sources */,
@@ -1822,7 +1805,6 @@
 				1BF5C4F62EF52FC300966BB3 /* net_helper.cc in Sources */,
 				1BF5C4F72EF52FC300966BB3 /* socket_address.cc in Sources */,
 				1BF5C4F82EF52FC300966BB3 /* mutex.cc in Sources */,
-				1BF5C4F92EF52FC300966BB3 /* sent_packet.cc in Sources */,
 				1BF5C4FB2EF52FC300966BB3 /* RTCDefaultSocketLogger.m in Sources */,
 				1BF5C4FC2EF52FC300966BB3 /* RTCVPSocketIOConfig.m in Sources */,
 				1BF5C4FD2EF52FC300966BB3 /* RTCVPTimeoutManager.m in Sources */,

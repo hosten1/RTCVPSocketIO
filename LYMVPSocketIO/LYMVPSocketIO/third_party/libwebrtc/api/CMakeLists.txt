@@ -14,6 +14,14 @@ set(API_PUBLIC_HEADERS
     sequence_checker.h
 )
 
+# 明确列出需要安装的task_queue头文件
+set(API_TASK_QUEUE_HEADERS
+    task_queue/task_queue_factory.h
+    task_queue/queued_task.h
+    task_queue/task_queue_base.h
+    task_queue/default_task_queue_factory.h
+)
+
 # units目录
 set(API_UNITS_SOURCES
     units/data_rate.cc
@@ -30,11 +38,7 @@ set(API_UNITS_SOURCES
 
 # task_queue目录 - 公共文件
 set(API_TASK_QUEUE_COMMON_SOURCES
-    task_queue/task_queue_factory.h
-    task_queue/queued_task.h
     task_queue/task_queue_base.cc
-    task_queue/task_queue_base.h
-    task_queue/default_task_queue_factory.h
 )
 
 # task_queue目录 - 平台特定文件
@@ -42,24 +46,27 @@ set(API_TASK_QUEUE_COMMON_SOURCES
 if(APPLE)
     set(API_TASK_QUEUE_IOS_SOURCES
         task_queue/default_task_queue_factory_gcd.cc
-        # task_queue/default_task_queue_factory_gcd.h  # 头文件已包含
     )
+    list(APPEND API_TASK_QUEUE_HEADERS 
+          task_queue/default_task_queue_factory_gcd.h)
 endif()
 
 # Linux平台（libevent）
 if(UNIX AND NOT APPLE AND NOT ANDROID)
     set(API_TASK_QUEUE_LINUX_SOURCES
-        task_queue/default_task_queue_factory_libevent.cc
-        # task_queue/default_task_queue_factory_libevent.h
+        task_queue/default_task_queue_factory_libevent.cc 
     )
+    list(APPEND API_TASK_QUEUE_HEADERS 
+          task_queue/default_task_queue_factory_libevent.h)
 endif()
 
 # Windows平台
 if(WIN32)
     set(API_TASK_QUEUE_WINDOWS_SOURCES
         task_queue/default_task_queue_factory_win.cc
-        # task_queue/default_task_queue_factory_win.h
     )
+    list(APPEND API_TASK_QUEUE_HEADERS 
+          task_queue/default_task_queue_factory_win.h)
 endif()
 
 # Android平台
@@ -67,13 +74,17 @@ if(ANDROID)
     set(API_TASK_QUEUE_ANDROID_SOURCES
       task_queue/default_task_queue_factory_stdlib.cc
     )
+    list(APPEND API_TASK_QUEUE_HEADERS 
+          task_queue/default_task_queue_factory_stdlib.h)
 endif()
 
 # 通用实现（如果平台没有特定实现，则使用这个）
 set(API_TASK_QUEUE_GENERIC_SOURCES
     task_queue/default_task_queue_factory_stdlib.cc
-    # task_queue/default_task_queue_factory_std.h
+    # task_queue/default_task_queue_factory_stdlib.h
 )
+# list(APPEND API_TASK_QUEUE_COMMON_SOURCES 
+#       task_queue/default_task_queue_factory_stdlib.h)
 
 # 收集所有源文件
 set(API_ALL_SOURCES
@@ -149,14 +160,21 @@ install(FILES ${API_PUBLIC_HEADERS}
     DESTINATION include/webrtc/api
 )
 
+# 明确列出需要安装的units头文件
+set(API_UNITS_HEADERS
+    units/data_rate.h
+    units/data_size.h
+    units/frequency.h
+    units/time_delta.h
+    units/timestamp.h
+)
+
 # 安装units头文件
-install(DIRECTORY units/
+install(FILES ${API_UNITS_HEADERS}
     DESTINATION include/webrtc/api/units
-    FILES_MATCHING PATTERN "*.h"
 )
 
 # 安装task_queue头文件
-install(DIRECTORY task_queue/
+install(FILES ${API_TASK_QUEUE_HEADERS}
     DESTINATION include/webrtc/api/task_queue
-    FILES_MATCHING PATTERN "*.h"
 )

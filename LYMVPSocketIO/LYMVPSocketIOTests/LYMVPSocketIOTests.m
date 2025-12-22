@@ -120,13 +120,16 @@ static const uint8_t image_data[] = {
     [client emit:@"test_event" items:items];
 }
 
-// 测试带 ACK 的事件发射
+// 测试带 ACK 的事件发射（异步测试）
 - (void)testSocketIOClientEmitWithAck {
     RTCVPSocketIOConfig *config = [[RTCVPSocketIOConfig alloc] init];
     NSURL *url = [NSURL URLWithString:@"ws://localhost:3000"];
     RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc] initWithSocketURL:url config:config];
     
     NSArray *items = @[@"ack_test", @"test_value"];
+    
+    // 创建异步测试期望
+    XCTestExpectation *expectation = [self expectationWithDescription:@"ACK 回调应该被调用"];
     
     // 测试带 ACK 的事件发射
     [client emitWithAck:@"test_ack_event" 
@@ -135,7 +138,15 @@ static const uint8_t image_data[] = {
                   // 这里只是测试方法调用，实际测试需要模拟服务器响应
                   XCTAssertNotNil(data);
                   XCTAssertNil(error);
+                  [expectation fulfill];
               }];
+    
+    // 设置超时时间
+    [self waitForExpectationsWithTimeout:5.0 handler:^(NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"超时错误: %@", error.localizedDescription);
+        }
+    }];
 }
 
 // 测试命名空间管理

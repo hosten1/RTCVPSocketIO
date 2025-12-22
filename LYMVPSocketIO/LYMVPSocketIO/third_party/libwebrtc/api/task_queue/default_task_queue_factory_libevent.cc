@@ -10,12 +10,12 @@
 #include <memory>
 
 #include "api/task_queue/task_queue_factory.h"
-#include "rtc_base/task_queue_win.h"
+#include "rtc_base/task_queue_libevent.h"
 
 namespace webrtc {
 
 std::unique_ptr<TaskQueueFactory> CreateDefaultTaskQueueFactory() {
-  return CreateTaskQueueWinFactory();
+  return CreateTaskQueueLibeventFactory();
 }
 
 }  // namespace webrtc
