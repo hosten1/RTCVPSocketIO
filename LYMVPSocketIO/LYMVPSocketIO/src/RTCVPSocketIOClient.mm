@@ -214,10 +214,10 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         ioClientQueue_ = absl::make_unique<rtc::TaskQueue>(
         taskQueueFactory_->CreateTaskQueue(
                       "timerCount", webrtc::TaskQueueFactory::Priority::NORMAL));
-        repHanler_ =  webrtc::RepeatingTaskHandle::Start(ioClientQueue_->Get(), [=]() {
-            NSLog(@"====> ");
-              return webrtc::TimeDelta::ms(1000);
-        });
+//        repHanler_ =  webrtc::RepeatingTaskHandle::Start(ioClientQueue_->Get(), [=]() {
+//            NSLog(@"====> ");
+//              return webrtc::TimeDelta::ms(1000);
+//        });
         
         sio::SocketIOVersion versions = sio::SocketIOVersion::V3;
         
