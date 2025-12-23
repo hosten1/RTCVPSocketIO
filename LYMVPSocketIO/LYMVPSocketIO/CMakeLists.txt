@@ -74,12 +74,10 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngine.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngine+Private.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngineProtocol.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketPacket.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOConfig.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOProtocolVersion.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketLogger.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPStringReader.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPACKManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPProbe.h
     
     # Source 目录 - utils
@@ -144,6 +142,7 @@ set(SOURCE_FILES
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
+    lib/sio_ack_manager.cpp
     
     # Source 目录 - utils
     src/utils/NSString+RTCVPSocketIO.m
@@ -285,6 +284,7 @@ add_executable(test_sio_packet
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
+    lib/sio_ack_manager.cpp
     lib/test/test_sio_packet.cpp
     lib/test/main.cpp
 )

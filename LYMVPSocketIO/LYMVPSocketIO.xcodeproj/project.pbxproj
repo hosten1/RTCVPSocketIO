@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B3DCA052EFA2D8D0029C5FA /* sio_ack_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1B3DCA042EFA2D8D0029C5FA /* sio_ack_manager.cpp */; };
+		1B3DCA062EFA2D8D0029C5FA /* sio_ack_manager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B3DCA032EFA2D8D0029C5FA /* sio_ack_manager.h */; };
+		1B3DCA072EFA2D8D0029C5FA /* sio_ack_manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1B3DCA042EFA2D8D0029C5FA /* sio_ack_manager.cpp */; };
+		1B3DCA0B2EFA3C820029C5FA /* sio_ack_manager_interface.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B3DCA082EFA3C820029C5FA /* sio_ack_manager_interface.h */; };
 		1BF5C04C2EF52D1A00966BB3 /* LYMVPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C0432EF52D1800966BB3 /* LYMVPSocketIO.framework */; };
 		1BF5C06C2EF52E5C00966BB3 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C06B2EF52E5C00966BB3 /* AVFoundation.framework */; };
 		1BF5C06E2EF52E6C00966BB3 /* libc++.1.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C06D2EF52E6700966BB3 /* libc++.1.tbd */; };
@@ -416,6 +420,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1B3DCA032EFA2D8D0029C5FA /* sio_ack_manager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_ack_manager.h; sourceTree = "<group>"; };
+		1B3DCA042EFA2D8D0029C5FA /* sio_ack_manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_ack_manager.cpp; sourceTree = "<group>"; };
+		1B3DCA082EFA3C820029C5FA /* sio_ack_manager_interface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_ack_manager_interface.h; sourceTree = "<group>"; };
 		1BF5C0432EF52D1800966BB3 /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LYMVPSocketIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BF5C04B2EF52D1A00966BB3 /* LYMVPSocketIOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LYMVPSocketIOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BF5C06B2EF52E5C00966BB3 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -809,6 +816,9 @@
 				1BF5C3652EF52FC300966BB3 /* sio_packet_printer.hpp */,
 				1BF5C3662EF52FC300966BB3 /* sio_smart_buffer.hpp */,
 				1BF5C6CD2EF5445100966BB3 /* sio_packet_helper.h */,
+				1B3DCA032EFA2D8D0029C5FA /* sio_ack_manager.h */,
+				1B3DCA042EFA2D8D0029C5FA /* sio_ack_manager.cpp */,
+				1B3DCA082EFA3C820029C5FA /* sio_ack_manager_interface.h */,
 			);
 			path = lib;
 			sourceTree = "<group>";
@@ -1405,6 +1415,7 @@
 				1BF5C6132EF52FC300966BB3 /* assertions.h in Headers */,
 				1BF5C6152EF52FC300966BB3 /* safe_compare.h in Headers */,
 				1BF5C6162EF52FC300966BB3 /* math_utils.h in Headers */,
+				1B3DCA062EFA2D8D0029C5FA /* sio_ack_manager.h in Headers */,
 				1BF5C6172EF52FC300966BB3 /* RTCVPTimeoutManager.h in Headers */,
 				1BF5C6182EF52FC300966BB3 /* platform_thread_types.h in Headers */,
 				1BF5C6192EF52FC300966BB3 /* random.h in Headers */,
@@ -1454,6 +1465,7 @@
 				1BF5C64C2EF52FC300966BB3 /* sanitizer.h in Headers */,
 				1BF5C64D2EF52FC300966BB3 /* string_format.h in Headers */,
 				1BF5C64E2EF52FC300966BB3 /* event.h in Headers */,
+				1B3DCA0B2EFA3C820029C5FA /* sio_ack_manager_interface.h in Headers */,
 				1BF5C64F2EF52FC300966BB3 /* reader.h in Headers */,
 				1BF5C6502EF52FC300966BB3 /* deprecation.h in Headers */,
 				1BF5C6512EF52FC300966BB3 /* mutex_critical_section.h in Headers */,
@@ -1735,6 +1747,7 @@
 				1BF5C5D02EF52FC300966BB3 /* file_wrapper.cc in Sources */,
 				1BF5C5D12EF52FC300966BB3 /* field_trial_units.cc in Sources */,
 				1BF5C5D22EF52FC300966BB3 /* task_queue_gcd.cc in Sources */,
+				1B3DCA052EFA2D8D0029C5FA /* sio_ack_manager.cpp in Sources */,
 				1BF5C5D32EF52FC300966BB3 /* async_socket.cc in Sources */,
 				1BF5C5D42EF52FC300966BB3 /* RTCVPStringReader.m in Sources */,
 				1BF5C5D52EF52FC300966BB3 /* sequence_checker.cc in Sources */,
@@ -1879,6 +1892,7 @@
 				1BF5C5682EF52FC300966BB3 /* logging.cc in Sources */,
 				1BF5C5692EF52FC300966BB3 /* RTCVPWebSocketProtocolFixer.m in Sources */,
 				1BF5C56A2EF52FC300966BB3 /* file_rotating_stream.cc in Sources */,
+				1B3DCA072EFA2D8D0029C5FA /* sio_ack_manager.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,11 +1,3 @@
-//
-//  sio_packet_impl.hpp
-//  VPSocketIO
-//
-//  Created by luoyongmeng on 2025/12/19.
-//  Copyright © 2025 Vasily Popov. All rights reserved.
-//
-
 #ifndef sio_packet_impl_hpp
 #define sio_packet_impl_hpp
 
@@ -15,7 +7,13 @@
 #include <memory>
 #include <queue>
 #include <map>
+#include <unordered_map>
 #include <functional>
+#include <atomic>
+#include <mutex>
+#include <chrono>
+#include <condition_variable>
+#include <sstream>
 #include "json/json.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -23,216 +21,371 @@
 #include "sio_packet.h"
 #include "sio_jsoncpp_binary_helper.hpp"
 #include "sio_smart_buffer.hpp"
-#include "sio_packet_parser.h"  // 添加解析器头文件
+#include "sio_packet_parser.h"
 #include "rtc_base/task_queue.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "absl/memory/memory.h"
+#include "api/task_queue/default_task_queue_factory.h"
+#include "sio_ack_manager_interface.h"
+#include "rtc_base/task_utils/repeating_task.h"
+
+
+// 前向声明
+namespace sio {
+class SioAckManager;
+}
 
 namespace sio {
 
-// Socket.IO 协议格式的结果结构（异步使用）
-struct SocketIOPacketResult {
-    std::string text_packet;               // 符合Socket.IO协议的文本包（包含占位符）
-    std::vector<SmartBuffer> binary_parts; // 二进制数据部分，按占位符顺序排列
-    bool is_binary_packet;                 // 是否是二进制包
-    int binary_count;                      // 二进制数据数量（用于包头的二进制计数）
-    PacketType original_packet_type;       // 原始包类型（EVENT 或 ACK）
-    PacketType actual_packet_type;         // 实际包类型（可能是 BINARY_EVENT 或 BINARY_ACK）
-    int namespace_id;                      // 命名空间ID
-    int packet_id;                         // 包ID
-    SocketIOVersion version;               // Socket.IO 版本
+// 回调函数类型定义
+using EventCallback = std::function<void(const std::string& event, const std::vector<Json::Value>& args)>;
+using SendResultCallback = std::function<void(bool success, const std::string& error)>;
+using TextSendCallback = std::function<bool(const std::string& text_packet)>;
+using BinarySendCallback = std::function<bool(const SmartBuffer& binary_data, int index)>;
+
+// Socket.IO 协议包结构
+struct SioPacket {
+    PacketType type;
+    std::string event_name;
+    std::vector<Json::Value> args;
+    std::vector<SmartBuffer> binary_parts;
+    int namespace_id;
+    int packet_id;
+    bool need_ack;
+    SocketIOVersion version;
     
-    SocketIOPacketResult()
-        : is_binary_packet(false),
-          binary_count(0),
-          original_packet_type(PacketType::EVENT),
-          actual_packet_type(PacketType::EVENT),
-          namespace_id(0),
-          packet_id(-1),
-          version(SocketIOVersion::V3) {}  // 默认使用 V3
+    SioPacket() : type(PacketType::EVENT), namespace_id(0),
+                  packet_id(-1), need_ack(false), version(SocketIOVersion::V4) {}
     
-    // 检查是否有效
-    bool is_valid() const {
-        return !text_packet.empty();
+    bool is_binary() const {
+        return !binary_parts.empty() ||
+               type == PacketType::BINARY_EVENT ||
+               type == PacketType::BINARY_ACK;
     }
     
-    // 转换为字符串（调试用）
     std::string to_string() const {
         std::stringstream ss;
-        ss << "SocketIOPacketResult {" << std::endl;
-        ss << "  text_packet: " << text_packet.substr(0, 100);
-        if (text_packet.length() > 100) ss << "...";
-        ss << std::endl;
+        ss << "SioPacket {" << std::endl;
+        ss << "  type: " << static_cast<int>(type) << std::endl;
+        ss << "  event: " << event_name << std::endl;
+        ss << "  args: " << args.size() << " 个" << std::endl;
         ss << "  binary_parts: " << binary_parts.size() << " 个" << std::endl;
-        ss << "  is_binary_packet: " << (is_binary_packet ? "true" : "false") << std::endl;
-        ss << "  binary_count: " << binary_count << std::endl;
-        ss << "  original_packet_type: " << static_cast<int>(original_packet_type) << std::endl;
-        ss << "  actual_packet_type: " << static_cast<int>(actual_packet_type) << std::endl;
         ss << "  namespace_id: " << namespace_id << std::endl;
         ss << "  packet_id: " << packet_id << std::endl;
+        ss << "  need_ack: " << (need_ack ? "true" : "false") << std::endl;
         ss << "  version: " << static_cast<int>(version) << std::endl;
         ss << "}";
         return ss.str();
     }
 };
 
-// ACK 回调函数类型
-typedef std::function<void(const std::vector<Json::Value>&)> AckCallback;
-
-// ACK 超时回调函数类型
-typedef std::function<void()> AckTimeoutCallback;
-
-// ACK 管理类，用于管理ACK和Callback
-class AckManager {
+// Socket.IO 协议构建器
+class SioPacketBuilder {
 public:
-    AckManager(std::shared_ptr<rtc::TaskQueue> task_queue);
-    ~AckManager();
+    explicit SioPacketBuilder(SocketIOVersion version = SocketIOVersion::V4);
     
-    // 生成唯一的ACK ID
-    int generate_ack_id();
+    // 设置协议版本
+    void set_version(SocketIOVersion version) { version_ = version; }
+    SocketIOVersion get_version() const { return version_; }
     
-    // 注册ACK回调
-    void register_ack_callback(int ack_id, AckCallback callback, std::chrono::milliseconds timeout = std::chrono::milliseconds(30000));
+    // 构建事件包
+    SioPacket build_event_packet(
+        const std::string& event_name,
+        const std::vector<Json::Value>& args,
+        int namespace_id = 0,
+        int packet_id = -1);
     
-    // 注册ACK超时回调
-    void register_ack_timeout_callback(int ack_id, AckTimeoutCallback callback);
+    // 构建ACK包
+    SioPacket build_ack_packet(
+        const std::vector<Json::Value>& args,
+        int namespace_id = 0,
+        int packet_id = -1);
     
-    // 处理ACK响应
-    bool handle_ack_response(int ack_id, const std::vector<Json::Value>& data_array);
-    
-    // 取消ACK（用于超时或手动取消）
-    bool cancel_ack(int ack_id);
-    
-    // 设置默认超时时间
-    void set_default_timeout(std::chrono::milliseconds timeout);
-    
-    // 获取默认超时时间
-    std::chrono::milliseconds get_default_timeout() const;
-    
-    // 清除所有未处理的ACK
-    void clear_all_acks();
-    
-private:
-    // ACK 信息结构体
-    struct AckInfo {
-        AckCallback callback;                          // ACK 回调函数
-        AckTimeoutCallback timeout_callback;           // 超时回调函数
-        std::chrono::milliseconds timeout;             // 超时时间
-        std::chrono::steady_clock::time_point start_time; // 开始时间
+    // 将包编码为Socket.IO协议格式
+    struct EncodedPacket {
+        std::string text_packet;
+        std::vector<SmartBuffer> binary_parts;
+        bool is_binary;
+        int binary_count;
         
-        AckInfo()
-            : callback(nullptr),
-              timeout_callback(nullptr),
-              timeout(std::chrono::milliseconds(30000)),
-              start_time(std::chrono::steady_clock::now()) {}
+        EncodedPacket() : is_binary(false), binary_count(0) {}
     };
     
-    std::shared_ptr<rtc::TaskQueue> task_queue_;
-    mutable webrtc::Mutex mutex_;                      // 互斥锁，保护共享数据
-    std::atomic<int> next_ack_id_;                     // 下一个可用的ACK ID
-    std::map<int, std::unique_ptr<AckInfo>> acks_;     // ACK 信息映射表
-    std::chrono::milliseconds default_timeout_;        // 默认超时时间
-};
-
-// 发送队列管理类（支持多版本）
-template <typename T>
-class PacketSender {
-public:
-    PacketSender(webrtc::TaskQueueFactory* task_queue_factory, SocketIOVersion version = SocketIOVersion::V3);
-    ~PacketSender();
+    EncodedPacket encode_packet(const SioPacket& packet);
     
-    // 获取当前版本
-    SocketIOVersion get_version() const { return version_; }
+    // 解码Socket.IO协议包
+    SioPacket decode_packet(
+        const std::string& text_packet,
+        const std::vector<SmartBuffer>& binary_parts = std::vector<SmartBuffer>());
     
-    // 设置版本
-    void set_version(SocketIOVersion version) {
-        version_ = version;
-        update_parser_config();
-    }
-    
-    // 异步发送数据（支持ACK和超时）
-    void send_data_async(
-        const std::vector<T>& data_array,
-        std::function<bool(const std::string& text_packet)> text_callback,
-        std::function<bool(const SmartBuffer& binary_data, int index)> binary_callback = nullptr,
-        std::function<void(bool success, const std::string& error)> complete_callback = nullptr,
-        std::function<void(const std::vector<T>& data_array)> ack_callback = nullptr,
-        std::function<void()> timeout_callback = nullptr,
-        std::chrono::milliseconds timeout = std::chrono::milliseconds(30000),
-        PacketType type = PacketType::EVENT,
-        int nsp = 0,
-        int id = -1);
-    
-    // 获取ACK管理器
-    AckManager& get_ack_manager() { return ack_manager_; }
-    const AckManager& get_ack_manager() const { return ack_manager_; }
+    // 检测协议版本
+    static SocketIOVersion detect_version(const std::string& packet);
     
 private:
-    webrtc::TaskQueueFactory* task_queue_factory_;
-    std::shared_ptr<rtc::TaskQueue> task_queue_;
-    SocketIOVersion version_;
-    AckManager ack_manager_;  // ACK 管理器
+    // V2协议构建
+    EncodedPacket encode_v2_packet(const SioPacket& packet);
+    SioPacket decode_v2_packet(const std::string& text, const std::vector<SmartBuffer>& binaries);
     
-    // 更新解析器配置
-    void update_parser_config();
+    // V3协议构建
+    EncodedPacket encode_v3_packet(const SioPacket& packet);
+    SioPacket decode_v3_packet(const std::string& text, const std::vector<SmartBuffer>& binaries);
+    
+    // V4协议构建
+    EncodedPacket encode_v4_packet(const SioPacket& packet);
+    SioPacket decode_v4_packet(const std::string& text, const std::vector<SmartBuffer>& binaries);
+    
+    // 辅助方法
+    void extract_binary_data(const Json::Value& data,
+                            Json::Value& json_without_binary,
+                            std::vector<SmartBuffer>& binary_parts,
+                            std::map<std::string, int>& binary_map);
+    
+    void restore_binary_data(Json::Value& data,
+                            const std::vector<SmartBuffer>& binary_parts,
+                            const std::map<std::string, int>& binary_map);
+    
+    Json::Value create_binary_placeholder(int index);
+    bool is_binary_placeholder(const Json::Value& value);
+    int get_placeholder_index(const Json::Value& placeholder);
+    
+    SocketIOVersion version_;
+    
+    // 禁止拷贝
+    SioPacketBuilder(const SioPacketBuilder&) = delete;
+    SioPacketBuilder& operator=(const SioPacketBuilder&) = delete;
 };
 
-// 接收组合器（支持多版本）
-template <typename T>
-class PacketReceiver {
+// 包发送器
+class PacketSender : public std::enable_shared_from_this<PacketSender> {
 public:
-    PacketReceiver(webrtc::TaskQueueFactory* task_queue_factory, SocketIOVersion version = SocketIOVersion::V3);
-    ~PacketReceiver();
+    struct Config {
+        SocketIOVersion version;
+        std::chrono::milliseconds default_ack_timeout;
+        int max_retries;
+        bool enable_logging;
+        
+        Config() : version(SocketIOVersion::V4),
+                   default_ack_timeout(5000),
+                   max_retries(3),
+                   enable_logging(false) {}
+    };
     
-    // 获取当前版本
-    SocketIOVersion get_version() const { return version_; }
+    PacketSender(std::shared_ptr<IAckManager> ack_manager = nullptr,
+                webrtc::TaskQueueFactory* task_queue_factory = nullptr,
+                const Config& config = Config());
     
-    // 设置版本
-    void set_version(SocketIOVersion version) {
-        version_ = version;
-        update_parser_config();
-    }
+    ~PacketSender();
     
-    // 设置接收完成回调
-    void set_complete_callback(std::function<void(const std::vector<T>& data_array)> callback);
+    // 配置方法
+    void set_config(const Config& config);
+    Config get_config() const { return config_; }
     
     // 设置ACK管理器
-    void set_ack_manager(AckManager* ack_manager);
+    void set_ack_manager(std::shared_ptr<IAckManager> ack_manager);
+    std::shared_ptr<IAckManager> get_ack_manager() { return ack_manager_; }
     
-    // 接收文本部分（自动检测版本）
-    bool receive_text(const std::string& text);
+    // 发送事件（同步）
+    bool send_event(const std::string& event_name,
+                   const std::vector<Json::Value>& args,
+                   TextSendCallback text_callback,
+                   BinarySendCallback binary_callback = nullptr,
+                   SendResultCallback complete_callback = nullptr,
+                   int namespace_id = 0);
     
-    // 接收二进制部分
-    bool receive_binary(const SmartBuffer& binary);
+    // 发送事件（异步，支持ACK）
+    int send_event_with_ack(
+        const std::string& event_name,
+        const std::vector<Json::Value>& args,
+        TextSendCallback text_callback,
+        BinarySendCallback binary_callback = nullptr,
+        AckCallback ack_callback = nullptr,
+        AckTimeoutCallback timeout_callback = nullptr,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
+        int namespace_id = 0);
     
-    // 重置接收状态
+    // 发送ACK响应
+    bool send_ack_response(
+        int packet_id,
+        const std::vector<Json::Value>& args,
+        TextSendCallback text_callback,
+        BinarySendCallback binary_callback = nullptr,
+        int namespace_id = 0);
+    
+    // 重置发送器
     void reset();
+    
+    // 获取统计信息
+    struct Stats {
+        int total_sent;
+        int total_acked;
+        int total_failed;
+        int total_timeout;
+        
+        Stats() : total_sent(0), total_acked(0),
+                  total_failed(0), total_timeout(0) {}
+    };
+    Stats get_stats() const;
+    
+private:
+    struct PendingRequest {
+        int ack_id;
+        std::chrono::steady_clock::time_point send_time;
+        std::chrono::milliseconds timeout;
+        bool waiting_for_ack;
+        std::string event_name;
+        
+        PendingRequest() : ack_id(-1), timeout(0),
+                          waiting_for_ack(false) {}
+        
+        bool is_expired() const {
+            auto now = std::chrono::steady_clock::now();
+            return (now - send_time) > timeout;
+        }
+    };
+    
+    void initialize_task_queue();
+    void cleanup_expired_requests();
+    void start_cleanup_timer();
+    void stop_cleanup_timer();
+    
+    std::shared_ptr<IAckManager> ack_manager_;
+    std::unique_ptr<SioPacketBuilder> packet_builder_;
+    
+    Config config_;
+    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory_;
+    std::shared_ptr<rtc::TaskQueue> task_queue_;
+    webrtc::RepeatingTaskHandle cleanup_handle_;
+    
+    mutable webrtc::Mutex stats_mutex_;
+    Stats stats_;
+    
+    mutable webrtc::Mutex pending_mutex_;
+    std::unordered_map<int, PendingRequest> pending_requests_;
+    
+    std::atomic<bool> initialized_;
+    std::atomic<bool> running_;
+    
+    // 禁止拷贝
+    PacketSender(const PacketSender&) = delete;
+    PacketSender& operator=(const PacketSender&) = delete;
+};
+
+// 包接收器
+class PacketReceiver {
+public:
+    struct Config {
+        SocketIOVersion default_version;
+        bool auto_detect_version;
+        bool enable_logging;
+        int max_binary_size;
+        
+        Config() : default_version(SocketIOVersion::V4),
+                   auto_detect_version(true),
+                   enable_logging(false),
+                   max_binary_size(10 * 1024 * 1024) {} // 10MB
+    };
+    
+    PacketReceiver(std::shared_ptr<IAckManager> ack_manager = nullptr,
+                  webrtc::TaskQueueFactory* task_queue_factory = nullptr,
+                  const Config& config = Config());
+    
+    ~PacketReceiver();
+    
+    // 配置方法
+    void set_config(const Config& config);
+    Config get_config() const { return config_; }
+    
+    // 设置ACK管理器
+    void set_ack_manager(std::shared_ptr<IAckManager> ack_manager);
+    std::shared_ptr<IAckManager> get_ack_manager() { return ack_manager_; }
+    
+    // 设置事件回调
+    void set_event_callback(EventCallback callback);
+    
+    // 处理文本包
+    bool process_text_packet(const std::string& text_packet);
+    
+    // 处理二进制数据
+    bool process_binary_data(const SmartBuffer& binary_data);
+    
+    // 重置接收器状态
+    void reset();
+    
+    // 获取接收状态
+    bool is_waiting_for_binary() const;
+    int get_expected_binary_count() const;
+    int get_received_binary_count() const;
+    
+    // 获取统计信息
+    struct Stats {
+        int total_received;
+        int text_packets;
+        int binary_packets;
+        int parse_errors;
+        int ack_processed;
+        
+        Stats() : total_received(0), text_packets(0),
+                  binary_packets(0), parse_errors(0),
+                  ack_processed(0) {}
+    };
+    Stats get_stats() const;
     
 private:
     struct ReceiveState {
-        std::string current_text;
-        std::vector<SmartBuffer> received_binaries;
-        std::vector<SmartBuffer> expected_binaries;
-        bool expecting_binary;
-        Packet packet_info;              // 存储解析后的包信息
-        std::string namespace_str;       // 存储命名空间字符串
-        SocketIOVersion packet_version;  // 存储包版本
-        std::function<void(const std::vector<T>& data_array)> complete_callback;
+        enum State {
+            IDLE,
+            WAITING_FOR_BINARY,
+            COMPLETE
+        };
         
-        ReceiveState() : expecting_binary(false), packet_version(SocketIOVersion::V3) {}
+        State state;
+        SioPacket current_packet;
+        std::vector<SmartBuffer> received_binaries;
+        int expected_binary_count;
+        SocketIOVersion packet_version;
+        
+        ReceiveState() : state(IDLE), expected_binary_count(0),
+                         packet_version(SocketIOVersion::V4) {}
+        
+        void reset() {
+            state = IDLE;
+            current_packet = SioPacket();
+            received_binaries.clear();
+            expected_binary_count = 0;
+            packet_version = SocketIOVersion::V4;
+        }
+        
+        bool is_complete() const {
+            if (state == COMPLETE) return true;
+            if (state == WAITING_FOR_BINARY) {
+                return static_cast<int>(received_binaries.size()) >= expected_binary_count;
+            }
+            return false;
+        }
     };
     
-    webrtc::TaskQueueFactory* task_queue_factory_;
+    void initialize_task_queue();
+    void process_complete_packet(const SioPacket& packet);
+    void handle_ack_packet(const SioPacket& packet);
+    
+    std::shared_ptr<IAckManager> ack_manager_;
+    std::unique_ptr<SioPacketBuilder> packet_builder_;
+    EventCallback event_callback_;
+    
+    Config config_;
+    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory_;
     std::shared_ptr<rtc::TaskQueue> task_queue_;
-    SocketIOVersion version_;
-    std::unique_ptr<ReceiveState> state_;
-    AckManager* ack_manager_;  // ACK 管理器指针
     
-    // 更新解析器配置
-    void update_parser_config();
+    ReceiveState state_;
     
-    // 检查并触发完成回调
-    void check_and_trigger_complete();
+    mutable webrtc::Mutex stats_mutex_;
+    Stats stats_;
+    
+    mutable webrtc::Mutex state_mutex_;
+    
+    // 禁止拷贝
+    PacketReceiver(const PacketReceiver&) = delete;
+    PacketReceiver& operator=(const PacketReceiver&) = delete;
 };
 
 } // namespace sio
