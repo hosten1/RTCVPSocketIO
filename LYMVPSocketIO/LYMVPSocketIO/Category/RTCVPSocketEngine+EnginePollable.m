@@ -152,13 +152,16 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
 
 /// 轮训模式发送消息
 - (void)sendPollMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
-    // 构建消息字符串：类型 + 消息内容
-    NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
+    if (message && message.length > 0) {
+        // 构建消息字符串：类型 + 消息内容
+        NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
+        
+        [self log:[NSString stringWithFormat:@"Sending poll message: %@", fullMessage] level:RTCLogLevelDebug];
+        
+        // 添加到待发送队列
+        [self.postWait addObject:fullMessage];
+    }
     
-    [self log:[NSString stringWithFormat:@"Sending poll message: %@", fullMessage] level:RTCLogLevelDebug];
-    
-    // 添加到待发送队列
-    [self.postWait addObject:fullMessage];
     
     // 添加二进制数据（如果需要）
     if (self.config.enableBinary && data.count > 0) {

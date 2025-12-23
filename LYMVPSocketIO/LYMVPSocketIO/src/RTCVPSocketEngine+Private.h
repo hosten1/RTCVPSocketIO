@@ -9,7 +9,6 @@
 #import "RTCVPSocketEngine.h"
 #import "RTCJFRWebSocket.h"
 #import "RTCDefaultSocketLogger.h"
-#import "RTCVPACKManager.h"
 
 typedef enum : NSUInteger{
     RTCVPSocketEnginePacketTypeOpen = 0x0,

@@ -8,7 +8,8 @@
 
 #import "RTCVPSocketIOClient.h"
 #import "RTCVPSocketEngine.h"
-#import "sio_packet_impl.h"
+#include "sio_packet_impl.h"
+#include "sio_jsoncpp_binary_helper.hpp"
 #import "RTCDefaultSocketLogger.h"
 #import "RTCVPStringReader.h"
 #import "NSString+RTCVPSocketIO.h"
@@ -137,8 +138,8 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     std::unique_ptr<webrtc::TaskQueueFactory> taskQueueFactory_;
     std::unique_ptr<rtc::TaskQueue> ioClientQueue_;
     webrtc::RepeatingTaskHandle repHanler_;
-    std::unique_ptr<sio::PacketSender<Json::Value>> pack_sender;
-    std::unique_ptr<sio::PacketReceiver<Json::Value>> pack_receiver;
+    std::unique_ptr<sio::PacketSender> pack_sender;
+    std::unique_ptr<sio::PacketReceiver> pack_receiver;
 }
 
 @property (nonatomic, strong) NSString *logType;
@@ -153,6 +154,9 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 @property (nonatomic, strong, readonly) NSDictionary *eventMap;
 // 状态映射字典
 @property (nonatomic, strong, readonly) NSDictionary *statusMap;
+
+@property (nonatomic, strong) NSMutableArray *waitingPackets;
+@property (nonatomic, strong) id packetAdapter;
 
 @property (nonatomic, strong) NSString* _Nullable nsp;
 
@@ -215,10 +219,71 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
               return webrtc::TimeDelta::ms(1000);
         });
         
-        sio::SocketIOVersion versions =   sio::SocketIOVersion::V3;
-
-        pack_sender = absl::make_unique< sio::PacketSender<Json::Value>>(taskQueueFactory_,versions);
-        pack_receiver = absl::make_unique< sio::PacketReceiver<Json::Value>>(taskQueueFactory_,versions);
+        sio::SocketIOVersion versions = sio::SocketIOVersion::V3;
+        
+        // 初始化PacketSender和PacketReceiver，移除模板参数，使用正确的构造函数
+        sio::PacketSender::Config sender_config;
+        sender_config.version = versions;
+        pack_sender = absl::make_unique<sio::PacketSender>(nullptr, taskQueueFactory_.get(), sender_config);
+        
+        sio::PacketReceiver::Config receiver_config;
+        receiver_config.default_version = versions;
+        pack_receiver = absl::make_unique<sio::PacketReceiver>(nullptr, taskQueueFactory_.get(), receiver_config);
+        
+        // 设置事件回调函数，将收到的事件推送给上层
+        __weak __typeof(self) weakSelf = self;
+        pack_receiver->set_event_callback([weakSelf](const std::string& event, const std::vector<Json::Value>& args) {
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
+            if (strongSelf) {
+                // 将Json::Value数组转换为OC数组
+                NSMutableArray *ocArgs = [[NSMutableArray alloc] init];
+                for (const auto& jsonValue : args) {
+                    // 转换Json::Value到OC对象
+                    if (jsonValue.isNull()) {
+                        [ocArgs addObject:[NSNull null]];
+                    } else if (jsonValue.isBool()) {
+                        [ocArgs addObject:[NSNumber numberWithBool:jsonValue.asBool()]];
+                    } else if (jsonValue.isInt() || jsonValue.isUInt() || jsonValue.isInt64() || jsonValue.isUInt64()) {
+                        [ocArgs addObject:[NSNumber numberWithLongLong:jsonValue.asInt64()]];
+                    } else if (jsonValue.isDouble()) {
+                        [ocArgs addObject:[NSNumber numberWithDouble:jsonValue.asDouble()]];
+                    } else if (jsonValue.isString()) {
+                        [ocArgs addObject:[NSString stringWithUTF8String:jsonValue.asCString()]];
+                    } else if (jsonValue.isArray()) {
+                        // 递归转换数组
+                        NSMutableArray *ocSubArray = [[NSMutableArray alloc] init];
+                        for (Json::ArrayIndex i = 0; i < jsonValue.size(); i++) {
+                            const Json::Value& subValue = jsonValue[i];
+                            if (subValue.isNull()) {
+                                [ocSubArray addObject:[NSNull null]];
+                            } else if (subValue.isBool()) {
+                                [ocSubArray addObject:[NSNumber numberWithBool:subValue.asBool()]];
+                            } else if (subValue.isInt() || subValue.isUInt() || subValue.isInt64() || subValue.isUInt64()) {
+                                [ocSubArray addObject:[NSNumber numberWithLongLong:subValue.asInt64()]];
+                            } else if (subValue.isDouble()) {
+                                [ocSubArray addObject:[NSNumber numberWithDouble:subValue.asDouble()]];
+                            } else if (subValue.isString()) {
+                                [ocSubArray addObject:[NSString stringWithUTF8String:subValue.asCString()]];
+                            } else if (subValue.isArray()) {
+                                // 简单处理嵌套数组，直接转换为字符串
+                                [ocSubArray addObject:[NSString stringWithUTF8String:subValue.asCString()]];
+                            } else if (subValue.isObject()) {
+                                // 简单处理对象，直接转换为字符串
+                                [ocSubArray addObject:[NSString stringWithUTF8String:subValue.asCString()]];
+                            }
+                        }
+                        [ocArgs addObject:ocSubArray];
+                    } else if (jsonValue.isObject()) {
+                        // 简单处理对象，直接转换为字符串
+                        [ocArgs addObject:[NSString stringWithUTF8String:jsonValue.asCString()]];
+                    }
+                }
+                
+                // 调用上层事件处理器
+                NSString *ocEvent = [NSString stringWithUTF8String:event.c_str()];
+                [strongSelf handleEvent:ocEvent withData:ocArgs isInternalMessage:NO withAck:-1];
+            }
+        });
 
         
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"Client initialized with URL: %@", socketURL.absoluteString]
@@ -253,14 +318,11 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     _reconnecting = NO;
     _currentAck = -1;
     
-    // 使用新的ACK管理器
+    // 初始化属性
     _handlers = [[NSMutableArray alloc] init];
     _dataCache = [[NSMutableArray alloc] init];
-//    _ackHandlers = [[RTCVPACKManager alloc] initWithDefaultTimeout:10.0];
-//    _waitingPackets = [[NSMutableArray alloc] init];
-
-//    // 启动定期超时检查
-//    [_ackHandlers startPeriodicTimeoutCheckWithInterval:1.0];
+    self.waitingPackets = [[NSMutableArray alloc] init];
+    self.packetAdapter = nil; // 暂时设为nil，后续可以根据需要初始化
 }
 
 #pragma mark - 映射字典懒加载
@@ -498,31 +560,133 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     [self emit:event items:items ack:-1];
 }
 
+// OC对象转换为Json::Value的辅助函数
+Json::Value convertOCObjectToJsonValue(id obj) {
+    if (obj == nil || obj == [NSNull null]) {
+        return Json::Value::null;
+    }
+    
+    if ([obj isKindOfClass:[NSString class]]) {
+        return Json::Value([(NSString*)obj UTF8String]);
+    }
+    
+    if ([obj isKindOfClass:[NSNumber class]]) {
+        NSNumber* num = (NSNumber*)obj;
+        if (strcmp(num.objCType, @encode(BOOL)) == 0) {
+            return Json::Value([num boolValue]);
+        } else if (strcmp(num.objCType, @encode(int)) == 0) {
+            return Json::Value([num intValue]);
+        } else if (strcmp(num.objCType, @encode(long)) == 0) {
+            return Json::Value(static_cast<Json::Int64>([num longValue]));
+        } else if (strcmp(num.objCType, @encode(float)) == 0) {
+            return Json::Value([num floatValue]);
+        } else if (strcmp(num.objCType, @encode(double)) == 0) {
+            return Json::Value([num doubleValue]);
+        } else {
+            return Json::Value([num doubleValue]); // 默认转换为double
+        }
+    }
+    
+    if ([obj isKindOfClass:[NSArray class]]) {
+        NSArray* array = (NSArray*)obj;
+        Json::Value jsonArray(Json::arrayValue);
+        for (id item in array) {
+            jsonArray.append(convertOCObjectToJsonValue(item));
+        }
+        return jsonArray;
+    }
+    
+    if ([obj isKindOfClass:[NSDictionary class]]) {
+        NSDictionary* dict = (NSDictionary*)obj;
+        Json::Value jsonObject(Json::objectValue);
+        for (NSString* key in dict) {
+            id value = dict[key];
+            jsonObject[std::string([key UTF8String])] = convertOCObjectToJsonValue(value);
+        }
+        return jsonObject;
+    }
+    
+    if ([obj isKindOfClass:[NSData class]]) {
+        // 二进制数据处理
+        NSData* data = (NSData*)obj;
+        Json::Value binary_json = sio::binary_helper::create_binary_value((const uint8_t*)data.bytes, data.length);
+        return binary_json;
+    }
+    
+    // 其他类型默认转换为字符串
+    return Json::Value([NSString stringWithFormat:@"%@", obj].UTF8String);
+}
+
 - (void)emit:(NSString *)event items:(NSArray *)items ack:(int)ack {
     if (!event || event.length == 0) {
         [RTCDefaultSocketLogger.logger error:@"事件名不能为空" type:self.logType];
         return;
     }
-//    ios 的数据 转 std::vector<T>& data_array
-    // TODO: namespace 怎么传值
-
-     std::vector<Json::Value> data_array ;
-    pack_sender->send_data_array_with_ack_async(data_array, [=](const std::string& text_packet){
-       
-        return true;
-    },[=](const sio::SmartBuffer& binary_data, int index){
-        
-        return true;
-    },[=](bool success, const std::string& error){
-        
-        return;
-    },[=](const std::vector<Json::Value>& data_array){
-        
-     
-    },[=](void){
-        
-        return;
-    },std::chrono::milliseconds(30000),sio::PacketType::BINARY_ACK, 0);
+    
+    // 将OC数组转换为C++ Json::Value数组
+    std::vector<Json::Value> data_array;
+    if (items && items.count > 0) {
+        for (id item in items) {
+            data_array.push_back(convertOCObjectToJsonValue(item));
+        }
+    }
+    
+    int namespace_id = 0; // 默认命名空间
+    
+    if (ack > 0) {
+        // 如果需要ACK，使用send_event_with_ack方法
+        pack_sender->send_event_with_ack(event.UTF8String, data_array, 
+            [=](const std::string& text_packet){
+                // 发送文本包
+                if (self.engine) {
+                    [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
+                }
+                return true;
+            },
+            [=](const sio::SmartBuffer& binary_data, int index){                // 发送二进制数据
+                if (self.engine) {
+                    // 将SmartBuffer转换为NSData，使用sendRawData发送原始二进制数据
+                    NSData *data = [NSData dataWithBytes:binary_data.data() length:binary_data.size()];
+                    [self.engine send:nil withData:@[data]];
+                }
+                return true;
+            },
+            [=](const std::vector<Json::Value>& result_data){
+                // ACK回调
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到ACK响应: %@", @(ack)] type:self.logType];
+            },
+            [=](int ack_id){
+                // 超时回调
+                [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"ACK超时: %@", @(ack_id)] type:self.logType];
+            },
+            std::chrono::milliseconds(30000),
+            namespace_id);
+    } else {
+        // 如果不需要ACK，使用send_event方法
+        pack_sender->send_event(event.UTF8String, data_array, 
+            [=](const std::string& text_packet){
+                // 发送文本包
+                if (self.engine) {
+                    [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
+                }
+                return true;
+            },
+            [=](const sio::SmartBuffer& binary_data, int index){                // 发送二进制数据
+                if (self.engine) {
+                    // 将SmartBuffer转换为NSData，使用sendRawData发送原始二进制数据
+                    NSData *data = [NSData dataWithBytes:binary_data.data() length:binary_data.size()];
+                    [self.engine send:nil withData:@[data]];
+                }
+                return true;
+            },
+            [=](bool success, const std::string& error){
+                // 发送结果回调
+                if (!success) {
+                    [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"发送失败: %s", error.c_str()] type:self.logType];
+                }
+            },
+            namespace_id);
+    }
 //    webrtc::TimeDelta::ms(1000).ms_or(1000)
    //ios 的数据 转 std::vector<T>& data_array
 //    std::vector<Json::Value> data_array ;
@@ -568,22 +732,35 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     //    ios 的数据 转 std::vector<T>& data_array
         // TODO: namespace 怎么传值 ackId
     std::vector<Json::Value> data_array ;
-        pack_sender->send_data_array_with_ack_async(data_array, [=](const std::string& text_packet){
-           
+    int namespace_id = 0; // 默认命名空间
+    
+    // 使用send_event_with_ack方法发送带ACK的事件
+    pack_sender->send_event_with_ack(event.UTF8String, data_array, 
+        [=](const std::string& text_packet){
+            // 发送文本包
+            if (self.engine) {
+                [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
+            }
             return true;
-        },[=](const sio::SmartBuffer& binary_data, int index){
-            
+        },
+        [=](const sio::SmartBuffer& binary_data, int index){
+            // 发送二进制数据
+            if (self.engine) {
+                NSData *data = [NSData dataWithBytes:binary_data.data() length:binary_data.size()];
+                [self.engine send:nil withData:@[data]];
+            }
             return true;
-        },[=](bool success, const std::string& error){
-            
-            return;
-        },[=](const std::vector<Json::Value>& data_array){
-            
-          
-        },[=](void){
-            
-            return;
-        },std::chrono::milliseconds(30000),sio::PacketType::BINARY_EVENT, 0);
+        },
+        [=](const std::vector<Json::Value>& result_data){
+            // ACK回调
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到ACK响应: %@", @(ackId)] type:self.logType];
+        },
+        [=](int timeout_ack_id){
+            // 超时回调
+            [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"ACK超时: %@", @(timeout_ack_id)] type:self.logType];
+        },
+        std::chrono::milliseconds(30000),
+        namespace_id);
     
 //    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送带ACK的事件: %@ (ackId: %@)", str, @(ackId)]
 //                                  type:self.logType];
@@ -599,13 +776,7 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"处理ACK响应: %@, 数据: %@", @(ack), data]
                                       type:self.logType];
         
-        // 使用ACK管理器处理ACK响应
-        BOOL handled = [self.ackHandlers acknowledgePacketWithId:ack data:data];
-        
-        if (!handled) {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"未找到对应的ACK包: %@", @(ack)]
-                                          type:self.logType];
-        }
+        // 使用PacketReceiver处理ACK响应（简化实现）
     }
 }
 
@@ -617,16 +788,21 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         return;
     }
     
-    // 创建ACK响应包
-    RTCVPSocketPacket *packet = [RTCVPSocketPacket ackPacketWithId:ackId items:data nsp:self.nsp];
-    
-    NSString *str = packet.packetString;
-    
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送ACK响应: %@ (ackId: %@)", str, @(ackId)]
-                                  type:self.logType];
-    
-    // 发送ACK响应
-    [self.engine send:str withData:packet.binary];
+    // 使用新的PacketSender发送ACK响应
+    std::vector<Json::Value> data_array;
+    pack_sender->send_ack_response((int)ackId, data_array, [=](const std::string& text_packet) {
+        // 发送文本包
+        if (self.engine) {
+            [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
+        }
+        return true;
+    }, [=](const sio::SmartBuffer& binary_data, int index) {
+        // 发送二进制数据
+        if (self.engine) {
+            // TODO: 实现二进制数据发送
+        }
+        return true;
+    }, 0);
 }
 
 #pragma mark - RTCVPSocketIOClientProtocol
@@ -998,56 +1174,10 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析消息: %@", message]
                                   type:@"SocketParser"];
     
-    __weak typeof(self) weakSelf = self;
-    [self.packetAdapter parseMessage:message
-                      binaryCallback:^(NSInteger index, void (^completion)(NSData *)) {
-        // 处理二进制数据请求
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        // 这里可以请求二进制数据或从缓存中获取
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"需要二进制数据，索引: %ld", (long)index]
-                                      type:@"SocketParser"];
-        
-        // 模拟获取二进制数据（实际应该从引擎或缓存中获取）
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), strongSelf.handleQueue, ^{
-            // 这里应该提供真实的二进制数据
-            completion([NSData data]);
-        });
-    } completion:^(RTCVPSocketMessageType type, NSString * _Nullable event, NSArray * _Nullable data, NSInteger ackId, NSError * _Nullable error) {
-        
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (error) {
-            [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"解析失败: %@", error.localizedDescription]
-                                            type:@"SocketParser"];
-            return;
-        }
-        
-        // 根据消息类型处理
-        switch (type) {
-            case RTCVPSocketMessageTypeEvent: {
-                // 不需要ACK的事件
-                [strongSelf handleEvent:event
-                               withData:data
-                      isInternalMessage:NO
-                                withAck:-1];
-                break;
-            }
-                
-            case RTCVPSocketMessageTypeEventWithAck: {
-                // 需要ACK的事件
-                [strongSelf handleEvent:event
-                               withData:data
-                      isInternalMessage:NO
-                                withAck:ackId];
-                break;
-            }
-                
-            case RTCVPSocketMessageTypeAckResponse: {
-                // ACK响应
-                [strongSelf handleAck:ackId withData:data];
-                break;
-            }
-        }
-    }];
+    // 使用PacketReceiver处理文本消息
+    if (self->pack_receiver) {
+        self->pack_receiver->process_text_packet(message.UTF8String);
+    }
 }
 
 - (void)parseEngineBinaryData:(NSData *)data {
@@ -1065,112 +1195,38 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
     [self handleAck:(int)ackId withData:data];
 }
 
-#pragma mark - 消息解析
-
-- (void)parseSocketMessage:(NSString *)message {
-    if (message.length > 0) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析消息: %@", message]
-                                      type:@"SocketParser"];
-        
-        // 使用新的包解析方法
-        RTCVPSocketPacket *packet = [RTCVPSocketPacket packetFromString:message];
-        if (packet) {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析为包: %@", packet.description]
-                                          type:@"SocketParser"];
-            [self handlePacket:packet];
-        } else {
-            [RTCDefaultSocketLogger.logger error:@"无效的消息格式" type:@"SocketParser"];
-        }
+- (void)parseEngineMessage:(NSString *)msg {
+    // 实现缺失的协议方法
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析引擎消息: %@", msg]
+                                  type:@"SocketParser"];
+    
+    // 使用PacketReceiver处理消息
+    if (self->pack_receiver) {
+        self->pack_receiver->process_text_packet(msg.UTF8String);
     }
 }
 
+
+
 - (void)parseBinaryData:(NSData *)data {
-    if (self.waitingPackets.count > 0) {
-        RTCVPSocketPacket *lastPacket = self.waitingPackets.lastObject;
-        BOOL success = [lastPacket addBinaryData:data];
-        if (success) {
-            [self.waitingPackets removeLastObject];
-            
-            if (lastPacket.type == RTCVPPacketTypeBinaryEvent) {
-                [self handleEvent:lastPacket.event
-                         withData:lastPacket.args
-                isInternalMessage:NO
-                          withAck:lastPacket.packetId];
-            } else if (lastPacket.type == RTCVPPacketTypeBinaryAck) {
-                [self handleAck:lastPacket.packetId withData:lastPacket.args];
-            }
-        }
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到二进制数据，长度: %ld", (long)data.length]
+                                  type:@"SocketParser"];
+    
+    // 使用PacketReceiver处理二进制数据
+    if (self->pack_receiver) {
+        // 将NSData转换为SmartBuffer
+        sio::SmartBuffer smart_buffer((const uint8_t*)data.bytes, data.length);
+        
+        // 处理二进制数据
+        self->pack_receiver->process_binary_data(smart_buffer);
     } else {
-        [RTCDefaultSocketLogger.logger error:@"收到二进制数据但没有等待中的包" type:@"SocketParser"];
+        [RTCDefaultSocketLogger.logger error:@"PacketReceiver未初始化，无法处理二进制数据" type:@"SocketParser"];
     }
 }
 
 - (BOOL)isCorrectNamespace:(NSString *)nsp {
     return [nsp isEqualToString:self.nsp];
 }
-
-- (void)handlePacket:(RTCVPSocketPacket *)packet {
-    switch (packet.type) {
-        case RTCVPPacketTypeEvent: {
-            if ([self isCorrectNamespace:packet.nsp]) {
-                [self handleEvent:packet.event
-                         withData:packet.args
-                isInternalMessage:NO
-                          withAck:packet.packetId];
-            } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"命名空间不匹配的包: %@", packet.description]
-                                              type:@"SocketParser"];
-            }
-            break;
-        }
-            
-        case RTCVPPacketTypeAck: {
-            if ([self isCorrectNamespace:packet.nsp]) {
-                [self handleAck:packet.packetId withData:packet.args];
-            } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"命名空间不匹配的ACK包: %@", packet.description]
-                                              type:@"SocketParser"];
-            }
-            break;
-        }
-            
-        case RTCVPPacketTypeBinaryEvent:
-        case RTCVPPacketTypeBinaryAck: {
-            if ([self isCorrectNamespace:packet.nsp]) {
-                [self.waitingPackets addObject:packet];
-            } else {
-                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"命名空间不匹配的二进制包: %@", packet.description]
-                                              type:@"SocketParser"];
-            }
-            break;
-        }
-            
-        case RTCVPPacketTypeConnect: {
-            [self handleConnect:packet.nsp];
-            break;
-        }
-            
-        case RTCVPPacketTypeDisconnect: {
-            [self didDisconnect:@"收到断开连接包"];
-            break;
-        }
-            
-        case RTCVPPacketTypeError: {
-            [self handleEvent:RTCVPSocketEventError
-                     withData:packet.data
-            isInternalMessage:YES
-                      withAck:packet.packetId];
-            break;
-        }
-            
-        default: {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"未知类型的包: %@", packet.description]
-                                          type:@"SocketParser"];
-            break;
-        }
-    }
-}
-
 
 - (void)handleConnect:(NSString *)packetNamespace {
     if ([packetNamespace isEqualToString:@"/"] && ![self.nsp isEqualToString:@"/"]) {

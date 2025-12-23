@@ -11,7 +11,7 @@
 
 @interface RTCVPSocketEngine (EngineWebsocket) <RTCJFRWebSocketDelegate>
 
--(void)sendWebSocketMessage:(NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray*)datas;
+-(void)sendWebSocketMessage:(nullable NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(nullable NSArray*)datas;
 
 /// 探测WebSocket连接
 - (void)probeWebSocket;

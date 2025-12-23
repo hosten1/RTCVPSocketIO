@@ -104,7 +104,6 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_parser.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_jsoncpp_binary_helper.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_printer.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_client_core.h
 )
 
 # ============================================
@@ -209,6 +208,7 @@ target_include_directories(libVPSocketIO
     ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
 # ============================================
@@ -278,6 +278,7 @@ source_group("Test" FILES
     lib/test/test_sio_packet.cpp
     lib/test/main.cpp
     lib/test/test_sio_packet.h
+    lib/test/test_sio_binary_packet.cpp
 )
 
 add_executable(test_sio_packet
@@ -287,6 +288,75 @@ add_executable(test_sio_packet
     lib/sio_ack_manager.cpp
     lib/test/test_sio_packet.cpp
     lib/test/main.cpp
+)
+
+# 添加二进制包测试
+add_executable(test_sio_binary_packet
+    lib/sio_packet.cc
+    lib/sio_packet_impl.cc
+    lib/sio_packet_parser.cc
+    lib/sio_ack_manager.cpp
+    lib/test/test_sio_binary_packet.cpp
+)
+
+# 为二进制包测试设置include目录
+target_include_directories(test_sio_binary_packet
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    # 测试目标也需要框架包含路径
+    ${CMAKE_BINARY_DIR}
+)
+
+# 为二进制包测试设置链接库
+target_link_libraries(test_sio_binary_packet
+    PRIVATE
+    libwebrtc
+    pthread
+)
+
+# 为二进制包测试设置属性
+set_target_properties(test_sio_binary_packet PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LINKER_LANGUAGE CXX
+)
+
+# 添加RTCVP二进制处理测试
+add_executable(test_rtcvp_binary
+    lib/test/test_rtcvp_binary.cpp
+)
+
+# 为RTCVP二进制测试设置include目录
+target_include_directories(test_rtcvp_binary
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_BINARY_DIR}
+)
+
+# 为RTCVP二进制测试设置链接库
+target_link_libraries(test_rtcvp_binary
+    PRIVATE
+    libwebrtc
+    pthread
+)
+
+# 为RTCVP二进制测试设置属性
+set_target_properties(test_rtcvp_binary PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LINKER_LANGUAGE CXX
 )
 
 # 为测试目标设置include目录

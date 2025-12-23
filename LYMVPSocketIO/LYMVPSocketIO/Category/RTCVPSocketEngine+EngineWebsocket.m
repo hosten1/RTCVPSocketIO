@@ -125,18 +125,21 @@
         [self log:@"WebSocket not connected, cannot send message" level:RTCLogLevelWarning];
         return;
     }
+    if (message && message.length > 1) {
+        // 2. 构建 Engine.IO 文本消息格式
+        //    格式：[EngineType][Payload]
+        //    例如：@"4{\"msg\":\"hello\"}"
+        NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
 
-    // 2. 构建 Engine.IO 文本消息格式
-    //    格式：[EngineType][Payload]
-    //    例如：@"4{\"msg\":\"hello\"}"
-    NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
+        [self log:[NSString stringWithFormat:@"Sending WebSocket text message: %@", fullMessage]
+             level:RTCLogLevelDebug];
 
-    [self log:[NSString stringWithFormat:@"Sending WebSocket text message: %@", fullMessage]
-         level:RTCLogLevelDebug];
+        // 3. 发送文本帧
+        //    文本帧用于 Socket.IO/Engine.IO 的主控制消息
+        [self.ws writeString:fullMessage];
+    }
 
-    // 3. 发送文本帧
-    //    文本帧用于 Socket.IO/Engine.IO 的主控制消息
-    [self.ws writeString:fullMessage];
+    
 
     // 4. 若附带二进制数据，则逐个发送二进制帧
     if (self.config.enableBinary && data.count > 0) {

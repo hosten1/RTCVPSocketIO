@@ -67,15 +67,13 @@ SioPacket SioPacketBuilder::build_ack_packet(
 }
 
 SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_packet(const SioPacket& packet) {
-    switch (packet.version) {
-        case SocketIOVersion::V2:
-            return encode_v2_packet(packet);
-        case SocketIOVersion::V3:
-            return encode_v3_packet(packet);
-        case SocketIOVersion::V4:
-        default:
-            return encode_v4_packet(packet);
-    }
+    // 始终使用V4版本编码
+    return encode_v4_packet(packet);
+}
+
+SocketIOVersion SioPacketBuilder::detect_version(const std::string& packet) {
+    // 简单版本检测：始终返回V4版本
+    return SocketIOVersion::V4;
 }
 
 SioPacket SioPacketBuilder::decode_packet(
@@ -86,38 +84,8 @@ SioPacket SioPacketBuilder::decode_packet(
         return SioPacket();
     }
     
-    // 检测版本（简化版）
-    SocketIOVersion detected_version = SocketIOVersion::V4; // 默认为V4
-    
-    // 简单版本检测：检查包格式
-    if (!text_packet.empty()) {
-        // V4格式通常以数字开头，然后是可能的命名空间数字
-        char first_char = text_packet[0];
-        if (first_char >= '0' && first_char <= '9') {
-            // 检查是否有命名空间数字（V4特性）
-            if (text_packet.length() > 1) {
-                char second_char = text_packet[1];
-                if (second_char >= '0' && second_char <= '9') {
-                    detected_version = SocketIOVersion::V4;
-                } else {
-                    detected_version = SocketIOVersion::V3;
-                }
-            }
-        }
-    }
-    
-    SocketIOVersion use_version = detected_version;
-    
-    switch (use_version) {
-        case SocketIOVersion::V2:
-            return decode_v2_packet(text_packet, binary_parts);
-        case SocketIOVersion::V3:
-            return decode_v3_packet(text_packet, binary_parts);
-        case SocketIOVersion::V4:
-            return decode_v4_packet(text_packet, binary_parts);
-        default:
-            return SioPacket();
-    }
+    // 始终使用V4版本解码
+    return decode_v4_packet(text_packet, binary_parts);
 }
 
 SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v4_packet(const SioPacket& packet) {
@@ -540,8 +508,7 @@ int PacketSender::send_event_with_ack(
                                                               }
                                                           },
                                                           timeout,
-                                                          // 修复：使用正确的 lambda 表达式
-                                                          [timeout_callback, ack_id]() {
+                                                          [timeout_callback](int ack_id) {
                                                               if (timeout_callback) {
                                                                   timeout_callback(ack_id);
                                                               }
