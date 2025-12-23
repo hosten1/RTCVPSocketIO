@@ -521,15 +521,6 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
 //    }
 }
 
-#pragma mark - ACK管理
-
-- (NSInteger)generateNextAck {
-    _currentAck += 1;
-    if (_currentAck >= 1000) { // 循环使用，避免溢出
-        _currentAck = 0;
-    }
-    return _currentAck;
-}
 
 #pragma mark - 事件发射
 
@@ -729,10 +720,14 @@ Json::Value convertOCObjectToJsonValue(id obj) {
         }
         return;
     }
-    NSInteger ackId = [self generateNextAck];
-    //    ios 的数据 转 std::vector<T>& data_array
-        // TODO: namespace 怎么传值 ackId
-    std::vector<Json::Value> data_array ;
+
+    // 将OC数组转换为C++ Json::Value数组
+    std::vector<Json::Value> data_array;
+    if (items && items.count > 0) {
+        for (id item in items) {
+            data_array.push_back(convertOCObjectToJsonValue(item));
+        }
+    }
     int namespace_id = 0; // 默认命名空间
     
     // 使用send_event_with_ack方法发送带ACK的事件
@@ -754,7 +749,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
         },
         [=](const std::vector<Json::Value>& result_data){
             // ACK回调
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到ACK响应: %@", @(ackId)] type:self.logType];
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到ACK响应"] type:self.logType];
         },
         [=](int timeout_ack_id){
             // 超时回调

@@ -759,9 +759,9 @@
 		1BF5C0392EF52D1800966BB3 = {
 			isa = PBXGroup;
 			children = (
-				1BF5C06A2EF52E5C00966BB3 /* Frameworks */,
 				1BF5C4D92EF52FC300966BB3 /* LYMVPSocketIO */,
 				1BF5C04F2EF52D1A00966BB3 /* LYMVPSocketIOTests */,
+				1BF5C06A2EF52E5C00966BB3 /* Frameworks */,
 				1BF5C0442EF52D1800966BB3 /* Products */,
 			);
 			sourceTree = "<group>";
