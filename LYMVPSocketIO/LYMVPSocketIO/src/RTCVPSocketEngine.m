@@ -276,7 +276,7 @@ NSURLSessionDelegate>
 }
 
 - (NSString *)logType {
-    return @"SocketEngine";
+    return @"Engine.IO";
 }
 
 #pragma mark - 心跳管理
@@ -317,39 +317,6 @@ NSURLSessionDelegate>
         [self log:@"Ping timer stopped" level:RTCLogLevelDebug];
     }
 }
-
-// 删除 sendPing 方法，客户端不应该主动发送ping（Engine.IO协议要求）
-// 只有服务器才能发送ping，客户端只负责回复pong
-/*
-- (void)sendPing {
-    if (self.pongsMissed >= self.pongsMissedMax) {
-        [self log:@"Ping timeout, closing connection" level:RTCLogLevelError];
-        [self disconnect:@"ping timeout"];
-        return;
-    }
-    
-    self.pongsMissed++;
-    
-    [self log:[NSString stringWithFormat:@"发送心跳，错过次数: %ld/%ld",
-               (long)self.pongsMissed, (long)self.pongsMissedMax]
-         level:RTCLogLevelDebug];
-    
-    // 发送Engine.IO心跳
-    NSString *pingMessage = @"";
-    if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
-        pingMessage = @"2"; // Engine.IO 4.x ping
-    }
-    [self write:pingMessage withType:RTCVPSocketEnginePacketTypePing withData:@[]];
-    
-    // 同时发送WebSocket协议心跳（如果使用WebSocket）
-    if (self.websocket && self.ws && [self.ws isConnected]) {
-        if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
-            pingMessage = [NSString stringWithFormat:@"%@%@",@(RTCVPSocketEnginePacketTypePing),pingMessage]; // Engine.IO 4.x ping
-        }
-        
-        [self.ws writePing:[NSData dataWithBytes:[pingMessage UTF8String] length:[pingMessage length]]]; // 发送空的WebSocket Ping
-    }
-}*/
 
 
 
@@ -659,6 +626,7 @@ NSURLSessionDelegate>
 
 /// 处理打开消息
 - (void)handleOpen:(NSString *)openData {
+    [self log:[NSString stringWithFormat:@"handleOpen data:%@",openData] level:RTCLogLevelInfo];
     NSDictionary *json = [openData toDictionary];
     if (!json) {
         [self didError:@"Invalid open packet"];
@@ -729,8 +697,7 @@ NSURLSessionDelegate>
             [self createWebSocketAndConnect];
         }
         [self __sendConnectToServer];
-        // 开始心跳
-//        [self startPingTimer];
+
     } else {
         [self log:@"Using polling transport" level:RTCLogLevelDebug];
         [self __sendConnectToServer];

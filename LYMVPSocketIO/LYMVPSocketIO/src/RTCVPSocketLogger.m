@@ -46,9 +46,6 @@
 }
 
 - (void)printLog:(NSString *)logType message:(NSString *)message type:(NSString *)type {
-    if (self.log) {
-        NSLog(@"%@ %@: %@", logType, type, message);
-    }
     if (self.logCb) {
         self.logCb(message, type);
     }

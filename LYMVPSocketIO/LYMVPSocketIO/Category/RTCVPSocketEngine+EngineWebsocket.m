@@ -125,7 +125,7 @@
         [self log:@"WebSocket not connected, cannot send message" level:RTCLogLevelWarning];
         return;
     }
-    if (message && message.length > 1) {
+    if (message && message.length > 0) {
         // 2. 构建 Engine.IO 文本消息格式
         //    格式：[EngineType][Payload]
         //    例如：@"4{\"msg\":\"hello\"}"
@@ -322,8 +322,6 @@
 }
 
 - (void)websocket:(RTCJFRWebSocket *)socket didReceiveMessage:(NSString *)string {
-    // 打印收到的消息字符串
-    [self log:[NSString stringWithFormat:@"📩 Socket层收到字符串数据: %@", string] level:RTCLogLevelInfo];
     [self parseEngineMessage:string];
 }
 

@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B3DCA122EFA6E4D0029C5FA /* LYMVPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B3DCA112EFA6E4D0029C5FA /* LYMVPSocketIO.framework */; };
+		1B3DCA132EFA6E4D0029C5FA /* LYMVPSocketIO.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1B3DCA112EFA6E4D0029C5FA /* LYMVPSocketIO.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1B91EEFD26281D35003120A7 /* VPSocketIOAppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */; };
-		1BF5C6CA2EF5362600966BB3 /* LYMVPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C6C92EF5362600966BB3 /* LYMVPSocketIO.framework */; };
-		1BF5C6CB2EF5362600966BB3 /* LYMVPSocketIO.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C6C92EF5362600966BB3 /* LYMVPSocketIO.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F06B19321F71466D003E81B1 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19311F71466D003E81B1 /* main.m */; };
 		F06B19351F71466D003E81B1 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19341F71466D003E81B1 /* AppDelegate.m */; };
 		F06B19381F71466D003E81B1 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F06B19371F71466D003E81B1 /* ViewController.m */; };
@@ -35,7 +35,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				1BF5C6CB2EF5362600966BB3 /* LYMVPSocketIO.framework in Embed Frameworks */,
+				1B3DCA132EFA6E4D0029C5FA /* LYMVPSocketIO.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -43,12 +43,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1B364D7C282A029300CCC820 /* VPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VPSocketIO.framework; path = framework/VPSocketIO.framework; sourceTree = "<group>"; };
+		1B3DCA112EFA6E4D0029C5FA /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LYMVPSocketIO.framework; path = frameworks/LYMVPSocketIO.framework; sourceTree = "<group>"; };
 		1B91EEFA26281D35003120A7 /* VPSocketIOAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VPSocketIOAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B91EEFC26281D35003120A7 /* VPSocketIOAppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VPSocketIOAppTests.m; sourceTree = "<group>"; };
 		1B91EEFE26281D35003120A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1BF5BD202EF5282800966BB3 /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = LYMVPSocketIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		1BF5C6C92EF5362600966BB3 /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LYMVPSocketIO.framework; path = frameworks/LYMVPSocketIO.framework; sourceTree = "<group>"; };
 		F06B192D1F71466C003E81B1 /* VPSocketIOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPSocketIOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06B19311F71466D003E81B1 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		F06B19331F71466D003E81B1 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -73,7 +71,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1BF5C6CA2EF5362600966BB3 /* LYMVPSocketIO.framework in Frameworks */,
+				1B3DCA122EFA6E4D0029C5FA /* LYMVPSocketIO.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,9 +90,7 @@
 		1BF8BF8624AAD274003B5EA3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				1BF5BD202EF5282800966BB3 /* LYMVPSocketIO.framework */,
-				1BF5C6C92EF5362600966BB3 /* LYMVPSocketIO.framework */,
-				1B364D7C282A029300CCC820 /* VPSocketIO.framework */,
+				1B3DCA112EFA6E4D0029C5FA /* LYMVPSocketIO.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
