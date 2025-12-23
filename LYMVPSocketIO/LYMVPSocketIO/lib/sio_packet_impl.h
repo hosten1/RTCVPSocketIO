@@ -18,16 +18,15 @@
 #include "rtc_base/buffer.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
-#include "sio_packet.h"
-#include "sio_jsoncpp_binary_helper.hpp"
-#include "sio_smart_buffer.hpp"
-#include "sio_packet_parser.h"
+#include "lib/sio_packet.h"
+#include "lib/sio_smart_buffer.hpp"
 #include "rtc_base/task_queue.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "absl/memory/memory.h"
 #include "api/task_queue/default_task_queue_factory.h"
-#include "sio_ack_manager_interface.h"
+#include "lib/sio_ack_manager_interface.h"
 #include "rtc_base/task_utils/repeating_task.h"
+#include "lib/sio_packet_builder.h"
 
 
 // 前向声明
@@ -38,122 +37,11 @@ class SioAckManager;
 namespace sio {
 
 // 回调函数类型定义
-using EventCallback = std::function<void(const std::string& event, const std::vector<Json::Value>& args)>;
+using EventCallback = std::function<void(const SioPacket &packet)>;
 using SendResultCallback = std::function<void(bool success, const std::string& error)>;
 using TextSendCallback = std::function<bool(const std::string& text_packet)>;
 using BinarySendCallback = std::function<bool(const SmartBuffer& binary_data, int index)>;
 
-// Socket.IO 协议包结构
-struct SioPacket {
-    PacketType type;
-    std::string event_name;
-    std::vector<Json::Value> args;
-    std::vector<SmartBuffer> binary_parts;
-    int namespace_id;
-    int packet_id;
-    bool need_ack;
-    SocketIOVersion version;
-    
-    SioPacket() : type(PacketType::EVENT), namespace_id(0),
-                  packet_id(-1), need_ack(false), version(SocketIOVersion::V4) {}
-    
-    bool is_binary() const {
-        return !binary_parts.empty() ||
-               type == PacketType::BINARY_EVENT ||
-               type == PacketType::BINARY_ACK;
-    }
-    
-    std::string to_string() const {
-        std::stringstream ss;
-        ss << "SioPacket {" << std::endl;
-        ss << "  type: " << static_cast<int>(type) << std::endl;
-        ss << "  event: " << event_name << std::endl;
-        ss << "  args: " << args.size() << " 个" << std::endl;
-        ss << "  binary_parts: " << binary_parts.size() << " 个" << std::endl;
-        ss << "  namespace_id: " << namespace_id << std::endl;
-        ss << "  packet_id: " << packet_id << std::endl;
-        ss << "  need_ack: " << (need_ack ? "true" : "false") << std::endl;
-        ss << "  version: " << static_cast<int>(version) << std::endl;
-        ss << "}";
-        return ss.str();
-    }
-};
-
-// Socket.IO 协议构建器
-class SioPacketBuilder {
-public:
-    explicit SioPacketBuilder(SocketIOVersion version = SocketIOVersion::V4);
-    
-    // 设置协议版本
-    void set_version(SocketIOVersion version) { version_ = version; }
-    SocketIOVersion get_version() const { return version_; }
-    
-    // 构建事件包
-    SioPacket build_event_packet(
-        const std::string& event_name,
-        const std::vector<Json::Value>& args,
-        int namespace_id = 0,
-        int packet_id = -1);
-    
-    // 构建ACK包
-    SioPacket build_ack_packet(
-        const std::vector<Json::Value>& args,
-        int namespace_id = 0,
-        int packet_id = -1);
-    
-    // 将包编码为Socket.IO协议格式
-    struct EncodedPacket {
-        std::string text_packet;
-        std::vector<SmartBuffer> binary_parts;
-        bool is_binary;
-        int binary_count;
-        
-        EncodedPacket() : is_binary(false), binary_count(0) {}
-    };
-    
-    EncodedPacket encode_packet(const SioPacket& packet);
-    
-    // 解码Socket.IO协议包
-    SioPacket decode_packet(
-        const std::string& text_packet,
-        const std::vector<SmartBuffer>& binary_parts = std::vector<SmartBuffer>());
-    
-    // 检测协议版本
-    static SocketIOVersion detect_version(const std::string& packet);
-    
-private:
-    // V2协议构建
-    EncodedPacket encode_v2_packet(const SioPacket& packet);
-    SioPacket decode_v2_packet(const std::string& text, const std::vector<SmartBuffer>& binaries);
-    
-    // V3协议构建
-    EncodedPacket encode_v3_packet(const SioPacket& packet);
-    SioPacket decode_v3_packet(const std::string& text, const std::vector<SmartBuffer>& binaries);
-    
-    // V4协议构建
-    EncodedPacket encode_v4_packet(const SioPacket& packet);
-    SioPacket decode_v4_packet(const std::string& text, const std::vector<SmartBuffer>& binaries);
-    
-    // 辅助方法
-    void extract_binary_data(const Json::Value& data,
-                            Json::Value& json_without_binary,
-                            std::vector<SmartBuffer>& binary_parts,
-                            std::map<std::string, int>& binary_map);
-    
-    void restore_binary_data(Json::Value& data,
-                            const std::vector<SmartBuffer>& binary_parts,
-                            const std::map<std::string, int>& binary_map);
-    
-    Json::Value create_binary_placeholder(int index);
-    bool is_binary_placeholder(const Json::Value& value);
-    int get_placeholder_index(const Json::Value& placeholder);
-    
-    SocketIOVersion version_;
-    
-    // 禁止拷贝
-    SioPacketBuilder(const SioPacketBuilder&) = delete;
-    SioPacketBuilder& operator=(const SioPacketBuilder&) = delete;
-};
 
 // 包发送器
 class PacketSender : public std::enable_shared_from_this<PacketSender> {

@@ -41,6 +41,39 @@ NSString *const RTCVPSocketStatusConnecting = @"connecting";
 NSString *const RTCVPSocketStatusOpened = @"opened";
 NSString *const RTCVPSocketStatusConnected = @"connected";
 
+
+// 辅助函数：递归转换Json::Value到OC对象
+static id convertJsonValueToObjC(const Json::Value& jsonValue) {
+    if (jsonValue.isNull()) {
+        return [NSNull null];
+    } else if (jsonValue.isBool()) {
+        return [NSNumber numberWithBool:jsonValue.asBool()];
+    } else if (jsonValue.isInt() || jsonValue.isUInt() || jsonValue.isInt64() || jsonValue.isUInt64()) {
+        return [NSNumber numberWithLongLong:jsonValue.asInt64()];
+    } else if (jsonValue.isDouble()) {
+        return [NSNumber numberWithDouble:jsonValue.asDouble()];
+    } else if (jsonValue.isString()) {
+        return [NSString stringWithUTF8String:jsonValue.asCString()];
+    } else if (jsonValue.isArray()) {
+        NSMutableArray *array = [[NSMutableArray alloc] init];
+        for (Json::ArrayIndex i = 0; i < jsonValue.size(); i++) {
+            [array addObject:convertJsonValueToObjC(jsonValue[i])];
+        }
+        return array;
+    } else if (jsonValue.isObject()) {
+        NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+        Json::Value::Members members = jsonValue.getMemberNames();
+        for (const auto& key : members) {
+            NSString *ocKey = [NSString stringWithUTF8String:key.c_str()];
+            dict[ocKey] = convertJsonValueToObjC(jsonValue[key]);
+        }
+        return dict;
+    }
+    
+    // 未知类型，返回null
+    return [NSNull null];
+}
+
 #pragma mark - 事件处理器类
 
 @interface RTCVPSocketEventHandler : NSObject
@@ -232,56 +265,24 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
         
         // 设置事件回调函数，将收到的事件推送给上层
         __weak __typeof(self) weakSelf = self;
-        pack_receiver->set_event_callback([weakSelf](const std::string& event, const std::vector<Json::Value>& args) {
+        pack_receiver->set_event_callback([weakSelf](const sio::SioPacket &packet) {
             __strong __typeof(weakSelf) strongSelf = weakSelf;
             if (strongSelf) {
                 // 将Json::Value数组转换为OC数组
                 NSMutableArray *ocArgs = [[NSMutableArray alloc] init];
-                for (const auto& jsonValue : args) {
-                    // 转换Json::Value到OC对象
-                    if (jsonValue.isNull()) {
-                        [ocArgs addObject:[NSNull null]];
-                    } else if (jsonValue.isBool()) {
-                        [ocArgs addObject:[NSNumber numberWithBool:jsonValue.asBool()]];
-                    } else if (jsonValue.isInt() || jsonValue.isUInt() || jsonValue.isInt64() || jsonValue.isUInt64()) {
-                        [ocArgs addObject:[NSNumber numberWithLongLong:jsonValue.asInt64()]];
-                    } else if (jsonValue.isDouble()) {
-                        [ocArgs addObject:[NSNumber numberWithDouble:jsonValue.asDouble()]];
-                    } else if (jsonValue.isString()) {
-                        [ocArgs addObject:[NSString stringWithUTF8String:jsonValue.asCString()]];
-                    } else if (jsonValue.isArray()) {
-                        // 递归转换数组
-                        NSMutableArray *ocSubArray = [[NSMutableArray alloc] init];
-                        for (Json::ArrayIndex i = 0; i < jsonValue.size(); i++) {
-                            const Json::Value& subValue = jsonValue[i];
-                            if (subValue.isNull()) {
-                                [ocSubArray addObject:[NSNull null]];
-                            } else if (subValue.isBool()) {
-                                [ocSubArray addObject:[NSNumber numberWithBool:subValue.asBool()]];
-                            } else if (subValue.isInt() || subValue.isUInt() || subValue.isInt64() || subValue.isUInt64()) {
-                                [ocSubArray addObject:[NSNumber numberWithLongLong:subValue.asInt64()]];
-                            } else if (subValue.isDouble()) {
-                                [ocSubArray addObject:[NSNumber numberWithDouble:subValue.asDouble()]];
-                            } else if (subValue.isString()) {
-                                [ocSubArray addObject:[NSString stringWithUTF8String:subValue.asCString()]];
-                            } else if (subValue.isArray()) {
-                                // 简单处理嵌套数组，直接转换为字符串
-                                [ocSubArray addObject:[NSString stringWithUTF8String:subValue.asCString()]];
-                            } else if (subValue.isObject()) {
-                                // 简单处理对象，直接转换为字符串
-                                [ocSubArray addObject:[NSString stringWithUTF8String:subValue.asCString()]];
-                            }
-                        }
-                        [ocArgs addObject:ocSubArray];
-                    } else if (jsonValue.isObject()) {
-                        // 简单处理对象，直接转换为字符串
-                        [ocArgs addObject:[NSString stringWithUTF8String:jsonValue.asCString()]];
-                    }
+                for (const auto& jsonValue : packet.args) {
+                    [ocArgs addObject:convertJsonValueToObjC(jsonValue)];
                 }
                 
-                // 调用上层事件处理器
-                NSString *ocEvent = [NSString stringWithUTF8String:event.c_str()];
-                [strongSelf handleEvent:ocEvent withData:ocArgs isInternalMessage:NO withAck:-1];
+                if (packet.type == sio::PacketType::CONNECT) {
+                    [strongSelf handleConnect:@"/"];
+                }else{
+                    // 调用上层事件处理器
+                    NSString *ocEvent = [NSString stringWithUTF8String:packet.event_name.c_str()];
+                    [strongSelf handleEvent:ocEvent withData:ocArgs isInternalMessage:NO withAck:packet.packet_id];
+                }
+                
+                
             }
         });
 
