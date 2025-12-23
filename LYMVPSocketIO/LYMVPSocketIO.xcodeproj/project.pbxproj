@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1B26428D2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */; };
-		1B26428E2EF9368D00E91641 /* RTCVPSocketPacketBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 1B26428B2EF9368D00E91641 /* RTCVPSocketPacketBridge.h */; };
-		1B26428F2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */; };
 		1BF5C04C2EF52D1A00966BB3 /* LYMVPSocketIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C0432EF52D1800966BB3 /* LYMVPSocketIO.framework */; };
 		1BF5C06C2EF52E5C00966BB3 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C06B2EF52E5C00966BB3 /* AVFoundation.framework */; };
 		1BF5C06E2EF52E6C00966BB3 /* libc++.1.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BF5C06D2EF52E6700966BB3 /* libc++.1.tbd */; };
@@ -72,9 +69,7 @@
 		1BF5C5322EF52FC300966BB3 /* json_value.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4CA2EF52FC300966BB3 /* json_value.cpp */; };
 		1BF5C5332EF52FC300966BB3 /* json_reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4C82EF52FC300966BB3 /* json_reader.cpp */; };
 		1BF5C5342EF52FC300966BB3 /* string_encode.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4772EF52FC300966BB3 /* string_encode.cc */; };
-		1BF5C5352EF52FC300966BB3 /* RTCVPSocketPacket.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3882EF52FC300966BB3 /* RTCVPSocketPacket.mm */; };
 		1BF5C5362EF52FC300966BB3 /* sio_packet_impl.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3622EF52FC300966BB3 /* sio_packet_impl.cc */; };
-		1BF5C5382EF52FC300966BB3 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3792EF52FC300966BB3 /* RTCVPACKManager.m */; };
 		1BF5C5392EF52FC300966BB3 /* stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4752EF52FC300966BB3 /* stream.cc */; };
 		1BF5C53A2EF52FC300966BB3 /* task_queue_base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3922EF52FC300966BB3 /* task_queue_base.cc */; };
 		1BF5C53B2EF52FC300966BB3 /* socket.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C46F2EF52FC300966BB3 /* socket.cc */; };
@@ -176,9 +171,7 @@
 		1BF5C5C32EF52FC300966BB3 /* json_value.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4CA2EF52FC300966BB3 /* json_value.cpp */; };
 		1BF5C5C42EF52FC300966BB3 /* json_reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4C82EF52FC300966BB3 /* json_reader.cpp */; };
 		1BF5C5C52EF52FC300966BB3 /* string_encode.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4772EF52FC300966BB3 /* string_encode.cc */; };
-		1BF5C5C62EF52FC300966BB3 /* RTCVPSocketPacket.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3882EF52FC300966BB3 /* RTCVPSocketPacket.mm */; };
 		1BF5C5C72EF52FC300966BB3 /* sio_packet_impl.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3622EF52FC300966BB3 /* sio_packet_impl.cc */; };
-		1BF5C5C92EF52FC300966BB3 /* RTCVPACKManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3792EF52FC300966BB3 /* RTCVPACKManager.m */; };
 		1BF5C5CA2EF52FC300966BB3 /* stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C4752EF52FC300966BB3 /* stream.cc */; };
 		1BF5C5CB2EF52FC300966BB3 /* task_queue_base.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C3922EF52FC300966BB3 /* task_queue_base.cc */; };
 		1BF5C5CC2EF52FC300966BB3 /* socket.cc in Sources */ = {isa = PBXBuildFile; fileRef = 1BF5C46F2EF52FC300966BB3 /* socket.cc */; };
@@ -263,7 +256,6 @@
 		1BF5C6232EF52FC300966BB3 /* aligned_malloc.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3BA2EF52FC300966BB3 /* aligned_malloc.h */; };
 		1BF5C6252EF52FC300966BB3 /* checks.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4282EF52FC300966BB3 /* checks.h */; };
 		1BF5C6262EF52FC300966BB3 /* type_traits.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4B32EF52FC300966BB3 /* type_traits.h */; };
-		1BF5C6272EF52FC300966BB3 /* RTCVPACKManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3782EF52FC300966BB3 /* RTCVPACKManager.h */; };
 		1BF5C6282EF52FC300966BB3 /* default_task_queue_factory.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C38C2EF52FC300966BB3 /* default_task_queue_factory.h */; };
 		1BF5C6292EF52FC300966BB3 /* unused.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3FC2EF52FC300966BB3 /* unused.h */; };
 		1BF5C62A2EF52FC300966BB3 /* timestamp.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C39D2EF52FC300966BB3 /* timestamp.h */; };
@@ -320,7 +312,6 @@
 		1BF5C6622EF52FC300966BB3 /* task_queue_base.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3912EF52FC300966BB3 /* task_queue_base.h */; };
 		1BF5C6632EF52FC300966BB3 /* compile_assert_c.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C42B2EF52FC300966BB3 /* compile_assert_c.h */; };
 		1BF5C6642EF52FC300966BB3 /* critical_section.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4332EF52FC300966BB3 /* critical_section.h */; };
-		1BF5C6652EF52FC300966BB3 /* RTCVPSocketPacket.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3872EF52FC300966BB3 /* RTCVPSocketPacket.h */; };
 		1BF5C6662EF52FC300966BB3 /* const_init.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4AE2EF52FC300966BB3 /* const_init.h */; };
 		1BF5C6672EF52FC300966BB3 /* logging.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C44B2EF52FC300966BB3 /* logging.h */; };
 		1BF5C6682EF52FC300966BB3 /* sio_packet_parser.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C3632EF52FC300966BB3 /* sio_packet_parser.h */; };
@@ -425,8 +416,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1B26428B2EF9368D00E91641 /* RTCVPSocketPacketBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketPacketBridge.h; sourceTree = "<group>"; };
-		1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RTCVPSocketPacketBridge.mm; sourceTree = "<group>"; };
 		1BF5C0432EF52D1800966BB3 /* LYMVPSocketIO.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LYMVPSocketIO.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BF5C04B2EF52D1A00966BB3 /* LYMVPSocketIOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LYMVPSocketIOTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1BF5C06B2EF52E5C00966BB3 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk/System/Library/Frameworks/AVFoundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -465,8 +454,6 @@
 		1BF5C3742EF52FC300966BB3 /* RTCVPTimer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPTimer.m; sourceTree = "<group>"; };
 		1BF5C3752EF52FC300966BB3 /* RTCVPWebSocketProtocolFixer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPWebSocketProtocolFixer.h; sourceTree = "<group>"; };
 		1BF5C3762EF52FC300966BB3 /* RTCVPWebSocketProtocolFixer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPWebSocketProtocolFixer.m; sourceTree = "<group>"; };
-		1BF5C3782EF52FC300966BB3 /* RTCVPACKManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPACKManager.h; sourceTree = "<group>"; };
-		1BF5C3792EF52FC300966BB3 /* RTCVPACKManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPACKManager.m; sourceTree = "<group>"; };
 		1BF5C37A2EF52FC300966BB3 /* RTCVPProbe.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPProbe.h; sourceTree = "<group>"; };
 		1BF5C37B2EF52FC300966BB3 /* RTCVPProbe.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPProbe.m; sourceTree = "<group>"; };
 		1BF5C37C2EF52FC300966BB3 /* RTCVPSocketEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketEngine.h; sourceTree = "<group>"; };
@@ -480,8 +467,6 @@
 		1BF5C3842EF52FC300966BB3 /* RTCVPSocketIOProtocolVersion.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketIOProtocolVersion.h; sourceTree = "<group>"; };
 		1BF5C3852EF52FC300966BB3 /* RTCVPSocketLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketLogger.h; sourceTree = "<group>"; };
 		1BF5C3862EF52FC300966BB3 /* RTCVPSocketLogger.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPSocketLogger.m; sourceTree = "<group>"; };
-		1BF5C3872EF52FC300966BB3 /* RTCVPSocketPacket.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPSocketPacket.h; sourceTree = "<group>"; };
-		1BF5C3882EF52FC300966BB3 /* RTCVPSocketPacket.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = RTCVPSocketPacket.mm; sourceTree = "<group>"; };
 		1BF5C3892EF52FC300966BB3 /* RTCVPStringReader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RTCVPStringReader.h; sourceTree = "<group>"; };
 		1BF5C38A2EF52FC300966BB3 /* RTCVPStringReader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RTCVPStringReader.m; sourceTree = "<group>"; };
 		1BF5C38C2EF52FC300966BB3 /* default_task_queue_factory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = default_task_queue_factory.h; sourceTree = "<group>"; };
@@ -853,11 +838,7 @@
 		1BF5C38B2EF52FC300966BB3 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				1B26428B2EF9368D00E91641 /* RTCVPSocketPacketBridge.h */,
-				1B26428C2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm */,
 				1BF5C3772EF52FC300966BB3 /* utils */,
-				1BF5C3782EF52FC300966BB3 /* RTCVPACKManager.h */,
-				1BF5C3792EF52FC300966BB3 /* RTCVPACKManager.m */,
 				1BF5C37A2EF52FC300966BB3 /* RTCVPProbe.h */,
 				1BF5C37B2EF52FC300966BB3 /* RTCVPProbe.m */,
 				1BF5C37C2EF52FC300966BB3 /* RTCVPSocketEngine.h */,
@@ -871,8 +852,6 @@
 				1BF5C3842EF52FC300966BB3 /* RTCVPSocketIOProtocolVersion.h */,
 				1BF5C3852EF52FC300966BB3 /* RTCVPSocketLogger.h */,
 				1BF5C3862EF52FC300966BB3 /* RTCVPSocketLogger.m */,
-				1BF5C3872EF52FC300966BB3 /* RTCVPSocketPacket.h */,
-				1BF5C3882EF52FC300966BB3 /* RTCVPSocketPacket.mm */,
 				1BF5C3892EF52FC300966BB3 /* RTCVPStringReader.h */,
 				1BF5C38A2EF52FC300966BB3 /* RTCVPStringReader.m */,
 			);
@@ -1441,7 +1420,6 @@
 				1BF5C6232EF52FC300966BB3 /* aligned_malloc.h in Headers */,
 				1BF5C6252EF52FC300966BB3 /* checks.h in Headers */,
 				1BF5C6262EF52FC300966BB3 /* type_traits.h in Headers */,
-				1BF5C6272EF52FC300966BB3 /* RTCVPACKManager.h in Headers */,
 				1BF5C6282EF52FC300966BB3 /* default_task_queue_factory.h in Headers */,
 				1BF5C6292EF52FC300966BB3 /* unused.h in Headers */,
 				1BF5C62A2EF52FC300966BB3 /* timestamp.h in Headers */,
@@ -1496,7 +1474,6 @@
 				1BF5C6622EF52FC300966BB3 /* task_queue_base.h in Headers */,
 				1BF5C6632EF52FC300966BB3 /* compile_assert_c.h in Headers */,
 				1BF5C6642EF52FC300966BB3 /* critical_section.h in Headers */,
-				1BF5C6652EF52FC300966BB3 /* RTCVPSocketPacket.h in Headers */,
 				1BF5C6662EF52FC300966BB3 /* const_init.h in Headers */,
 				1BF5C6672EF52FC300966BB3 /* logging.h in Headers */,
 				1BF5C6682EF52FC300966BB3 /* sio_packet_parser.h in Headers */,
@@ -1536,7 +1513,6 @@
 				1BF5C68D2EF52FC300966BB3 /* network_monitor.h in Headers */,
 				1BF5C68E2EF52FC300966BB3 /* string_to_number.h in Headers */,
 				1BF5C6902EF52FC300966BB3 /* field_trials_view.h in Headers */,
-				1B26428E2EF9368D00E91641 /* RTCVPSocketPacketBridge.h in Headers */,
 				1BF5C6922EF52FC300966BB3 /* forwards.h in Headers */,
 				1BF5C6942EF52FC300966BB3 /* log_sinks.h in Headers */,
 				1BF5C6952EF52FC300966BB3 /* frequency.h in Headers */,
@@ -1709,7 +1685,6 @@
 				1BF5C5902EF52FC300966BB3 /* metrics.cc in Sources */,
 				1BF5C5912EF52FC300966BB3 /* string_utils.cc in Sources */,
 				1BF5C5932EF52FC300966BB3 /* RTCVPAFNetworkReachabilityManager.m in Sources */,
-				1B26428F2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */,
 				1BF5C5942EF52FC300966BB3 /* bit_buffer.cc in Sources */,
 				1BF5C5952EF52FC300966BB3 /* RTCVPSocketEngine.m in Sources */,
 				1BF5C5962EF52FC300966BB3 /* repeating_task.cc in Sources */,
@@ -1751,9 +1726,7 @@
 				1BF5C5C32EF52FC300966BB3 /* json_value.cpp in Sources */,
 				1BF5C5C42EF52FC300966BB3 /* json_reader.cpp in Sources */,
 				1BF5C5C52EF52FC300966BB3 /* string_encode.cc in Sources */,
-				1BF5C5C62EF52FC300966BB3 /* RTCVPSocketPacket.mm in Sources */,
 				1BF5C5C72EF52FC300966BB3 /* sio_packet_impl.cc in Sources */,
-				1BF5C5C92EF52FC300966BB3 /* RTCVPACKManager.m in Sources */,
 				1BF5C5CA2EF52FC300966BB3 /* stream.cc in Sources */,
 				1BF5C5CB2EF52FC300966BB3 /* task_queue_base.cc in Sources */,
 				1BF5C5CC2EF52FC300966BB3 /* socket.cc in Sources */,
@@ -1822,7 +1795,6 @@
 				1BF5C5022EF52FC300966BB3 /* RTCVPAFNetworkReachabilityManager.m in Sources */,
 				1BF5C5032EF52FC300966BB3 /* bit_buffer.cc in Sources */,
 				1BF5C5042EF52FC300966BB3 /* RTCVPSocketEngine.m in Sources */,
-				1B26428D2EF9368D00E91641 /* RTCVPSocketPacketBridge.mm in Sources */,
 				1BF5C5052EF52FC300966BB3 /* repeating_task.cc in Sources */,
 				1BF5C5062EF52FC300966BB3 /* time_utils.cc in Sources */,
 				1BF5C5072EF52FC300966BB3 /* event.cc in Sources */,
@@ -1862,9 +1834,7 @@
 				1BF5C5322EF52FC300966BB3 /* json_value.cpp in Sources */,
 				1BF5C5332EF52FC300966BB3 /* json_reader.cpp in Sources */,
 				1BF5C5342EF52FC300966BB3 /* string_encode.cc in Sources */,
-				1BF5C5352EF52FC300966BB3 /* RTCVPSocketPacket.mm in Sources */,
 				1BF5C5362EF52FC300966BB3 /* sio_packet_impl.cc in Sources */,
-				1BF5C5382EF52FC300966BB3 /* RTCVPACKManager.m in Sources */,
 				1BF5C5392EF52FC300966BB3 /* stream.cc in Sources */,
 				1BF5C53A2EF52FC300966BB3 /* task_queue_base.cc in Sources */,
 				1BF5C53B2EF52FC300966BB3 /* socket.cc in Sources */,

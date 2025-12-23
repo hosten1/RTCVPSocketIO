@@ -134,24 +134,6 @@ private:
     std::chrono::milliseconds default_timeout_;        // 默认超时时间
 };
 
-// Socket.IO 异步发送回调接口（支持多版本）
-class SocketIOSender {
-public:
-    virtual ~SocketIOSender() = default;
-    
-    // 发送文本包
-    virtual bool send_text(const std::string& text_packet) = 0;
-    
-    // 发送二进制数据
-    virtual bool send_binary(const SmartBuffer& binary_data) = 0;
-    
-    // 发送完成回调
-    virtual void on_send_complete(bool success, const std::string& error = "") = 0;
-    
-    // 获取支持的Socket.IO版本
-    virtual SocketIOVersion get_supported_version() const { return SocketIOVersion::V3; }
-};
-
 // 发送队列管理类（支持多版本）
 template <typename T>
 class PacketSender {
@@ -168,98 +150,31 @@ public:
         update_parser_config();
     }
     
-    // 准备要发送的数据数组（异步处理）
-    void prepare_data_array_async(
-        const std::vector<T>& data_array,
-        PacketType type = PacketType::EVENT,
-        int nsp = 0,
-        int id = -1,
-        std::function<void()> on_complete = nullptr);
-    
-    // 异步发送数据（符合Socket.IO协议：先文本后二进制）
-    void send_data_array_async(
-        const std::vector<T>& data_array,
-        std::function<bool(const std::string& text_packet)> text_callback,
-        std::function<bool(const SmartBuffer& binary_data, int index)> binary_callback = nullptr,
-        std::function<void(bool success, const std::string& error)> complete_callback = nullptr,
-        PacketType type = PacketType::EVENT,
-        int nsp = 0,
-        int id = -1);
-    
-    // 异步发送数据并注册ACK回调（主要方法）
-    void send_data_array_with_ack_async(
+    // 异步发送数据（支持ACK和超时）
+    void send_data_async(
         const std::vector<T>& data_array,
         std::function<bool(const std::string& text_packet)> text_callback,
         std::function<bool(const SmartBuffer& binary_data, int index)> binary_callback = nullptr,
         std::function<void(bool success, const std::string& error)> complete_callback = nullptr,
         std::function<void(const std::vector<T>& data_array)> ack_callback = nullptr,
-        std::function<void()> ack_timeout_callback = nullptr,
-        std::chrono::milliseconds ack_timeout = std::chrono::milliseconds(30000),
-        PacketType type = PacketType::EVENT,
-        int nsp = 0);
-    
-    // 使用 SocketIOSender 接口发送数据（更面向对象的方式）
-    void send_data_array_async(
-        const std::vector<T>& data_array,
-        SocketIOSender* sender,
+        std::function<void()> timeout_callback = nullptr,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(30000),
         PacketType type = PacketType::EVENT,
         int nsp = 0,
         int id = -1);
-    
-    // 为v2客户端准备发送数据（v2格式不同）
-    void send_data_array_async_v2(
-        const std::vector<T>& data_array,
-        std::function<bool(const std::string& text_packet)> text_callback,
-        std::function<bool(const SmartBuffer& binary_data, int index)> binary_callback = nullptr,
-        std::function<void(bool success, const std::string& error)> complete_callback = nullptr,
-        PacketType type = PacketType::EVENT,
-        int nsp = 0,
-        int id = -1);
-    
-    // 为v3+客户端准备发送数据
-    void send_data_array_async_v3(
-        const std::vector<T>& data_array,
-        std::function<bool(const std::string& text_packet)> text_callback,
-        std::function<bool(const SmartBuffer& binary_data, int index)> binary_callback = nullptr,
-        std::function<void(bool success, const std::string& error)> complete_callback = nullptr,
-        PacketType type = PacketType::EVENT,
-        int nsp = 0,
-        int id = -1);
-    
-    // 设置文本数据回调
-    void set_text_callback(std::function<void(const std::string& text)> callback);
-    
-    // 设置二进制数据回调
-    void set_binary_callback(std::function<void(const SmartBuffer& binary)> callback);
-    
-    // 重置发送状态
-    void reset();
     
     // 获取ACK管理器
     AckManager& get_ack_manager() { return ack_manager_; }
     const AckManager& get_ack_manager() const { return ack_manager_; }
     
 private:
-    struct SendState {
-        std::queue<std::string> text_queue;
-        std::queue<SmartBuffer> binary_queue;
-        bool expecting_binary;
-        std::function<void(const std::string& text)> text_callback;
-        std::function<void(const SmartBuffer& binary)> binary_callback;
-        std::function<void()> on_complete;
-    };
-    
     webrtc::TaskQueueFactory* task_queue_factory_;
     std::shared_ptr<rtc::TaskQueue> task_queue_;
     SocketIOVersion version_;
-    std::unique_ptr<SendState> state_;
     AckManager ack_manager_;  // ACK 管理器
     
     // 更新解析器配置
     void update_parser_config();
-    
-    // 处理下一个待发送项
-    void process_next_item();
 };
 
 // 接收组合器（支持多版本）
@@ -286,9 +201,6 @@ public:
     
     // 接收文本部分（自动检测版本）
     bool receive_text(const std::string& text);
-    
-    // 接收文本部分（指定版本）
-    bool receive_text_with_version(const std::string& text, SocketIOVersion version);
     
     // 接收二进制部分
     bool receive_binary(const SmartBuffer& binary);

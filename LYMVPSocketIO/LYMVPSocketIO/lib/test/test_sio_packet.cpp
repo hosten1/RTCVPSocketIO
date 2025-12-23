@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <chrono>
+#include "api/task_queue/default_task_queue_factory.h"
 
 using namespace sio;
 
@@ -188,26 +189,36 @@ void test_nested_structures() {
     // 异步拆分
     print_test_section("异步拆分测试");
     
-    std::promise<PacketSplitter<Json::Value>::SplitResult> split_promise;
-    std::future<PacketSplitter<Json::Value>::SplitResult> split_future = split_promise.get_future();
+    struct SplitResult {
+        std::string text_part;
+        std::vector<SmartBuffer> binary_parts;
+        int binary_count = 0;
+        std::promise<void> promise;
+    };
+    
+    auto split_result = std::make_shared<SplitResult>();
     
     PacketSplitter<Json::Value>::split_data_array_async(
         complex_array,
-        [&split_promise](const PacketSplitter<Json::Value>::SplitResult& result) {
+        [split_result](const std::string& text_part) {
             std::cout << "\n拆分回调被调用:" << std::endl;
-            std::cout << "  文本部分长度: " << result.text_part.length() << std::endl;
-            std::cout << "  二进制部分数量: " << result.binary_parts.size() << std::endl;
+            std::cout << "  文本部分长度: " << text_part.length() << std::endl;
+            split_result->text_part = text_part;
+        },
+        [split_result](const SmartBuffer& binary_part, size_t index) {
+            std::cout << "  二进制[" << index << "]: " << binary_part.size() << "字节" << std::endl;
+            split_result->binary_parts.push_back(binary_part);
+            split_result->binary_count++;
             
-            for (size_t i = 0; i < result.binary_parts.size(); i++) {
-                std::cout << "  二进制[" << i << "]: " << result.binary_parts[i].size() << "字节" << std::endl;
+            // 当所有二进制数据都处理完成后，设置promise
+            if (split_result->binary_count == 2) { // 期望2个二进制数据
+                split_result->promise.set_value();
             }
-            
-            split_promise.set_value(result);
         }
     );
     
     // 等待拆分完成
-    auto split_result = split_future.get();
+    split_result->promise.get_future().get();
     
     // 验证拆分结果
     print_test_section("验证拆分结果");
@@ -215,14 +226,14 @@ void test_nested_structures() {
     bool split_success = true;
     
     // 检查文本部分是否包含占位符
-    if (split_result.text_part.empty()) {
+    if (split_result->text_part.empty()) {
         split_success = false;
         print_test_result(false, "文本部分为空");
     } else {
-        print_test_result(true, "文本部分非空，长度: " + std::to_string(split_result.text_part.length()));
+        print_test_result(true, "文本部分非空，长度: " + std::to_string(split_result->text_part.length()));
         
         // 检查是否包含占位符
-        if (split_result.text_part.find("\"_placeholder\"") == std::string::npos) {
+        if (split_result->text_part.find("\"_placeholder\"") == std::string::npos) {
             split_success = false;
             print_test_result(false, "文本部分未找到占位符");
         } else {
@@ -231,17 +242,17 @@ void test_nested_structures() {
     }
     
     // 检查二进制部分数量
-    if (split_result.binary_parts.size() != 2) {
+    if (split_result->binary_parts.size() != 2) {
         split_success = false;
-        print_test_result(false, "二进制部分数量应为2，实际为: " + std::to_string(split_result.binary_parts.size()));
+        print_test_result(false, "二进制部分数量应为2，实际为: " + std::to_string(split_result->binary_parts.size()));
     } else {
-        print_test_result(true, "二进制部分数量正确: " + std::to_string(split_result.binary_parts.size()));
+        print_test_result(true, "二进制部分数量正确: " + std::to_string(split_result->binary_parts.size()));
         
         // 验证二进制数据内容
-        bool data1_match = compare_binary_data(split_result.binary_parts[0], binary_data_1);
+        bool data1_match = compare_binary_data(split_result->binary_parts[0], binary_data_1);
         print_test_result(data1_match, "二进制数据1内容匹配");
         
-        bool data2_match = compare_binary_data(split_result.binary_parts[1], binary_data_2);
+        bool data2_match = compare_binary_data(split_result->binary_parts[1], binary_data_2);
         print_test_result(data2_match, "二进制数据2内容匹配");
         
         split_success = split_success && data1_match && data2_match;
@@ -258,8 +269,8 @@ void test_nested_structures() {
     std::future<std::vector<Json::Value>> combine_future = combine_promise.get_future();
     
     PacketSplitter<Json::Value>::combine_to_data_array_async(
-        split_result.text_part,
-        split_result.binary_parts,
+        split_result->text_part,
+        split_result->binary_parts,
         [&combine_promise](const std::vector<Json::Value>& data_array) {
             std::cout << "\n合并回调被调用:" << std::endl;
             std::cout << "  合并后数据数量: " << data_array.size() << std::endl;
@@ -415,9 +426,12 @@ void test_packet_sender_receiver() {
         packet_printer::print_json_value(data_array[i]);
     }
     
+    // 创建任务队列工厂
+    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
+    
     // 创建发送器和接收器
-    PacketSender<Json::Value> sender;
-    PacketReceiver<Json::Value> receiver;
+    PacketSender<Json::Value> sender(task_queue_factory.get());
+    PacketReceiver<Json::Value> receiver(task_queue_factory.get());
     
     // 用于存储发送的数据
     struct SendData {
@@ -705,9 +719,12 @@ void test_version_compatibility() {
             std::string version_str = (version == SocketIOVersion::V2) ? "v2" : "v3";
             print_test_section("测试 " + version_str + " 版本");
             
+            // 创建任务队列工厂
+            std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
+            
             // 创建版本特定的发送器和接收器
-            PacketSender<Json::Value> sender(version);
-            PacketReceiver<Json::Value> receiver(version);
+            PacketSender<Json::Value> sender(task_queue_factory.get(), version);
+            PacketReceiver<Json::Value> receiver(task_queue_factory.get(), version);
             
             // 发送数据
             std::promise<std::string> send_promise;

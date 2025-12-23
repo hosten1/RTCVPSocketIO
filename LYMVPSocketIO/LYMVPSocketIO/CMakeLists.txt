@@ -137,16 +137,13 @@ set(SOURCE_FILES
     # Source 目录 - 根目录
     src/RTCVPSocketIOClient.mm
     src/RTCVPSocketEngine.m
-    src/RTCVPSocketPacket.mm
     src/RTCVPSocketIOConfig.m
     src/RTCVPSocketLogger.m
     src/RTCVPStringReader.m
-    src/RTCVPACKManager.m
     src/RTCVPProbe.m
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
-    lib/sio_client_core.cc
     
     # Source 目录 - utils
     src/utils/NSString+RTCVPSocketIO.m
@@ -288,9 +285,7 @@ add_executable(test_sio_packet
     lib/sio_packet.cc
     lib/sio_packet_impl.cc
     lib/sio_packet_parser.cc
-    lib/sio_client_core.cc
     lib/test/test_sio_packet.cpp
-    lib/test/test_client_core.cpp
     lib/test/main.cpp
 )
 
