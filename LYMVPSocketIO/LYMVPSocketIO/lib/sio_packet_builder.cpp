@@ -28,16 +28,16 @@ SioPacketBuilder::SioPacketBuilder(SocketIOVersion version) : version_(version) 
 SioPacket SioPacketBuilder::build_event_packet(
     const std::string& event_name,
     const std::vector<Json::Value>& args,
-    int namespace_id,
-    int packet_id) {
+    const std::string&  namespace_s,
+    int ack_id) {
     
     SioPacket packet;
     packet.type = PacketType::EVENT;
     packet.event_name = event_name;
     packet.args = args;
-    packet.namespace_id = namespace_id;
-    packet.packet_id = packet_id;
-    packet.need_ack = (packet_id > 0);
+    packet.namespace_s = namespace_s;
+    packet.ack_id = ack_id;
+    packet.need_ack = (ack_id > 0);
     packet.version = version_;
     
     // 检查是否有二进制数据
@@ -52,15 +52,15 @@ SioPacket SioPacketBuilder::build_event_packet(
 }
 
 SioPacket SioPacketBuilder::build_ack_packet(
-    const std::vector<Json::Value>& args,
-    int namespace_id,
-    int packet_id) {
+                        const std::vector<Json::Value>& args,
+                          const std::string&  namespace_s ,
+                          int ack_id ) {
     
     SioPacket packet;
     packet.type = PacketType::ACK;
     packet.args = args;
-    packet.namespace_id = namespace_id;
-    packet.packet_id = packet_id;
+    packet.namespace_s = namespace_s;
+    packet.ack_id = ack_id;
     packet.need_ack = false;
     packet.version = version_;
     
@@ -172,39 +172,78 @@ SioPacketBuilder::PacketHeader SioPacketBuilder::parse_packet_header(
         return header;
     }
     
-    // V2和V3的命名空间处理不同
     if (version == SocketIOVersion::V2) {
-        // V2：命名空间是字符串，以"/"开头
-        if (packet[pos] == '/') {
-            size_t nsp_end = packet.find(',', pos);
-            if (nsp_end != std::string::npos) {
-                header.namespace_str = packet.substr(pos, nsp_end - pos);
-                pos = nsp_end + 1;
-            } else {
-                // 没有逗号，整个剩余部分都是命名空间？
-                header.namespace_str = packet.substr(pos);
-                pos = packet.length();
+        // V2格式：type[namespace][ackId][data]
+        // 命名空间以'/'开头，可能包含逗号（老格式）
+        
+        // 检查是否有命名空间
+        if (pos < packet.length() && packet[pos] == '/') {
+            // 查找逗号或结束
+            size_t nsp_end = pos;
+            while (nsp_end < packet.length() && packet[nsp_end] != ',' && packet[nsp_end] != '[') {
+                nsp_end++;
             }
+            
+            header.namespace_str = packet.substr(pos, nsp_end - pos);
+            pos = nsp_end;
+            
+            // 如果遇到逗号，跳过它
+            if (pos < packet.length() && packet[pos] == ',') {
+                pos++;
+            }
+        } else {
+            // 没有命名空间，使用默认命名空间"/"
+            header.namespace_str = "/";
         }
-    } else {
-        // V3：命名空间可以是数字
-        if (packet[pos] >= '0' && packet[pos] <= '9') {
-            // 解析数字命名空间
-            size_t num_start = pos;
+        
+        // 接下来解析ACK ID（如果有）
+        if (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
+            size_t ack_start = pos;
             while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
                 pos++;
             }
             
-            std::string num_str = packet.substr(num_start, pos - num_start);
+            std::string ack_str = packet.substr(ack_start, pos - ack_start);
             try {
-                header.namespace_id = std::stoi(num_str);
+                header.ack_id = std::stoi(ack_str);
             } catch (...) {
-                header.namespace_id = 0;
+                header.ack_id = -1;
+            }
+        }
+        
+    } else {
+        // V3/V4格式：type[namespace][ackId][data]
+        // 命名空间以'/'开头，ACK ID是纯数字
+        
+        // 检查是否有命名空间
+        if (pos < packet.length() && packet[pos] == '/') {
+            // 读取命名空间直到遇到数字或'['
+            size_t nsp_end = pos;
+            while (nsp_end < packet.length() &&
+                   packet[nsp_end] != '[' &&
+                   !(packet[nsp_end] >= '0' && packet[nsp_end] <= '9')) {
+                nsp_end++;
             }
             
-            // 检查是否有逗号分隔
-            if (pos < packet.length() && packet[pos] == ',') {
+            header.namespace_str = packet.substr(pos, nsp_end - pos);
+            pos = nsp_end;
+        } else {
+            // 没有命名空间，使用默认命名空间"/"
+            header.namespace_str = "/";
+        }
+        
+        // 接下来解析ACK ID（如果有）
+        if (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
+            size_t ack_start = pos;
+            while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
                 pos++;
+            }
+            
+            std::string ack_str = packet.substr(ack_start, pos - ack_start);
+            try {
+                header.ack_id = std::stoi(ack_str);
+            } catch (...) {
+                header.ack_id = -1;
             }
         }
     }
@@ -218,9 +257,9 @@ SioPacketBuilder::PacketHeader SioPacketBuilder::parse_packet_header(
         
         std::string id_str = packet.substr(id_start, pos - id_start);
         try {
-            header.packet_id = std::stoi(id_str);
+            header.ack_id = std::stoi(id_str);
         } catch (...) {
-            header.packet_id = -1;
+            header.ack_id = -1;
         }
     }
     
@@ -292,18 +331,18 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v3_packet(const SioPack
     ss << static_cast<int>(packet_type);
     
     // V3命名空间（如果是数字命名空间）
-    if (packet.namespace_id > 0) {
-        ss << packet.namespace_id;
+    if (!packet.namespace_s.empty()) {
+        ss << packet.namespace_s;
         
         // 如果有包ID，需要逗号分隔
-        if (packet.packet_id > 0) {
+        if (packet.ack_id > 0) {
             ss << ",";
         }
     }
     
     // 包ID（如果需要ACK）
-    if (packet.packet_id > 0) {
-        ss << packet.packet_id;
+    if (packet.ack_id > 0) {
+        ss << packet.ack_id;
     }
     
     // V3二进制计数（如果是二进制包）
@@ -335,9 +374,9 @@ SioPacket SioPacketBuilder::decode_v3_packet(
     PacketHeader header = parse_packet_header(text, SocketIOVersion::V3);
     
     packet.type = header.type;
-    packet.namespace_id = header.namespace_id;
-    packet.packet_id = header.packet_id;
-    packet.need_ack = (header.packet_id > 0);
+    packet.namespace_s = header.namespace_str;
+    packet.ack_id = header.ack_id;
+    packet.need_ack = (header.ack_id > 0);
     
     // 获取数据部分
     std::string json_str = text.substr(header.data_start_pos);
@@ -409,8 +448,8 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
         json_obj["args"] = args_array;
         
         // V2需要ackId
-        if (packet.packet_id > 0) {
-            json_obj["ackId"] = packet.packet_id;
+        if (packet.ack_id > 0) {
+            json_obj["ackId"] = packet.ack_id;
         }
     } else {
         // V2事件包：{"name": "event_name", "args": [...]}
@@ -425,8 +464,8 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
         json_obj["args"] = args_array;
         
         // V2需要ackId
-        if (packet.packet_id > 0) {
-            json_obj["ackId"] = packet.packet_id;
+        if (packet.ack_id > 0) {
+            json_obj["ackId"] = packet.ack_id;
         }
     }
     
@@ -448,11 +487,11 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     ss << static_cast<int>(packet_type);
     
     // V2命名空间（字符串格式，可选）
-    if (packet.namespace_id > 0) {
-        ss << "/nsp" << packet.namespace_id;
+    if (!packet.namespace_s.empty()) {
+        ss << packet.namespace_s;
         
         // 如果有包ID，需要逗号分隔
-        if (packet.packet_id > 0) {
+        if (packet.ack_id > 0) {
             ss << ",";
         }
     }
@@ -488,16 +527,16 @@ SioPacket SioPacketBuilder::decode_v2_packet(
     
     packet.type = header.type;
     
-    // 解析V2命名空间字符串
-    if (!header.namespace_str.empty() && header.namespace_str.length() > 1) {
-        // 假设格式为 "/nsp123"，提取数字部分
-        std::string nsp_num = header.namespace_str.substr(4); // 跳过 "/nsp"
-        try {
-            packet.namespace_id = std::stoi(nsp_num);
-        } catch (...) {
-            packet.namespace_id = 0;
-        }
-    }
+//    // 解析V2命名空间字符串
+//    if (!header.namespace_str.empty() && header.namespace_str.length() > 1) {
+//        // 假设格式为 "/nsp123"，提取数字部分
+//        std::string nsp_num = header.namespace_str.substr(4); // 跳过 "/nsp"
+//        try {
+//            packet.namespace_s = std::stoi(nsp_num);
+//        } catch (...) {
+//            packet.namespace_s = 0;
+//        }
+//    }
     
     // 获取数据部分
     std::string json_str = text.substr(header.data_start_pos);
@@ -533,8 +572,8 @@ SioPacket SioPacketBuilder::decode_v2_packet(
             }
             
             if (json_value.isMember("ackId")) {
-                packet.packet_id = json_value["ackId"].asInt();
-                packet.need_ack = (packet.packet_id > 0);
+                packet.ack_id = json_value["ackId"].asInt();
+                packet.need_ack = (packet.ack_id > 0);
             }
         } else if (json_value.isArray()) {
             // ACK包：直接是参数数组

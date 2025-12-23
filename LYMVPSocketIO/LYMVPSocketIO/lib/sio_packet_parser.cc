@@ -529,14 +529,14 @@ std::string PacketParser::buildPacketString(const Packet& packet, const BuildOpt
 std::string PacketParser::buildEventString(
     const std::string& event_name,
     const Json::Value& data,
-    int packet_id,
+    int ack_id,
     const std::string& nsp,
     bool is_binary) {
     
     Packet packet;
     packet.type = is_binary ? PacketType::BINARY_EVENT : PacketType::EVENT;
     packet.nsp = namespaceToIndex(nsp);
-    packet.id = packet_id;  // 这里设置ACK ID
+    packet.id = ack_id;  // 这里设置ACK ID
     
     // 构建数据数组
     Json::Value data_array(Json::arrayValue);
@@ -552,10 +552,10 @@ std::string PacketParser::buildEventString(
         }
     }
     
-    // 如果packet_id >= 0，表示需要ACK，将ACK ID添加到JSON数据末尾
-    if (packet_id >= 0) {
+    // 如果ack_id >= 0，表示需要ACK，将ACK ID添加到JSON数据末尾
+    if (ack_id >= 0) {
         // 对于事件包，ACK ID在JSON数组的末尾
-        data_array.append(Json::Value(packet_id));
+        data_array.append(Json::Value(ack_id));
     }
     
     // 序列化JSON

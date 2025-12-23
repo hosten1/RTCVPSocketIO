@@ -99,7 +99,7 @@ public:
     std::string buildEventString(
         const std::string& event_name,
         const Json::Value& data = Json::Value(),
-        int packet_id = -1,
+        int ack_id = -1,
         const std::string& nsp = "/",
         bool is_binary = false);
     

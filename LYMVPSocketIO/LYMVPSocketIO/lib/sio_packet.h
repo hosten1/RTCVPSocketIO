@@ -129,10 +129,10 @@ public:
     // 构建事件包
     static std::string build_event_packet(const std::string& event_name,
                                         const Json::Value& data = Json::Value(),
-                                        int packet_id = -1,
+                                        int ack_id = -1,
                                         const std::string& nsp = "/",
                                         bool is_binary = false) {
-        return PacketParser::getInstance().buildEventString(event_name, data, packet_id, nsp, is_binary);
+        return PacketParser::getInstance().buildEventString(event_name, data, ack_id, nsp, is_binary);
     }
     
     // 构建ACK包

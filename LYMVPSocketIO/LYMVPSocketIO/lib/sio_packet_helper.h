@@ -23,28 +23,28 @@ public:
      * @brief 构建事件包
      * @param event_name 事件名
      * @param data 事件数据
-     * @param packet_id 包ID
+     * @param ack_id 包ID
      * @param nsp 命名空间
      * @return 符合Socket.IO协议格式的结果
      */
     static SocketIOPacketResult build_event_packet(
         const std::string& event_name,
         const Json::Value& data = Json::Value(),
-        int packet_id = -1,
+        int ack_id = -1,
         const std::string& nsp = "/") {
         
         SocketIOPacketResult result;
         
         // 使用PacketParser构建事件包
-        std::string text_packet = PacketParser::getInstance().buildEventString(event_name, data, packet_id, nsp, false);
+        std::string text_packet = PacketParser::getInstance().buildEventString(event_name, data, ack_id, nsp, false);
         
         result.text_packet = text_packet;
         result.is_binary_packet = false;
         result.binary_count = 0;
         result.original_packet_type = PacketType::EVENT;
         result.actual_packet_type = PacketType::EVENT;
-        result.namespace_id = 0; // 简化处理，直接使用0
-        result.packet_id = packet_id;
+        result.namespace_s = 0; // 简化处理，直接使用0
+        result.ack_id = ack_id;
         
         return result;
     }
@@ -71,8 +71,8 @@ public:
         result.binary_count = 0;
         result.original_packet_type = PacketType::ACK;
         result.actual_packet_type = PacketType::ACK;
-        result.namespace_id = 0; // 简化处理，直接使用0
-        result.packet_id = ack_id;
+        result.namespace_s = 0; // 简化处理，直接使用0
+        result.ack_id = ack_id;
         
         return result;
     }
@@ -98,8 +98,8 @@ public:
         result.binary_count = 0;
         result.original_packet_type = PacketType::CONNECT;
         result.actual_packet_type = PacketType::CONNECT;
-        result.namespace_id = 0;
-        result.packet_id = -1;
+        result.namespace_s = 0;
+        result.ack_id = -1;
         
         return result;
     }
@@ -118,8 +118,8 @@ public:
         result.binary_count = 0;
         result.original_packet_type = PacketType::DISCONNECT;
         result.actual_packet_type = PacketType::DISCONNECT;
-        result.namespace_id = 0;
-        result.packet_id = -1;
+        result.namespace_s = 0;
+        result.ack_id = -1;
         
         return result;
     }
@@ -144,8 +144,8 @@ public:
         result.binary_count = 0;
         result.original_packet_type = PacketType::ERROR;
         result.actual_packet_type = PacketType::ERROR;
-        result.namespace_id = 0;
-        result.packet_id = -1;
+        result.namespace_s = 0;
+        result.ack_id = -1;
         
         return result;
     }

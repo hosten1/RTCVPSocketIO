@@ -279,7 +279,7 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
                 }else{
                     // 调用上层事件处理器
                     NSString *ocEvent = [NSString stringWithUTF8String:packet.event_name.c_str()];
-                    [strongSelf handleEvent:ocEvent withData:ocArgs isInternalMessage:NO withAck:packet.packet_id];
+                    [strongSelf handleEvent:ocEvent withData:ocArgs isInternalMessage:NO withAck:packet.ack_id];
                 }
                 
                 
@@ -623,7 +623,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
         }
     }
     
-    int namespace_id = 0; // 默认命名空间
+    int namespace_s = 0; // 默认命名空间
     
     if (ack > 0) {
         // 如果需要ACK，使用send_event_with_ack方法
@@ -651,8 +651,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
                 // 超时回调
                 [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"ACK超时: %@", @(ack_id)] type:self.logType];
             },
-            std::chrono::milliseconds(30000),
-            namespace_id);
+            std::chrono::milliseconds(30000));
     } else {
         // 如果不需要ACK，使用send_event方法
         pack_sender->send_event(event.UTF8String, data_array, 
@@ -676,8 +675,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
                 if (!success) {
                     [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"发送失败: %s", error.c_str()] type:self.logType];
                 }
-            },
-            namespace_id);
+            } );
     }
 //    webrtc::TimeDelta::ms(1000).ms_or(1000)
    //ios 的数据 转 std::vector<T>& data_array
@@ -728,7 +726,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
             data_array.push_back(convertOCObjectToJsonValue(item));
         }
     }
-    int namespace_id = 0; // 默认命名空间
+    std::string namespace_s = "/"; // 默认命名空间
     
     // 使用send_event_with_ack方法发送带ACK的事件
     pack_sender->send_event_with_ack(event.UTF8String, data_array, 
@@ -756,7 +754,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
             [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"ACK超时: %@", @(timeout_ack_id)] type:self.logType];
         },
         std::chrono::milliseconds(30000),
-        namespace_id);
+                                     namespace_s);
     
 //    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送带ACK的事件: %@ (ackId: %@)", str, @(ackId)]
 //                                  type:self.logType];

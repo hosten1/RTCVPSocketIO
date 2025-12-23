@@ -76,7 +76,7 @@ bool PacketSender::send_event(const std::string& event_name,
                              TextSendCallback text_callback,
                              BinarySendCallback binary_callback,
                              SendResultCallback complete_callback,
-                             int namespace_id) {
+                              const std::string& namespace_s) {
     if (!packet_builder_ || !text_callback) {
         if (complete_callback) {
             complete_callback(false, "Packet builder or text callback is null");
@@ -86,7 +86,7 @@ bool PacketSender::send_event(const std::string& event_name,
     
     // 构建包
     auto packet = packet_builder_->build_event_packet(
-        event_name, args, namespace_id, -1);
+        event_name, args, "/", -1);
     auto encoded = packet_builder_->encode_packet(packet);
     
     if (encoded.text_packet.empty()) {
@@ -142,7 +142,7 @@ int PacketSender::send_event_with_ack(
     AckCallback ack_callback,
     AckTimeoutCallback timeout_callback,
     std::chrono::milliseconds timeout,
-    int namespace_id) {
+    const std::string& namespace_s) {
     
     if (!packet_builder_ || !text_callback || !ack_manager_) {
         return -1;
@@ -184,7 +184,7 @@ int PacketSender::send_event_with_ack(
     
     // 构建包
     auto packet = packet_builder_->build_event_packet(
-        event_name, args, namespace_id, ack_id);
+                                                      event_name, args, namespace_s, ack_id);
     auto encoded = packet_builder_->encode_packet(packet);
     
     if (encoded.text_packet.empty()) {
@@ -248,18 +248,18 @@ int PacketSender::send_event_with_ack(
 }
 
 bool PacketSender::send_ack_response(
-    int packet_id,
+    int ack_id,
     const std::vector<Json::Value>& args,
     TextSendCallback text_callback,
     BinarySendCallback binary_callback,
-    int namespace_id) {
+    const std::string& namespace_s) {
     
-    if (packet_id <= 0 || !packet_builder_ || !text_callback) {
+    if (ack_id <= 0 || !packet_builder_ || !text_callback) {
         return false;
     }
     
     // 构建ACK响应包
-    auto packet = packet_builder_->build_ack_packet(args, namespace_id, packet_id);
+    auto packet = packet_builder_->build_ack_packet(args, namespace_s, ack_id);
     auto encoded = packet_builder_->encode_packet(packet);
     
     if (encoded.text_packet.empty()) {
@@ -574,12 +574,12 @@ void PacketReceiver::process_complete_packet(const SioPacket& packet) {
 }
 
 void PacketReceiver::handle_ack_packet(const SioPacket& packet) {
-    if (!ack_manager_ || packet.packet_id <= 0) {
+    if (!ack_manager_ || packet.ack_id <= 0) {
         return;
     }
     
     // 处理ACK响应
-    ack_manager_->handle_ack_response(packet.packet_id, packet.args);
+    ack_manager_->handle_ack_response(packet.ack_id, packet.args);
 }
 
 } // namespace sio

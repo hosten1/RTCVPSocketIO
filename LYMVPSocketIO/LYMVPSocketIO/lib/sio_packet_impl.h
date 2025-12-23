@@ -78,7 +78,7 @@ public:
                    TextSendCallback text_callback,
                    BinarySendCallback binary_callback = nullptr,
                    SendResultCallback complete_callback = nullptr,
-                   int namespace_id = 0);
+                   const std::string& namespace_s = "/");
     
     // 发送事件（异步，支持ACK）
     int send_event_with_ack(
@@ -89,15 +89,15 @@ public:
         AckCallback ack_callback = nullptr,
         AckTimeoutCallback timeout_callback = nullptr,
         std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
-        int namespace_id = 0);
+                            const std::string& namespace_s = "/");
     
     // 发送ACK响应
     bool send_ack_response(
-        int packet_id,
+        int ack_id,
         const std::vector<Json::Value>& args,
         TextSendCallback text_callback,
         BinarySendCallback binary_callback = nullptr,
-        int namespace_id = 0);
+       const std::string& namespace_s = "/");
     
     // 重置发送器
     void reset();

@@ -23,13 +23,13 @@ struct SioPacket {
     std::string event_name;
     std::vector<Json::Value> args;
     std::vector<SmartBuffer> binary_parts;
-    int namespace_id;
-    int packet_id;
+    std::string namespace_s;
+    int ack_id;
     bool need_ack;
     SocketIOVersion version;
     
-    SioPacket() : type(PacketType::EVENT), namespace_id(0),
-                  packet_id(-1), need_ack(false), version(SocketIOVersion::V4) {}
+    SioPacket() : type(PacketType::EVENT), namespace_s("/"),
+    ack_id(-1), need_ack(false), version(SocketIOVersion::V4) {}
     
     bool is_binary() const {
         return !binary_parts.empty() ||
@@ -44,8 +44,8 @@ struct SioPacket {
         ss << "  event: " << event_name << std::endl;
         ss << "  args: " << args.size() << " 个" << std::endl;
         ss << "  binary_parts: " << binary_parts.size() << " 个" << std::endl;
-        ss << "  namespace_id: " << namespace_id << std::endl;
-        ss << "  packet_id: " << packet_id << std::endl;
+        ss << "  namespace_s: " << namespace_s << std::endl;
+        ss << "  ack_id: " << ack_id << std::endl;
         ss << "  need_ack: " << (need_ack ? "true" : "false") << std::endl;
         ss << "  version: " << static_cast<int>(version) << std::endl;
         ss << "}";
@@ -65,14 +65,14 @@ public:
     SioPacket build_event_packet(
                                  const std::string& event_name,
                                  const std::vector<Json::Value>& args,
-                                 int namespace_id = 0,
-                                 int packet_id = -1);
+                                 const std::string&  namespace_s = "/",
+                                 int ack_id = -1);
     
     // 构建ACK包
     SioPacket build_ack_packet(
                                const std::vector<Json::Value>& args,
-                               int namespace_id = 0,
-                               int packet_id = -1);
+                               const std::string&  namespace_s = "/",
+                               int ack_id = -1);
     
     // 将包编码为Socket.IO协议格式
     struct EncodedPacket {
@@ -121,13 +121,12 @@ private:
     struct PacketHeader {
         PacketType type;
         std::string namespace_str;
-        int namespace_id;
-        int packet_id;
+        int ack_id;
         int binary_count;
         size_t data_start_pos;
         
-        PacketHeader() : type(PacketType::EVENT), namespace_id(0),
-        packet_id(-1), binary_count(0), data_start_pos(0) {}
+        PacketHeader() : type(PacketType::EVENT),
+        ack_id(-1), binary_count(0), data_start_pos(0) {}
     };
     
     PacketHeader parse_packet_header(const std::string& packet, SocketIOVersion version);
