@@ -58,7 +58,7 @@ public:
                    enable_logging(false) {}
     };
     
-    PacketSender(std::shared_ptr<IAckManager> ack_manager = nullptr,
+    PacketSender(std::shared_ptr<IAckManager> ack_manager,
                 webrtc::TaskQueueFactory* task_queue_factory = nullptr,
                 const Config& config = Config());
     
@@ -69,7 +69,7 @@ public:
     Config get_config() const { return config_; }
     
     // 设置ACK管理器
-    void set_ack_manager(std::shared_ptr<IAckManager> ack_manager);
+    // void set_ack_manager(std::shared_ptr<IAckManager> ack_manager);
     std::shared_ptr<IAckManager> get_ack_manager() { return ack_manager_; }
     
     // 发送事件（同步）
@@ -173,7 +173,7 @@ public:
                    max_binary_size(10 * 1024 * 1024) {} // 10MB
     };
     
-    PacketReceiver(std::shared_ptr<IAckManager> ack_manager = nullptr,
+    PacketReceiver(std::shared_ptr<IAckManager> ack_manager,
                   webrtc::TaskQueueFactory* task_queue_factory = nullptr,
                   const Config& config = Config());
     
@@ -184,7 +184,7 @@ public:
     Config get_config() const { return config_; }
     
     // 设置ACK管理器
-    void set_ack_manager(std::shared_ptr<IAckManager> ack_manager);
+    // void set_ack_manager(std::shared_ptr<IAckManager> ack_manager);
     std::shared_ptr<IAckManager> get_ack_manager() { return ack_manager_; }
     
     // 设置事件回调

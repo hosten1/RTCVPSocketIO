@@ -9,6 +9,7 @@
 #import "RTCVPSocketIOClient.h"
 #import "RTCVPSocketEngine.h"
 #include "sio_packet_impl.h"
+#include "sio_ack_manager.h"
 #include "sio_jsoncpp_binary_helper.hpp"
 #import "RTCDefaultSocketLogger.h"
 #import "RTCVPStringReader.h"
@@ -173,6 +174,7 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
     webrtc::RepeatingTaskHandle repHanler_;
     std::unique_ptr<sio::PacketSender> pack_sender;
     std::unique_ptr<sio::PacketReceiver> pack_receiver;
+    std::shared_ptr<sio::SioAckManager> ack_manager_;
 }
 
 @property (nonatomic, strong) NSString *logType;
@@ -254,14 +256,18 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
         
         sio::SocketIOVersion versions = sio::SocketIOVersion::V3;
         
+        
+        ack_manager_ = sio::SioAckManager::Create(taskQueueFactory_.get());
         // 初始化PacketSender和PacketReceiver，移除模板参数，使用正确的构造函数
         sio::PacketSender::Config sender_config;
         sender_config.version = versions;
-        pack_sender = absl::make_unique<sio::PacketSender>(nullptr, taskQueueFactory_.get(), sender_config);
+        // 将创建的ack_manager_传递给PacketSender
+        pack_sender = absl::make_unique<sio::PacketSender>(ack_manager_, taskQueueFactory_.get(), sender_config);
         
         sio::PacketReceiver::Config receiver_config;
         receiver_config.default_version = versions;
-        pack_receiver = absl::make_unique<sio::PacketReceiver>(nullptr, taskQueueFactory_.get(), receiver_config);
+        // 将创建的ack_manager_传递给PacketReceiver
+        pack_receiver = absl::make_unique<sio::PacketReceiver>(ack_manager_, taskQueueFactory_.get(), receiver_config);
         
         // 设置事件回调函数，将收到的事件推送给上层
         __weak __typeof(self) weakSelf = self;
@@ -445,6 +451,17 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
     if (repHanler_.Running()) {
         repHanler_.Stop();
     }
+    if (ack_manager_) {
+        ack_manager_->clear_all_acks();
+        ack_manager_->stop();
+    }
+    if (pack_sender) {
+        pack_sender->reset();
+    }
+    if (pack_receiver) {
+        pack_receiver->reset();
+    }
+    
 }
 
 - (void)disconnectWithHandler:(RTCVPSocketIOVoidHandler)handler {
@@ -623,7 +640,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
         }
     }
     
-    int namespace_s = 0; // 默认命名空间
+    std::string namespace_s = "/"; // 默认命名空间
     
     if (ack > 0) {
         // 如果需要ACK，使用send_event_with_ack方法
@@ -651,7 +668,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
                 // 超时回调
                 [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"ACK超时: %@", @(ack_id)] type:self.logType];
             },
-            std::chrono::milliseconds(30000));
+            std::chrono::milliseconds(30000),namespace_s);
     } else {
         // 如果不需要ACK，使用send_event方法
         pack_sender->send_event(event.UTF8String, data_array, 
@@ -675,7 +692,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
                 if (!success) {
                     [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"发送失败: %s", error.c_str()] type:self.logType];
                 }
-            } );
+            },namespace_s );
     }
 //    webrtc::TimeDelta::ms(1000).ms_or(1000)
    //ios 的数据 转 std::vector<T>& data_array
@@ -746,14 +763,39 @@ Json::Value convertOCObjectToJsonValue(id obj) {
             return true;
         },
         [=](const std::vector<Json::Value>& result_data){
-            // ACK回调
+            // ACK回调 - 完成C++到OC的回调
             [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到ACK响应"] type:self.logType];
+            
+            // 将C++ Json::Value数组转换为OC NSArray
+            NSMutableArray *ocResultData = [NSMutableArray array];
+            for (const auto& jsonValue : result_data) {
+                [ocResultData addObject:convertJsonValueToObjC(jsonValue)];
+            }
+            
+            // 调用ACK回调
+            if (ackBlock) {
+                dispatch_async(self.handleQueue, ^{ 
+                    ackBlock(ocResultData, nil);
+                });
+            }
         },
         [=](int timeout_ack_id){
-            // 超时回调
+            // 超时回调 - 完成C++到OC的回调
             [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"ACK超时: %@", @(timeout_ack_id)] type:self.logType];
+            
+            // 创建超时错误对象
+            NSError *error = [NSError errorWithDomain:@"RTCVPSocketIOErrorDomain"
+                                                 code:-3
+                                             userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"ACK超时 (ID: %d)", timeout_ack_id]}];
+            
+            // 调用ACK回调，传递错误
+            if (ackBlock) {
+                dispatch_async(self.handleQueue, ^{ 
+                    ackBlock(nil, error);
+                });
+            }
         },
-        std::chrono::milliseconds(30000),
+        std::chrono::milliseconds((int)(timeout * 1000)),
                                      namespace_s);
     
 //    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"发送带ACK的事件: %@ (ackId: %@)", str, @(ackId)]
@@ -796,7 +838,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
             // TODO: 实现二进制数据发送
         }
         return true;
-    }, 0);
+    }, "/");
 }
 
 #pragma mark - RTCVPSocketIOClientProtocol

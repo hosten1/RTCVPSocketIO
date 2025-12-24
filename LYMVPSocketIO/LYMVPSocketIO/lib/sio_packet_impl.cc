@@ -47,11 +47,6 @@ void PacketSender::initialize_task_queue() {
         
         packet_builder_.reset(new SioPacketBuilder(config_.version));
         
-        if (!ack_manager_) {
-            // 创建默认的ACK管理器
-            ack_manager_ = SioAckManager::Create(task_queue_factory_.get());
-        }
-        
         start_cleanup_timer();
         initialized_ = true;
         running_ = true;
@@ -65,11 +60,11 @@ void PacketSender::set_config(const Config& config) {
     }
 }
 
-void PacketSender::set_ack_manager(std::shared_ptr<IAckManager> ack_manager) {
-    stop_cleanup_timer();
-    ack_manager_ = ack_manager;
-    start_cleanup_timer();
-}
+//void PacketSender::set_ack_manager(std::shared_ptr<IAckManager> ack_manager) {
+//    stop_cleanup_timer();
+//    ack_manager_ = ack_manager;
+//    start_cleanup_timer();
+//}
 
 bool PacketSender::send_event(const std::string& event_name,
                              const std::vector<Json::Value>& args,
@@ -413,10 +408,6 @@ void PacketReceiver::initialize_task_queue() {
         
         packet_builder_.reset(new SioPacketBuilder(config_.default_version));
         
-        if (!ack_manager_) {
-            // 创建默认的ACK管理器
-            ack_manager_ = SioAckManager::Create(task_queue_factory_.get());
-        }
     }
 }
 
@@ -427,9 +418,9 @@ void PacketReceiver::set_config(const Config& config) {
     }
 }
 
-void PacketReceiver::set_ack_manager(std::shared_ptr<IAckManager> ack_manager) {
-    ack_manager_ = ack_manager;
-}
+//void PacketReceiver::set_ack_manager(std::shared_ptr<IAckManager> ack_manager) {
+//    ack_manager_ = ack_manager;
+//}
 
 void PacketReceiver::set_event_callback(EventCallback callback) {
     event_callback_ = callback;

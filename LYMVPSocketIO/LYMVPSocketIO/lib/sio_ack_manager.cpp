@@ -197,17 +197,38 @@ void SioAckManager::start_timeout_checker() {
 }
 
 void SioAckManager::stop_timeout_checker() {
-    running_ = false;
-    timeout_checker_handle_.Stop();
+    // 检查当前是否已经在任务队列线程上
+       if (task_queue_->IsCurrent()) {
+           // 直接执行，不需要PostTask
+           running_ = false;
+           timeout_checker_handle_.Stop();
+       } else {
+           // 不在任务队列线程上，需要PostTask
+           task_queue_->PostTask([this](){
+               running_ = false;
+               timeout_checker_handle_.Stop();
+           });
+       }
 }
 
 void SioAckManager::stop() {
-    stop_timeout_checker();
-    clear_all_acks();
+    // 检查当前是否已经在任务队列线程上
+       if (task_queue_->IsCurrent()) {
+           // 直接执行，不需要PostTask
+           stop_timeout_checker();
+           clear_all_acks();
+       } else {
+           // 不在任务队列线程上，需要PostTask
+           task_queue_->PostTask([this](){
+               stop_timeout_checker();
+               clear_all_acks();
+           });
+       }
+    
 }
 
 void SioAckManager::check_timeouts() {
-    auto now = std::chrono::steady_clock::now();
+//    auto now = std::chrono::steady_clock::now();
     std::vector<int> expired_acks;
     std::vector<std::pair<int, AckTimeoutCallback>> timeout_callbacks;
     
