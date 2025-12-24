@@ -1221,7 +1221,8 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     }
 }
 
-- (void)parseBinaryData:(NSData *)data {
+- (void)parseEngineBinaryData:(NSData *)data{
+    
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到二进制数据，长度: %ld", (long)data.length]
                                   type:@"SocketParser"];
     
@@ -1235,6 +1236,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     } else {
         [RTCDefaultSocketLogger.logger error:@"PacketReceiver未初始化，无法处理二进制数据" type:@"SocketParser"];
     }
+    
 }
 
 - (BOOL)isCorrectNamespace:(NSString *)nsp {

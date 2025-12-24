@@ -145,142 +145,184 @@ SocketIOVersion SioPacketBuilder::detect_version(const std::string& packet) {
     return SocketIOVersion::V3;
 }
 */
+
+SioPacketBuilder::PacketHeader SioPacketBuilder::parse_v2_header(const std::string& packet) {
+    PacketHeader header;
+    if (packet.empty()) return header;
+
+    size_t pos = 0;
+
+    // 1. packet type
+    if (!isdigit(packet[pos])) return header;
+    header.type = static_cast<PacketType>(packet[pos++] - '0');
+
+    // 2. namespace (optional)
+    if (pos < packet.size() && packet[pos] == '/') {
+        size_t comma = packet.find(',', pos);
+        if (comma != std::string::npos) {
+            header.namespace_str = packet.substr(pos, comma - pos);
+            pos = comma + 1;
+        } else {
+            // namespace only, no payload
+            header.namespace_str = packet.substr(pos);
+            pos = packet.size();
+        }
+    } else {
+        header.namespace_str = "/";
+    }
+
+    // 3. v2: ackId 不在 header 中
+    header.ack_id = -1;
+
+    // 4. v2: binary_count 不在 header 中
+    header.binary_count = 0;
+
+    // 5. JSON 起点
+    header.data_start_pos = pos;
+    return header;
+}
+SioPacketBuilder::PacketHeader SioPacketBuilder::parse_v3_header(const std::string& packet) {
+    PacketHeader header;
+    if (packet.empty()) return header;
+
+    size_t pos = 0;
+
+    // 1. type
+    if (!isdigit(packet[pos])) return header;
+    header.type = static_cast<PacketType>(packet[pos++] - '0');
+
+    bool is_binary =
+        header.type == PacketType::BINARY_EVENT ||
+        header.type == PacketType::BINARY_ACK;
+
+    // 2. attachments
+    if (is_binary) {
+        size_t start = pos;
+        while (pos < packet.size() && isdigit(packet[pos])) pos++;
+        if (start < pos) {
+            header.binary_count = std::stoi(packet.substr(start, pos - start));
+        }
+    }
+
+    // 3. ackId (optional)
+    size_t ack_start = pos;
+    while (pos < packet.size() && isdigit(packet[pos])) pos++;
+    if (pos > ack_start) {
+        header.ack_id = std::stoi(packet.substr(ack_start, pos - ack_start));
+    }
+
+    // 4. namespace (optional, must start with '/')
+    if (pos < packet.size() && packet[pos] == '/') {
+        size_t nsp_start = pos;
+        while (pos < packet.size() && packet[pos] != '-') pos++;
+        header.namespace_str = packet.substr(nsp_start, pos - nsp_start);
+    } else {
+        header.namespace_str = "/";
+    }
+
+    // 5. '-'
+    if (pos >= packet.size() || packet[pos] != '-') {
+        header.data_start_pos = packet.size();
+        return header;
+    }
+    pos++;
+
+    // 6. JSON start
+    header.data_start_pos = pos;
+    return header;
+}
+
  
 SioPacketBuilder::PacketHeader SioPacketBuilder::parse_packet_header(
     const std::string& packet,
     SocketIOVersion version) {
     
-    PacketHeader header;
-    
-    if (packet.empty()) {
-        return header;
-    }
-    
-    size_t pos = 0;
-    
-    // 解析包类型
-    if (packet[0] >= '0' && packet[0] <= '9') {
-        header.type = static_cast<PacketType>(packet[0] - '0');
-        pos = 1;
-    }
-    
-    // 检查是否是二进制包
-    bool is_binary = (header.type == PacketType::BINARY_EVENT ||
-                      header.type == PacketType::BINARY_ACK);
-    
-    if (pos >= packet.length()) {
-        return header;
-    }
-    
     if (version == SocketIOVersion::V2) {
-        // V2格式：type[namespace][ackId][data]
-        // 命名空间以'/'开头，可能包含逗号（老格式）
-        
-        // 检查是否有命名空间
-        if (pos < packet.length() && packet[pos] == '/') {
-            // 查找逗号或结束
-            size_t nsp_end = pos;
-            while (nsp_end < packet.length() && packet[nsp_end] != ',' && packet[nsp_end] != '[') {
-                nsp_end++;
-            }
-            
-            header.namespace_str = packet.substr(pos, nsp_end - pos);
-            pos = nsp_end;
-            
-            // 如果遇到逗号，跳过它
-            if (pos < packet.length() && packet[pos] == ',') {
-                pos++;
-            }
-        } else {
-            // 没有命名空间，使用默认命名空间"/"
-            header.namespace_str = "/";
-        }
-        
-        // 接下来解析ACK ID（如果有）
-        if (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-            size_t ack_start = pos;
-            while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-                pos++;
-            }
-            
-            std::string ack_str = packet.substr(ack_start, pos - ack_start);
-            try {
-                header.ack_id = std::stoi(ack_str);
-            } catch (...) {
-                header.ack_id = -1;
-            }
-        }
-        
-    } else {
-        // V3/V4格式：type[namespace][ackId][data]
-        // 命名空间以'/'开头，ACK ID是纯数字
-        
-        // 检查是否有命名空间
-        if (pos < packet.length() && packet[pos] == '/') {
-            // 读取命名空间直到遇到数字或'['
-            size_t nsp_end = pos;
-            while (nsp_end < packet.length() &&
-                   packet[nsp_end] != '[' &&
-                   !(packet[nsp_end] >= '0' && packet[nsp_end] <= '9')) {
-                nsp_end++;
-            }
-            
-            header.namespace_str = packet.substr(pos, nsp_end - pos);
-            pos = nsp_end;
-        } else {
-            // 没有命名空间，使用默认命名空间"/"
-            header.namespace_str = "/";
-        }
-        
-        // 接下来解析ACK ID（如果有）
-        if (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-            size_t ack_start = pos;
-            while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-                pos++;
-            }
-            
-            std::string ack_str = packet.substr(ack_start, pos - ack_start);
-            try {
-                header.ack_id = std::stoi(ack_str);
-            } catch (...) {
-                header.ack_id = -1;
-            }
-        }
-    }
+           return parse_v2_header(packet);
+       }
+
+    // V3 / V4
+    return parse_v3_header(packet);
     
-    // 解析包ID（如果需要ACK）
-    if (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-        size_t id_start = pos;
-        while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-            pos++;
-        }
-        
-        std::string id_str = packet.substr(id_start, pos - id_start);
-        try {
-            header.ack_id = std::stoi(id_str);
-        } catch (...) {
-            header.ack_id = -1;
-        }
-    }
-    
-    // 如果是二进制包，解析二进制计数
-    if (is_binary && pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-        size_t count_start = pos;
-        while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
-            pos++;
-        }
-        
-        std::string count_str = packet.substr(count_start, pos - count_start);
-        try {
-            header.binary_count = std::stoi(count_str);
-        } catch (...) {
-            header.binary_count = 0;
-        }
-    }
-    
-    header.data_start_pos = pos;
-    return header;
-}
+//    PacketHeader header;
+//    
+//    if (packet.empty()) {
+//        return header;
+//    }
+//    
+//    size_t pos = 0;
+//    
+//    // 1. 解析包类型
+//    if (packet[0] >= '0' && packet[0] <= '9') {
+//        header.type = static_cast<PacketType>(packet[0] - '0');
+//        pos = 1;
+//    }
+//    
+//    bool is_binary = (header.type == PacketType::BINARY_EVENT ||
+//                      header.type == PacketType::BINARY_ACK);
+//    
+//    // 2. 对于二进制包，解析二进制计数
+//    if (is_binary) {
+//        // 查找减号分隔符
+//        size_t dash_pos = packet.find('-', pos);
+//        if (dash_pos != std::string::npos && dash_pos > pos) {
+//            // 提取二进制计数
+//            std::string count_str = packet.substr(pos, dash_pos - pos);
+//            try {
+//                header.binary_count = std::stoi(count_str);
+//            } catch (...) {
+//                header.binary_count = 0;
+//            }
+//            pos = dash_pos + 1; // 跳过减号
+//        }
+//    }
+//    
+//    if (pos >= packet.length()) {
+//        header.data_start_pos = pos;
+//        return header;
+//    }
+//    
+//    // 3. 解析命名空间（V3/V4格式）
+//    if (version == SocketIOVersion::V3 || version == SocketIOVersion::V4) {
+//        // 检查是否有命名空间
+//        if (packet[pos] == '/') {
+//            size_t nsp_end = pos;
+//            while (nsp_end < packet.length() &&
+//                   packet[nsp_end] != ',' &&
+//                   packet[nsp_end] != '[') {
+//                nsp_end++;
+//            }
+//            
+//            header.namespace_str = packet.substr(pos, nsp_end - pos);
+//            pos = nsp_end;
+//        } else {
+//            header.namespace_str = "/";
+//        }
+//        
+//        // 如果有逗号分隔符，跳过它
+//        if (pos < packet.length() && packet[pos] == ',') {
+//            pos++;
+//        }
+//    }
+//    
+//    // 4. 解析ACK ID（可选）
+//    if (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
+//        size_t ack_start = pos;
+//        while (pos < packet.length() && packet[pos] >= '0' && packet[pos] <= '9') {
+//            pos++;
+//        }
+//        
+//        std::string ack_str = packet.substr(ack_start, pos - ack_start);
+//        try {
+//            header.ack_id = std::stoi(ack_str);
+//        } catch (...) {
+//            header.ack_id = -1;
+//        }
+//    }
+//    
+//    header.data_start_pos = pos;
+//    return header;
+//}
 
 SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v3_packet(const SioPacket& packet) {
     EncodedPacket result;
@@ -377,6 +419,7 @@ SioPacket SioPacketBuilder::decode_v3_packet(
     packet.namespace_s = header.namespace_str;
     packet.ack_id = header.ack_id;
     packet.need_ack = (header.ack_id > 0);
+    packet.binary_count = header.binary_count;
     
     // 获取数据部分
     std::string json_str = text.substr(header.data_start_pos);

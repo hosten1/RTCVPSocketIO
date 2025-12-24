@@ -28,6 +28,9 @@ struct SioPacket {
     bool need_ack;
     SocketIOVersion version;
     
+    int binary_count = 0;           // 二进制数据数量
+
+    
     SioPacket() : type(PacketType::EVENT), namespace_s("/"),
     ack_id(-1), need_ack(false), version(SocketIOVersion::V4) {}
     
@@ -128,6 +131,10 @@ private:
         PacketHeader() : type(PacketType::EVENT),
         ack_id(-1), binary_count(0), data_start_pos(0) {}
     };
+    
+    PacketHeader parse_v2_header(const std::string& packet);
+    
+    PacketHeader parse_v3_header(const std::string& packet);
     
     PacketHeader parse_packet_header(const std::string& packet, SocketIOVersion version);
     
