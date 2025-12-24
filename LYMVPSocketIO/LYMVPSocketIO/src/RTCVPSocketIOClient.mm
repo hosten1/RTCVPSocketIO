@@ -1204,28 +1204,6 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     }
 }
 
-- (void)parseSocketMessage:(NSString *)message {
-    if (message.length == 0) return;
-    
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析消息: %@", message]
-                                  type:@"SocketParser"];
-    
-    // 使用PacketReceiver处理文本消息
-    if (self->pack_receiver) {
-        self->pack_receiver->process_text_packet(message.UTF8String);
-    }
-}
-
-- (void)parseEngineBinaryData:(NSData *)data {
-    __weak __typeof(self) weakSelf = self;
-    dispatch_async(self.handleQueue, ^{
-        __strong __typeof(weakSelf) strongSelf = weakSelf;
-        if (strongSelf) {
-            [strongSelf parseBinaryData:data];
-        }
-    });
-}
-
 - (void)handleEngineAck:(NSInteger)ackId withData:(nonnull NSArray *)data {
     // 处理引擎ACK
     [self handleAck:(int)ackId withData:data];
@@ -1236,13 +1214,12 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析引擎消息: %@", msg]
                                   type:@"SocketParser"];
     
+    
     // 使用PacketReceiver处理消息
     if (self->pack_receiver) {
         self->pack_receiver->process_text_packet(msg.UTF8String);
     }
 }
-
-
 
 - (void)parseBinaryData:(NSData *)data {
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到二进制数据，长度: %ld", (long)data.length]
