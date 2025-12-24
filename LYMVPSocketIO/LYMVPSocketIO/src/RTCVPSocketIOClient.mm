@@ -678,18 +678,18 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     if (ack > 0) {
         // 如果需要ACK，使用send_event_with_ack方法
         pack_sender->send_event_with_ack(event.UTF8String, data_array, 
-            [=](const std::string& text_packet){
+            [=](const std::string& text_packet, const std::vector<sio::SmartBuffer>& binary_data){
                 // 发送文本包
                 if (self.engine) {
-                    [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
-                }
-                return true;
-            },
-            [=](const sio::SmartBuffer& binary_data, int index){                // 发送二进制数据
-                if (self.engine) {
-                    // 将SmartBuffer转换为NSData，使用sendRawData发送原始二进制数据
-                    NSData *data = [NSData dataWithBytes:binary_data.data() length:binary_data.size()];
-                    [self.engine send:nil withData:@[data]];
+                    // 收集所有二进制数据
+                    NSMutableArray<NSData*> *binaryDataArray = [NSMutableArray array];
+                    for (const auto& buffer : binary_data) {
+                        NSData *data = [NSData dataWithBytes:buffer.data() length:buffer.size()];
+                        [binaryDataArray addObject:data];
+                    }
+                    
+                    // 同时发送文本包和二进制数据
+                    [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:binaryDataArray];
                 }
                 return true;
             },
@@ -705,18 +705,18 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     } else {
         // 如果不需要ACK，使用send_event方法
         pack_sender->send_event(event.UTF8String, data_array, 
-            [=](const std::string& text_packet){
-                // 发送文本包
+            [=](const std::string& text_packet, const std::vector<sio::SmartBuffer>& binary_data){
+                // 发送文本包和二进制数据
                 if (self.engine) {
-                    [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
-                }
-                return true;
-            },
-            [=](const sio::SmartBuffer& binary_data, int index){                // 发送二进制数据
-                if (self.engine) {
-                    // 将SmartBuffer转换为NSData，使用sendRawData发送原始二进制数据
-                    NSData *data = [NSData dataWithBytes:binary_data.data() length:binary_data.size()];
-                    [self.engine send:nil withData:@[data]];
+                    // 收集所有二进制数据
+                    NSMutableArray<NSData*> *binaryDataArray = [NSMutableArray array];
+                    for (const auto& buffer : binary_data) {
+                        NSData *data = [NSData dataWithBytes:buffer.data() length:buffer.size()];
+                        [binaryDataArray addObject:data];
+                    }
+                    
+                    // 同时发送文本包和二进制数据
+                    [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:binaryDataArray];
                 }
                 return true;
             },
@@ -780,19 +780,20 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     
     // 使用send_event_with_ack方法发送带ACK的事件
     pack_sender->send_event_with_ack(event.UTF8String, data_array, 
-        [=](const std::string& text_packet){
-            // 发送文本包
+        [=](const std::string& text_packet, const std::vector<sio::SmartBuffer>& binary_data){
+            // 发送文本包和二进制数据
             if (self.engine) {
-                [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
+                // 收集所有二进制数据
+                NSMutableArray<NSData*> *binaryDataArray = [NSMutableArray array];
+                for (const auto& buffer : binary_data) {
+                    NSData *data = [NSData dataWithBytes:buffer.data() length:buffer.size()];
+                    [binaryDataArray addObject:data];
+                }
+                
+                // 同时发送文本包和二进制数据
+                [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:binaryDataArray];
             }
-            return true;
-        },
-        [=](const sio::SmartBuffer& binary_data, int index){
-            // 发送二进制数据
-            if (self.engine) {
-                NSData *data = [NSData dataWithBytes:binary_data.data() length:binary_data.size()];
-                [self.engine send:nil withData:@[data]];
-            }
+           NSLog(@"发送文本");
             return true;
         },
         [=](const std::vector<Json::Value>& result_data){
@@ -859,16 +860,18 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     
     // 使用新的PacketSender发送ACK响应
     std::vector<Json::Value> data_array;
-    pack_sender->send_ack_response((int)ackId, data_array, [=](const std::string& text_packet) {
-        // 发送文本包
+    pack_sender->send_ack_response((int)ackId, data_array, [=](const std::string& text_packet, const std::vector<sio::SmartBuffer>& binary_data) {
+        // 发送文本包和二进制数据
         if (self.engine) {
-            [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:@[]];
-        }
-        return true;
-    }, [=](const sio::SmartBuffer& binary_data, int index) {
-        // 发送二进制数据
-        if (self.engine) {
-            // TODO: 实现二进制数据发送
+            // 收集所有二进制数据
+            NSMutableArray<NSData*> *binaryDataArray = [NSMutableArray array];
+            for (const auto& buffer : binary_data) {
+                NSData *data = [NSData dataWithBytes:buffer.data() length:buffer.size()];
+                [binaryDataArray addObject:data];
+            }
+            
+            // 同时发送文本包和二进制数据
+            [self.engine send:[NSString stringWithUTF8String:text_packet.c_str()] withData:binaryDataArray];
         }
         return true;
     }, "/");

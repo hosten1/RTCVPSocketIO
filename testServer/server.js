@@ -198,8 +198,8 @@ const handleConnection = (socket) => {
   
   // 监听二进制消息
   socket.on('binaryEvent', (data, callback) => {
-    console.log(`[${namespace}] Binary event received from`, socket.id, ':', data);
-    
+    // 不要直接打印包含二进制数据的对象
+    console.log(`[${namespace}] Binary event received from`, socket.id);
     
     // 回复ACK - 确保只返回简单的JSON数据，不包含二进制数据
     if (typeof callback === 'function') {
@@ -209,7 +209,7 @@ const handleConnection = (socket) => {
         success: true,
         timestamp: new Date().toISOString(),
         message: 'Binary data received successfully',
-        receivedSize: data.length,
+        receivedSize: data.binaryData ? data.binaryData.length : 0,
         sender: socket.id,
         namespace: namespace
       };
@@ -222,7 +222,8 @@ const handleConnection = (socket) => {
       }
     }
     
-    socket.nsp.emit('binaryEvent', data);
+    // 只广播给除了发送者之外的其他客户端
+    socket.broadcast.emit('binaryEvent', data);
   });
   
   // 监听二进制ACK测试

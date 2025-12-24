@@ -573,6 +573,9 @@ static const uint8_t image_data[] = {
                 NSDictionary *binaryData = (NSDictionary *)data;
                 NSString *sender = binaryData[@"sender"];
                 NSString *text = binaryData[@"text"];
+                if (![binaryData[@"binaryData"] isKindOfClass:[NSData class]]) {
+                    return;
+                }
                 NSData *binary = binaryData[@"binaryData"];
                 
                 NSString *message = [NSString stringWithFormat:@"📥 二进制消息来自: %@, 文本: %@, 大小: %lu字节", 

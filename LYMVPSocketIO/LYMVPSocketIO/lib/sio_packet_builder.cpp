@@ -322,10 +322,6 @@ SioPacketBuilder::PacketHeader SioPacketBuilder::parse_packet_header(
 SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v3_packet(const SioPacket& packet) {
     EncodedPacket result;
     
-    // 确定是否为二进制包
-    result.is_binary = packet.is_binary();
-    result.binary_count = packet.binary_count;
-    
     // 构建JSON数据
     Json::Value json_data;
     std::vector<SmartBuffer> binary_parts;
@@ -353,8 +349,10 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v3_packet(const SioPack
         json_data = event_array;
     }
     
+    // 确定是否为二进制包 - 基于实际提取的二进制数据数量
     result.binary_parts = binary_parts;
     result.binary_count = static_cast<int>(binary_parts.size());
+    result.is_binary = !binary_parts.empty();
     
     // 构建文本包
     std::stringstream ss;
@@ -507,17 +505,13 @@ SioPacket SioPacketBuilder::decode_v3_packet(
 SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPacket& packet) {
     EncodedPacket result;
     
-    // 确定是否为二进制包
-    result.is_binary = packet.is_binary();
-    result.binary_count = packet.binary_count;
-    
     // 构建JSON数据
     Json::Value json_obj(Json::objectValue);
     std::vector<SmartBuffer> binary_parts;
     std::map<std::string, int> binary_map;
     
     if (packet.type == PacketType::ACK || packet.type == PacketType::BINARY_ACK) {
-        // V2 ACK包：{"args": [...]}
+        // V2 ACK包：{"args": [...]}  
         Json::Value args_array(Json::arrayValue);
         for (const auto& arg : packet.args) {
             Json::Value processed_arg;
@@ -531,7 +525,7 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
             json_obj["ackId"] = packet.ack_id;
         }
     } else {
-        // V2事件包：{"name": "event_name", "args": [...]}
+        // V2事件包：{"name": "event_name", "args": [...]}  
         json_obj["name"] = Json::Value(packet.event_name);
         
         Json::Value args_array(Json::arrayValue);
@@ -546,26 +540,34 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
         if (packet.ack_id >= 0) {
             json_obj["ackId"] = packet.ack_id;
         }
-        
-        // V2二进制包的特殊处理：在args数组中添加二进制映射
-        if (result.is_binary && !binary_parts.empty()) {
-            // V2格式：在args数组末尾添加一个二进制映射对象
-            Json::Value binary_map_obj(Json::objectValue);
-            for (size_t i = 0; i < binary_parts.size(); i++) {
-                binary_map_obj[std::to_string(i)] = static_cast<Json::Int>(i);
-            }
-            json_obj["args"].append(binary_map_obj);
-        }
     }
     
+    // 确定是否为二进制包 - 基于实际提取的二进制数据数量
     result.binary_parts = binary_parts;
     result.binary_count = static_cast<int>(binary_parts.size());
+    result.is_binary = !binary_parts.empty();
+    
+    // V2二进制包的特殊处理：在args数组末尾添加二进制映射（仅适用于事件包）
+    if (result.is_binary && !binary_parts.empty() && (packet.type == PacketType::EVENT || packet.type == PacketType::BINARY_EVENT)) {
+        Json::Value binary_map_obj(Json::objectValue);
+        for (size_t i = 0; i < binary_parts.size(); i++) {
+            binary_map_obj[std::to_string(i)] = static_cast<Json::Int>(i);
+        }
+        json_obj["args"].append(binary_map_obj);
+    }
     
     // 构建V2文本包
     std::stringstream ss;
     
-    // 包类型
+    // 包类型 - 基于实际二进制数据
     int packet_type = static_cast<int>(packet.type);
+    if (result.is_binary) {
+        if (packet.type == PacketType::EVENT) {
+            packet_type = static_cast<int>(PacketType::BINARY_EVENT);
+        } else if (packet.type == PacketType::ACK) {
+            packet_type = static_cast<int>(PacketType::BINARY_ACK);
+        }
+    }
     ss << packet_type;
     
     // 命名空间（如果不是根命名空间）

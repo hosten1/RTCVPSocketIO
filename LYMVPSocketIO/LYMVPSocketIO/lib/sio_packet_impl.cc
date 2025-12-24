@@ -70,7 +70,6 @@ void PacketSender::set_config(const Config& config) {
 bool PacketSender::send_event(const std::string& event_name,
                              const std::vector<Json::Value>& args,
                              TextSendCallback text_callback,
-                             BinarySendCallback binary_callback,
                              SendResultCallback complete_callback,
                               const std::string& namespace_s) {
     if (!packet_builder_ || !text_callback) {
@@ -92,33 +91,23 @@ bool PacketSender::send_event(const std::string& event_name,
         return false;
     }
     
-    // 发送文本包
-    bool text_sent = text_callback(encoded.text_packet);
+    // 发送文本包和二进制数据
+    bool text_sent = text_callback(encoded.text_packet, encoded.binary_parts);
     if (!text_sent) {
         if (complete_callback) {
             complete_callback(false, "Failed to send text packet");
         }
         
         webrtc::MutexLock lock(&stats_mutex_);
+        stats_.total_sent++;
         stats_.total_failed++;
         return false;
     }
     
-    // 发送二进制数据
-    bool binary_sent = true;
-    if (binary_callback && !encoded.binary_parts.empty()) {
-        for (size_t i = 0; i < encoded.binary_parts.size(); i++) {
-            if (!binary_callback(encoded.binary_parts[i], static_cast<int>(i))) {
-                binary_sent = false;
-                break;
-            }
-        }
-    }
-    
-    bool success = text_sent && binary_sent;
+    bool success = text_sent;
     
     if (complete_callback) {
-        complete_callback(success, success ? "" : "Failed to send binary data");
+        complete_callback(success, success ? "" : "Failed to send data");
     }
     
     webrtc::MutexLock lock(&stats_mutex_);
@@ -134,7 +123,6 @@ int PacketSender::send_event_with_ack(
     const std::string& event_name,
     const std::vector<Json::Value>& args,
     TextSendCallback text_callback,
-    BinarySendCallback binary_callback,
     AckCallback ack_callback,
     AckTimeoutCallback timeout_callback,
     std::chrono::milliseconds timeout,
@@ -200,32 +188,9 @@ int PacketSender::send_event_with_ack(
         pending_requests_[ack_id] = request;
     }
     
-    // 发送文本包
-    bool text_sent = text_callback(encoded.text_packet);
+    // 发送文本包和二进制数据
+    bool text_sent = text_callback(encoded.text_packet, encoded.binary_parts);
     if (!text_sent) {
-        ack_manager_->cancel_ack(ack_id);
-        
-        webrtc::MutexLock lock(&pending_mutex_);
-        pending_requests_.erase(ack_id);
-        
-        webrtc::MutexLock stats_lock(&stats_mutex_);
-        stats_.total_failed++;
-        
-        return -1;
-    }
-    
-    // 发送二进制数据
-    bool binary_sent = true;
-    if (binary_callback && !encoded.binary_parts.empty()) {
-        for (size_t i = 0; i < encoded.binary_parts.size(); i++) {
-            if (!binary_callback(encoded.binary_parts[i], static_cast<int>(i))) {
-                binary_sent = false;
-                break;
-            }
-        }
-    }
-    
-    if (!binary_sent) {
         ack_manager_->cancel_ack(ack_id);
         
         webrtc::MutexLock lock(&pending_mutex_);
@@ -247,7 +212,6 @@ bool PacketSender::send_ack_response(
     int ack_id,
     const std::vector<Json::Value>& args,
     TextSendCallback text_callback,
-    BinarySendCallback binary_callback,
     const std::string& namespace_s) {
     
     if (ack_id <= 0 || !packet_builder_ || !text_callback) {
@@ -262,33 +226,15 @@ bool PacketSender::send_ack_response(
         return false;
     }
     
-    // 发送文本包
-    bool text_sent = text_callback(encoded.text_packet);
+    // 发送文本包和二进制数据
+    bool text_sent = text_callback(encoded.text_packet, encoded.binary_parts);
     if (!text_sent) {
         webrtc::MutexLock lock(&stats_mutex_);
         stats_.total_failed++;
         return false;
     }
     
-    // 发送二进制数据
-    bool binary_sent = true;
-    if (binary_callback && !encoded.binary_parts.empty()) {
-        for (size_t i = 0; i < encoded.binary_parts.size(); i++) {
-            if (!binary_callback(encoded.binary_parts[i], static_cast<int>(i))) {
-                binary_sent = false;
-                break;
-            }
-        }
-    }
-    
-    bool success = text_sent && binary_sent;
-    
-    if (!success) {
-        webrtc::MutexLock lock(&stats_mutex_);
-        stats_.total_failed++;
-    }
-    
-    return success;
+    return text_sent;
 }
 
 void PacketSender::reset() {

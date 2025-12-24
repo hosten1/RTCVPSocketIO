@@ -39,8 +39,7 @@ namespace sio {
 // 回调函数类型定义
 using EventCallback = std::function<void(const SioPacket &packet)>;
 using SendResultCallback = std::function<void(bool success, const std::string& error)>;
-using TextSendCallback = std::function<bool(const std::string& text_packet)>;
-using BinarySendCallback = std::function<bool(const SmartBuffer& binary_data, int index)>;
+using TextSendCallback = std::function<bool(const std::string& text_packet, const std::vector<SmartBuffer> binary_data)>;
 
 
 // 包发送器
@@ -76,7 +75,6 @@ public:
     bool send_event(const std::string& event_name,
                    const std::vector<Json::Value>& args,
                    TextSendCallback text_callback,
-                   BinarySendCallback binary_callback = nullptr,
                    SendResultCallback complete_callback = nullptr,
                    const std::string& namespace_s = "/");
     
@@ -85,19 +83,17 @@ public:
         const std::string& event_name,
         const std::vector<Json::Value>& args,
         TextSendCallback text_callback,
-        BinarySendCallback binary_callback = nullptr,
         AckCallback ack_callback = nullptr,
         AckTimeoutCallback timeout_callback = nullptr,
         std::chrono::milliseconds timeout = std::chrono::milliseconds(0),
-                            const std::string& namespace_s = "/");
+        const std::string& namespace_s = "/");
     
     // 发送ACK响应
     bool send_ack_response(
         int ack_id,
         const std::vector<Json::Value>& args,
         TextSendCallback text_callback,
-        BinarySendCallback binary_callback = nullptr,
-       const std::string& namespace_s = "/");
+        const std::string& namespace_s = "/");
     
     // 重置发送器
     void reset();
