@@ -136,6 +136,8 @@ private:
     
     PacketHeader parse_v3_header(const std::string& packet);
     
+    PacketHeader parse_v4_header(const std::string& packet);
+    
     PacketHeader parse_packet_header(const std::string& packet, SocketIOVersion version);
     
     SocketIOVersion version_;

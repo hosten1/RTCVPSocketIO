@@ -4,20 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Socket.IO Test Client</title>
+    <title>Socket.IO V2 Test Client</title>
     <link rel="stylesheet" href="test.css">
 </head>
 
 <body>
     <div class="container">
-        <h1>Socket.IO Test Client</h1>
+        <h1>Socket.IO V2 Test Client</h1>
 
         <div class="status" id="status">Disconnected</div>
 
         <div class="controls">
             <button id="connect">Connect to Server</button>
             <button id="disconnect" disabled>Disconnect</button>
-            <button id="sendCustomEvent">Send Custom Event</button>
+            <button id="sendCustomEvent" disabled>Send Custom Event</button>
             <button id="testAck" disabled>ACK Test</button>
             <button id="sendBinary" disabled>Send Binary</button>
             <button id="testBinaryAck" disabled>Binary ACK Test</button>
@@ -44,17 +44,16 @@
             </div>
             <div class="config-row">
                 <label for="protocolVersion">协议版本:</label>
-                <select id="protocolVersion" style="width: 70%;">
-                    <option value="v3" selected>Socket.IO v3</option>
-                    <option value="v2">Socket.IO v2</option>
+                <select id="protocolVersion" style="width: 70%;" disabled>
+                    <option value="v2" selected>Socket.IO v2</option>
                 </select>
             </div>
         </div>
     </div>
 
-    <!-- Socket.IO Client Library (Local) -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="test.js"></script>
+    <!-- Socket.IO Client Library (v2.3.1) -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@2.3.1/dist/socket.io.js"></script>
+    <script src="test_v2.js"></script>
 </body>
 
 </html>

@@ -123,3 +123,35 @@ pre {
     overflow-x: auto;
     font-size: 12px;
 }
+
+.config-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.config-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.config-row label {
+    width: 150px;
+    font-weight: bold;
+    color: #555;
+}
+
+.config-row input,
+.config-row select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.config-row select {
+    cursor: pointer;
+}

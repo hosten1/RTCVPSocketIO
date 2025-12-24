@@ -145,55 +145,60 @@ io.engine.on('connection_error', (error) => {
     console.error('=== 错误信息结束 ===');
 });
 
-// 添加详细的Socket.IO事件监听
-io.on('connection', (socket) => {
+// 定义共享的连接处理逻辑
+const handleConnection = (socket) => {
+    // 获取当前命名空间
+    const namespace = socket.nsp.name;
+    
     console.log('=== 新Socket.IO连接 ===');
     console.log('Socket ID:', socket.id);
+    console.log('命名空间:', namespace);
     console.log('连接时间:', new Date().toISOString());
     console.log('传输方式:', socket.conn.transport.name);
-    console.log('Engine.IO版本:', socket.conn.protocol); // 显示Engine.IO版本
+    console.log('Engine.IO版本:', socket.conn.protocol);
     console.log('=== Socket.IO连接信息结束 ===');
     
     // 发送欢迎消息  同时处理ack客户端的返回
-    socket.emit('welcome', { message: 'Welcome to Socket.IO server!', socketId: socket.id }, (ackData) => {
+    socket.emit('welcome', { message: `Welcome to Socket.IO server!`, socketId: socket.id }, (ackData) => {
       console.log('Welcome ACK from client:', ackData);
     });
     
-    // 广播用户连接事件给所有客户端
-    io.emit('userConnected', { socketId: socket.id, timestamp: new Date().toISOString() });
+    // 广播用户连接事件给当前命名空间的所有客户端
+    socket.nsp.emit('userConnected', { socketId: socket.id, timestamp: new Date().toISOString(), namespace: namespace });
   
   // 监听聊天消息
   socket.on('chatMessage', (data, callback) => {
-    console.log('Chat message from', socket.id, ':', data);
+    console.log(`[${namespace}] Chat message from`, socket.id, ':', data);
     
     // 回复ACK
     if (callback) {
       callback({ status: 'received', timestamp: new Date().toISOString() });
     }
     
-    // 广播消息给所有客户端
-    io.emit('chatMessage', {
+    // 广播消息给当前命名空间的所有客户端
+    socket.nsp.emit('chatMessage', {
       sender: socket.id,
       message: data.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      namespace: namespace
     });
   });
   
   // 监听自定义事件
   socket.on('customEvent', (data, callback) => {
-    console.log('Custom event:', data);
+    console.log(`[${namespace}] Custom event:`, data);
     
     // 检查callback是否为函数
     if (typeof callback === 'function') {
-      callback({ success: true, response: `Processed: ${JSON.stringify(data)}` });
+      callback({ success: true, response: `Processed: ${JSON.stringify(data)}`, namespace: namespace });
     } else {
-      console.log('No callback provided for customEvent');
+      console.log(`[${namespace}] No callback provided for customEvent`);
     }
   });
   
   // 监听二进制消息
   socket.on('binaryEvent', (data, callback) => {
-    console.log('Binary event received from', socket.id, ':', data);
+    console.log(`[${namespace}] Binary event received from`, socket.id, ':', data);
     
     // 检查是否包含二进制数据
     let binaryData = null;
@@ -204,46 +209,48 @@ io.on('connection', (socket) => {
       if (data.binaryData) {
         binaryData = data.binaryData;
         textData = data.text;
-        console.log('Binary data size:', binaryData.length, 'bytes');
+        console.log(`[${namespace}] Binary data size:`, binaryData.length, 'bytes');
       } else {
         // 直接发送的二进制数据
         binaryData = data;
-        console.log('Direct binary data size:', binaryData.length, 'bytes');
+        console.log(`[${namespace}] Direct binary data size:`, binaryData.length, 'bytes');
       }
     }
     
     // 回复ACK - 确保只返回简单的JSON数据，不包含二进制数据
     if (typeof callback === 'function') {
-      console.log('Sending ACK for binaryEvent');
+      console.log(`[${namespace}] Sending ACK for binaryEvent`);
       // 只返回简单的确认信息，不包含二进制数据
       let response = {
         success: true,
         timestamp: new Date().toISOString(),
         message: 'Binary data received successfully',
         receivedSize: binaryData ? binaryData.length : 0,
-        sender: socket.id
+        sender: socket.id,
+        namespace: namespace
       };
       
       try {
         callback(response);
-        console.log('ACK sent successfully');
+        console.log(`[${namespace}] ACK sent successfully`);
       } catch (error) {
-        console.error('Error sending ACK:', error);
+        console.error(`[${namespace}] Error sending ACK:`, error);
       }
     }
     
-    // 广播二进制消息给所有客户端，确保二进制数据完整传递
-    io.emit('binaryEvent', {
+    // 广播二进制消息给当前命名空间的所有客户端，确保二进制数据完整传递
+    socket.nsp.emit('binaryEvent', {
       sender: socket.id,
       binaryData: binaryData,
       text: textData,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      namespace: namespace
     });
   });
   
   // 监听二进制ACK测试
   socket.on('binaryAckTest', (data, callback) => {
-    console.log('Binary ACK test received:', data);
+    console.log(`[${namespace}] Binary ACK test received:`, data);
     
     // 检查是否包含二进制数据
     let binaryData = null;
@@ -254,7 +261,7 @@ io.on('connection', (socket) => {
       if (data.binaryData) {
         binaryData = data.binaryData;
         textData = data.text;
-        console.log('Binary data size:', binaryData.length, 'bytes');
+        console.log(`[${namespace}] Binary data size:`, binaryData.length, 'bytes');
       }
     }
     
@@ -264,7 +271,8 @@ io.on('connection', (socket) => {
       text: textData,
       processedAt: new Date().toISOString(),
       result: 'success',
-      checksum: Math.random().toString(36).substring(7)
+      checksum: Math.random().toString(36).substring(7),
+      namespace: namespace
     };
     
     // 返回ACK
@@ -275,33 +283,29 @@ io.on('connection', (socket) => {
   
   // 监听心跳消息（可选）
   socket.on('heartbeat', (data) => {
-    console.log('Heartbeat from', socket.id, ':', data);
+    console.log(`[${namespace}] Heartbeat from`, socket.id, ':', data);
     
     // 直接回复心跳ACK
-    socket.emit('heartbeat', { received: true, timestamp: new Date().toISOString() });
+    socket.emit('heartbeat', { received: true, timestamp: new Date().toISOString(), namespace: namespace });
   });
-  
-  // 定期发送心跳消息
-  // const interval = setInterval(() => {
-  //   socket.emit('heartbeat', { timestamp: new Date().toISOString() });
-  // }, 5000);
   
     // 监听断开连接
     socket.on('disconnect', (reason) => {
-        // clearInterval(interval);
         console.log('=== Socket.IO断开连接 ===');
         console.log('Socket ID:', socket.id);
+        console.log('命名空间:', namespace);
         console.log('断开原因:', reason);
         console.log('断开时间:', new Date().toISOString());
         console.log('=== 断开连接结束 ===');
-        // 广播用户断开连接事件给所有客户端
-        io.emit('userDisconnected', { socketId: socket.id, reason: reason, timestamp: new Date().toISOString() });
+        // 广播用户断开连接事件给当前命名空间的所有客户端
+        socket.nsp.emit('userDisconnected', { socketId: socket.id, reason: reason, timestamp: new Date().toISOString(), namespace: namespace });
     });
     
     // 监听断开连接原因
     socket.on('disconnecting', (reason) => {
         console.log('=== Socket.IO正在断开连接 ===');
         console.log('Socket ID:', socket.id);
+        console.log('命名空间:', namespace);
         console.log('断开原因:', reason);
         console.log('断开时间:', new Date().toISOString());
         console.log('=== 正在断开连接结束 ===');
@@ -311,11 +315,39 @@ io.on('connection', (socket) => {
     socket.on('error', (error) => {
         console.error('=== Socket.IO错误 ===');
         console.error('Socket ID:', socket.id);
+        console.error('命名空间:', namespace);
         console.error('错误:', error);
         console.error('错误时间:', new Date().toISOString());
         console.error('=== 错误信息结束 ===');
     });
+  
+  // 为/test命名空间添加特殊的测试事件
+  if (namespace === '/test') {
+    socket.on('testEvent', (data, callback) => {
+      console.log('[test] Special test event received:', data);
+      if (callback) {
+        callback({ testResult: 'passed', message: 'This is a special response for /test namespace', data: data });
+      }
+    });
+  }
 });
+
+// 使用中间件处理所有命名空间的连接
+// 这会自动允许所有命名空间
+io.use((socket, next) => {
+  console.log(`中间件：接收到来自命名空间 ${socket.nsp.name} 的连接请求`);
+  next(); // 允许连接
+});
+
+// 监听所有命名空间的连接事件
+io.on('connection', handleConnection);
+
+// 监听自定义命名空间的连接事件
+// Socket.IO 4.x 会自动处理所有命名空间，不需要显式注册
+// 但我们可以显式监听特定命名空间
+io.of('/chat').on('connection', handleConnection);
+io.of('/game').on('connection', handleConnection);
+io.of('/test').on('connection', handleConnection);
 
 // 启动服务器
 const HTTP_PORT = process.env.HTTP_PORT || 3000;

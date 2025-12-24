@@ -131,7 +131,10 @@ connectBtn.addEventListener('click', () => {
     const namespace = namespaceInput.value;
     const protocolVersion = protocolVersionSelect.value;
     
-    addMessage(`Connecting to ${serverUrl} with namespace ${namespace}...`);
+    // 构建完整的连接URL（包含命名空间）
+    const fullUrl = serverUrl + namespace;
+    
+    addMessage(`Connecting to ${fullUrl}...`);
     addMessage(`Protocol version: ${protocolVersion}`);
     
     try {
@@ -139,27 +142,17 @@ connectBtn.addEventListener('click', () => {
             throw new Error('Socket.IO library not loaded');
         }
         
-        // 根据协议版本设置不同的连接配置
+        // Socket.IO v2 连接配置
         const socketOptions = {
+            transports: ['polling', 'websocket'],
             timeout: 5000,
-            transports: ['websocket', 'polling']
+            forceNew: true,
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5
         };
         
-        // 为不同协议版本添加特定配置
-        if (protocolVersion === 'v2') {
-            socketOptions.allowEIO3 = true; // 允许Engine.IO v3（Socket.IO v2使用）
-        } else if (protocolVersion === 'v3') {
-            // Socket.IO v3默认配置即可
-        }
-        
-        // 建立连接
-        // 在Socket.IO 4.x中，直接将命名空间附加到URL上是最可靠的方式
-        // 确保命名空间格式正确，以'/'开头
-        const normalizedNamespace = namespace.startsWith('/') ? namespace : '/' + namespace;
-        const fullUrl = serverUrl + normalizedNamespace;
-        
-        addMessage(`Full connection URL: ${fullUrl}`);
-        
+        // 建立连接（Socket.IO v2 使用 io(url + namespace, options) 格式）
         socket = io(fullUrl, socketOptions);
         
         // Connection event
@@ -187,13 +180,8 @@ connectBtn.addEventListener('click', () => {
         });
         
         // User connected event
-        socket.on('userConnected', (data, callback) => {
+        socket.on('userConnected', (data) => {
             addMessage(`User joined: ${data.socketId} (Namespace: ${data.namespace || '/'})`, 'system');
-            
-            // 发送ACK响应
-            if (callback && typeof callback === 'function') {
-                callback({ success: true, message: 'UserConnected received from HTML client', clientId: socket.id });
-            }
         });
         
         // User disconnected event
@@ -236,6 +224,7 @@ connectBtn.addEventListener('click', () => {
                     }
                     // 检查是否是普通对象（可能是占位符）
                     else if (typeof data.binaryData === 'object' && data.binaryData._placeholder) {
+                        console.log('BinaryData is a placeholder object');
                         addMessage('Still waiting for binary data...', 'system');
                     }
                     // 其他类型
@@ -252,7 +241,7 @@ connectBtn.addEventListener('click', () => {
         
         // Error event
         socket.on('error', (error) => {
-            addMessage(`Error: ${error.message}`, 'system');
+            addMessage(`Error: ${error}`, 'system');
         });
         
     } catch (error) {
