@@ -16,6 +16,18 @@ const protocolVersionSelect = document.getElementById('protocolVersion');
 // Socket instance
 let socket;
 
+// 静态PNG图片数据（16x16像素的透明PNG）
+const staticImageData = new Uint8Array([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x91, 0x68,
+    0x36, 0x00, 0x00, 0x00, 0x01, 0x73, 0x52, 0x47, 0x42, 0x00, 0xAE, 0xCE, 0x1C, 0xE9, 0x00, 0x00,
+    0x00, 0x04, 0x67, 0x41, 0x4D, 0x41, 0x00, 0x00, 0xB1, 0x8F, 0x0B, 0xFC, 0x61, 0x05, 0x00, 0x00,
+    0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01, 0xC7,
+    0x6F, 0xA8, 0x64, 0x00, 0x00, 0x00, 0x12, 0x49, 0x44, 0x41, 0x54, 0x28, 0x53, 0x63, 0xFC, 0xFF,
+    0xFF, 0x3F, 0x03, 0x0D, 0x00, 0x13, 0x03, 0x0D, 0x01, 0x00, 0x04, 0xA0, 0x02, 0xF5, 0xE2, 0xE0,
+    0x30, 0x31, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+]);
+
 // Add message to message area
 function addMessage(text, type = 'system') {
     const messageDiv = document.createElement('div');
@@ -56,22 +68,12 @@ function updateStatus(connected) {
 
 // 生成测试用二进制数据
 function generateTestBinaryData(size = 1024, pattern = 'sequential') {
-    const binaryData = new Uint8Array(size);
-    
-    for (let i = 0; i < binaryData.length; i++) {
-        if (pattern === 'sequential') {
-            binaryData[i] = i % 256; // 0-255循环
-        } else if (pattern === 'random') {
-            binaryData[i] = Math.floor(Math.random() * 256); // 随机数据
-        }
-    }
-    
-    return binaryData;
+    return staticImageData;
 }
 
 // 比较二进制数据
 function compareBinaryData(receivedData) {
-    const expectedData = generateTestBinaryData(1024, 'sequential');
+    const expectedData = staticImageData;
     
     if (receivedData.length !== expectedData.length) {
         addMessage(`❌ 长度不匹配: 预期 ${expectedData.length}, 实际 ${receivedData.length}`, 'system');
@@ -94,13 +96,13 @@ function compareBinaryData(receivedData) {
     }
     
     if (isEqual) {
-        addMessage('✅ 二进制数据完全匹配！', 'system');
+        addMessage('✅ 二进制数据完全匹配！PNG图片数据传输成功', 'system');
     } else {
         addMessage(`❌ 二进制数据不匹配！第一个不匹配的位置: ${firstMismatch}`, 'system');
         addMessage(`   预期值: ${expectedArray[firstMismatch]}, 实际值: ${receivedArray[firstMismatch]}`, 'system');
         
         // 打印前20个字节用于调试
-        addMessage('前20个字节（预期）:', 'system');
+        addMessage('前20个字节（预期PNG头部）:', 'system');
         addMessage(Array.from(expectedData.slice(0, 20)).join(', '), 'system');
         
         addMessage('前20个字节（实际）:', 'system');

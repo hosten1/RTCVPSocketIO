@@ -228,6 +228,7 @@ private:
         
         State state;
         SioPacket current_packet;
+        std::string original_text_packet;  // 保存原始文本包
         std::vector<SmartBuffer> received_binaries;
         int expected_binary_count;
         SocketIOVersion packet_version;
@@ -238,6 +239,7 @@ private:
         void reset() {
             state = IDLE;
             current_packet = SioPacket();
+            original_text_packet.clear();
             received_binaries.clear();
             expected_binary_count = 0;
             packet_version = SocketIOVersion::V4;

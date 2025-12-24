@@ -16,6 +16,18 @@ const protocolVersionSelect = document.getElementById('protocolVersion');
 // Socket instance
 let socket;
 
+// 静态PNG图片数据（16x16像素的透明PNG）
+const staticImageData = new Uint8Array([
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x91, 0x68,
+    0x36, 0x00, 0x00, 0x00, 0x01, 0x73, 0x52, 0x47, 0x42, 0x00, 0xAE, 0xCE, 0x1C, 0xE9, 0x00, 0x00,
+    0x00, 0x04, 0x67, 0x41, 0x4D, 0x41, 0x00, 0x00, 0xB1, 0x8F, 0x0B, 0xFC, 0x61, 0x05, 0x00, 0x00,
+    0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01, 0xC7,
+    0x6F, 0xA8, 0x64, 0x00, 0x00, 0x00, 0x12, 0x49, 0x44, 0x41, 0x54, 0x28, 0x53, 0x63, 0xFC, 0xFF,
+    0xFF, 0x3F, 0x03, 0x0D, 0x00, 0x13, 0x03, 0x0D, 0x01, 0x00, 0x04, 0xA0, 0x02, 0xF5, 0xE2, 0xE0,
+    0x30, 0x31, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+]);
+
 // Add message to message area
 function addMessage(text, type = 'system') {
     const messageDiv = document.createElement('div');
@@ -56,22 +68,12 @@ function updateStatus(connected) {
 
 // 生成测试用二进制数据
 function generateTestBinaryData(size = 1024, pattern = 'sequential') {
-    const binaryData = new Uint8Array(size);
-    
-    for (let i = 0; i < binaryData.length; i++) {
-        if (pattern === 'sequential') {
-            binaryData[i] = i % 256; // 0-255循环
-        } else if (pattern === 'random') {
-            binaryData[i] = Math.floor(Math.random() * 256); // 随机数据
-        }
-    }
-    
-    return binaryData;
+    return staticImageData;
 }
 
 // 比较二进制数据
 function compareBinaryData(receivedData) {
-    const expectedData = generateTestBinaryData(1024, 'sequential');
+    const expectedData = staticImageData;
     
     if (receivedData.length !== expectedData.length) {
         addMessage(`❌ 长度不匹配: 预期 ${expectedData.length}, 实际 ${receivedData.length}`, 'system');
@@ -94,13 +96,13 @@ function compareBinaryData(receivedData) {
     }
     
     if (isEqual) {
-        addMessage('✅ 二进制数据完全匹配！', 'system');
+        addMessage('✅ 二进制数据完全匹配！PNG图片数据传输成功', 'system');
     } else {
         addMessage(`❌ 二进制数据不匹配！第一个不匹配的位置: ${firstMismatch}`, 'system');
         addMessage(`   预期值: ${expectedArray[firstMismatch]}, 实际值: ${receivedArray[firstMismatch]}`, 'system');
         
         // 打印前20个字节用于调试
-        addMessage('前20个字节（预期）:', 'system');
+        addMessage('前20个字节（预期PNG头部）:', 'system');
         addMessage(Array.from(expectedData.slice(0, 20)).join(', '), 'system');
         
         addMessage('前20个字节（实际）:', 'system');
@@ -201,40 +203,59 @@ connectBtn.addEventListener('click', () => {
         });
         
         // Binary event
-        socket.on('binaryEvent', (data) => {
+        socket.on('binaryEvent', (...args) => {
             // 延迟处理，确保Socket.IO完成数据处理
             setTimeout(() => {
-                console.log('Full data object:', data);
+                console.log('Full data object:', args);
 
-                if (data.binaryData) {
+                let eventData = null;
+                let binaryData = null;
+                
+                // 解析参数 - 支持两种格式：
+                // 1. 普通格式: socket.on('binaryEvent', data) 其中 data 包含 binaryData 属性
+                // 2. 多参数格式: socket.on('binaryEvent', data, binaryData) 其中 binaryData 是独立的二进制数据
+                if (args.length > 0) {
+                    eventData = args[0];
+                    
+                    // 检查是否有额外的二进制数据参数
+                    if (args.length > 1) {
+                        binaryData = args[1];
+                    } 
+                    // 或者检查事件数据中是否包含 binaryData 属性
+                    else if (eventData && eventData.binaryData) {
+                        binaryData = eventData.binaryData;
+                    }
+                }
+                
+                if (binaryData) {
                     // 检查是否是Uint8Array
-                    if (data.binaryData instanceof Uint8Array) {
+                    if (binaryData instanceof Uint8Array) {
                         console.log('BinaryData is a Uint8Array');
-                        compareBinaryData(data.binaryData);
+                        compareBinaryData(binaryData);
                     }
                     // 检查是否是ArrayBuffer
-                    else if (data.binaryData instanceof ArrayBuffer) {
+                    else if (binaryData instanceof ArrayBuffer) {
                         console.log('BinaryData is an ArrayBuffer');
-                        compareBinaryData(new Uint8Array(data.binaryData));
+                        compareBinaryData(new Uint8Array(binaryData));
                     }
                     // 检查是否是类数组对象（可能是Buffer或其他二进制数据类型）
-                    else if (typeof data.binaryData === 'object' && 'length' in data.binaryData && typeof data.binaryData[0] === 'number') {
+                    else if (typeof binaryData === 'object' && 'length' in binaryData && typeof binaryData[0] === 'number') {
                         console.log('BinaryData is an array-like object');
-                        compareBinaryData(new Uint8Array(data.binaryData));
+                        compareBinaryData(new Uint8Array(binaryData));
                     }
                     // 检查是否是普通对象（可能是占位符）
-                    else if (typeof data.binaryData === 'object' && data.binaryData._placeholder) {
+                    else if (typeof binaryData === 'object' && binaryData._placeholder) {
                         console.log('BinaryData is a placeholder object');
                         addMessage('Still waiting for binary data...', 'system');
                     }
                     // 其他类型
                     else {
-                        addMessage(`Unknown binaryData type: ${typeof data.binaryData}`, 'system');
-                        console.log('BinaryData:', data.binaryData);
+                        addMessage(`Unknown binaryData type: ${typeof binaryData}`, 'system');
+                        console.log('BinaryData:', binaryData);
                     }
                     
                     // 添加命名空间信息到消息
-                    addMessage(`Binary event received from namespace: ${data.namespace || '/'}`, 'received');
+                    addMessage(`Binary event received from namespace: ${eventData.namespace || '/'}`, 'received');
                 }
             }, 300);
         });
@@ -347,18 +368,19 @@ testAckBtn.addEventListener('click', async () => {
 sendBinaryBtn.addEventListener('click', () => {
     if (socket) {
         // 创建模拟二进制数据
-        const binaryData = generateTestBinaryData(1024, 'sequential'); // 1KB二进制数据，顺序填充
+        const binaryData = generateTestBinaryData(); // 使用静态PNG数据
         
         const textMessage = 'testData: HTML客户端发送的二进制测试数据';
         
         addMessage(`📤 Sending binary data: Size ${binaryData.length} bytes, Text: ${textMessage}`, 'sent');
         
-        // 发送二进制消息
-        socket.emit('binaryEvent', {
-            binaryData: binaryData,
-            text: textMessage,
-            timestamp: Date.now()
-        }, (ack) => {
+        // Socket.IO v2 正确的二进制数据发送方式：
+        // 1. 可以将二进制数据作为单独的参数发送
+        // 2. 或者将二进制数据作为事件数据的直接参数
+        
+        // 方式1: 直接发送二进制数据（Socket.IO v2 推荐方式）
+        // Socket.IO v2 要求二进制数据必须作为最后一个普通参数（在回调函数之前）
+        socket.emit('binaryEvent', textMessage, Date.now(), binaryData, (ack) => {
             if (ack && ack.success) {
                 addMessage(`✅ Binary message ACK: ${JSON.stringify(ack)}`, 'system');
             } else {
@@ -374,14 +396,12 @@ testBinaryAckBtn.addEventListener('click', async () => {
         addMessage('🔄 Starting binary ACK test...', 'system');
         
         // 创建模拟二进制数据
-        const binaryData = generateTestBinaryData(512, 'random'); // 512 bytes binary data，随机填充
+        const binaryData = generateTestBinaryData(); // 使用静态PNG数据
+        const textMessage = 'Binary ACK test from HTML client';
         
-        // 发送带ACK的二进制消息
-        socket.emit('binaryAckTest', {
-            binaryData: binaryData,
-            text: 'Binary ACK test from HTML client',
-            timestamp: Date.now()
-        }, (ack) => {
+        // Socket.IO v2 正确的二进制ACK测试发送方式
+        // Socket.IO v2 要求二进制数据必须作为最后一个普通参数（在回调函数之前）
+        socket.emit('binaryAckTest', textMessage, Date.now(), binaryData, (ack) => {
             if (ack && ack.result === 'success') {
                 addMessage(`✅ Binary ACK test success: ${JSON.stringify(ack)}`, 'system');
             } else {

@@ -139,6 +139,10 @@ private:
     PacketHeader parse_v4_header(const std::string& packet);
     
     PacketHeader parse_packet_header(const std::string& packet, SocketIOVersion version);
+    void restore_v2_binary_data(
+        Json::Value& data,
+        const std::vector<SmartBuffer>& binary_parts,
+                                const Json::Value& binary_map);
     
     SocketIOVersion version_;
     

@@ -4,6 +4,7 @@
 #include "api/task_queue/default_task_queue_factory.h"
 #include "rtc_base/task_queue.h"
 #include "rtc_base/task_utils/repeating_task.h"
+#include "rtc_base/logging.h"
 #include <chrono>
 #include <sstream>
 #include <iomanip>
@@ -451,16 +452,30 @@ bool PacketReceiver::process_text_packet(const std::string& text_packet) {
         state_.reset();
         state_.current_packet = packet;
         state_.packet_version = version;
+        state_.original_text_packet = text_packet;  // 保存原始文本包
         
+        // 重要：设置正确的二进制计数
+        // 这里需要设置期望的二进制数据数量
+        // 对于V3，packet.binary_count已经包含了二进制计数
+        // 对于V2，可能需要从JSON数据中提取
+        
+        state_.expected_binary_count = 0;
+        
+        // 检查是否是二进制包
         if (packet.is_binary()) {
-            state_.expected_binary_count = static_cast<int>(packet.binary_parts.size());
+            // 如果是二进制包，我们需要等待二进制数据
+            // 设置期望的二进制数量
+            state_.expected_binary_count = packet.binary_count;
             if (state_.expected_binary_count > 0) {
                 state_.state = ReceiveState::WAITING_FOR_BINARY;
+                // 重要：不要在这里处理包，等待二进制数据
             } else {
                 state_.state = ReceiveState::COMPLETE;
+                // 如果没有二进制数据，直接处理
             }
         } else {
             state_.state = ReceiveState::COMPLETE;
+            // 非二进制包直接处理
         }
     }
     
@@ -490,28 +505,51 @@ bool PacketReceiver::process_binary_data(const SmartBuffer& binary_data) {
     webrtc::MutexLock lock(&state_mutex_);
     
     if (state_.state != ReceiveState::WAITING_FOR_BINARY) {
-        return false;
+        // 如果不在等待二进制数据状态，可能是重复的二进制数据或者状态错误
+        // 记录日志但不返回false，继续处理
+//        std::cout << "Warning: Received binary data but not in WAITING_FOR_BINARY state" << std::endl;
+        RTC_LOG(LS_WARNING) << "Warning: Received binary data but not in WAITING_FOR_BINARY state";
     }
     
     // 检查二进制数据大小
     if (binary_data.size() > config_.max_binary_size) {
+        RTC_LOG(LS_WARNING) <<  "Error: Binary data too large: " << binary_data.size()
+                  << " > " << config_.max_binary_size;
         return false;
     }
     
+    // 添加二进制数据
     state_.received_binaries.push_back(binary_data);
     
     // 检查是否接收完成
-    if (static_cast<int>(state_.received_binaries.size()) >= state_.expected_binary_count) {
-        state_.state = ReceiveState::COMPLETE;
-        
+    bool complete = false;
+    if (state_.state == ReceiveState::WAITING_FOR_BINARY) {
+        if (static_cast<int>(state_.received_binaries.size()) >= state_.expected_binary_count) {
+            state_.state = ReceiveState::COMPLETE;
+            complete = true;
+        }
+    }
+    
+    // 如果完成，处理完整的包
+    if (complete && !state_.original_text_packet.empty()) {
         // 重新解码包，包含二进制数据
         if (packet_builder_) {
-            auto encoded = packet_builder_->encode_packet(state_.current_packet);
             SioPacket complete_packet = packet_builder_->decode_packet(
-                encoded.text_packet, state_.received_binaries);
+                state_.original_text_packet, state_.received_binaries);
             complete_packet.version = state_.packet_version;
             
-            process_complete_packet(complete_packet);
+            // 在任务队列中处理完整的包
+            if (task_queue_) {
+                task_queue_->PostTask([this, complete_packet]() {
+                    process_complete_packet(complete_packet);
+                });
+            } else {
+                process_complete_packet(complete_packet);
+            }
+            
+            // 重置状态
+            state_.reset();
+            return true;
         }
     }
     

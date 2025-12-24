@@ -54,6 +54,18 @@
 
 @implementation ViewController
 
+// 静态PNG图片数据（16x16像素的透明PNG）
+static const uint8_t image_data[] = {
+    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x91, 0x68,
+    0x36, 0x00, 0x00, 0x00, 0x01, 0x73, 0x52, 0x47, 0x42, 0x00, 0xAE, 0xCE, 0x1C, 0xE9, 0x00, 0x00,
+    0x00, 0x04, 0x67, 0x41, 0x4D, 0x41, 0x00, 0x00, 0xB1, 0x8F, 0x0B, 0xFC, 0x61, 0x05, 0x00, 0x00,
+    0x00, 0x09, 0x70, 0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC3, 0x00, 0x00, 0x0E, 0xC3, 0x01, 0xC7,
+    0x6F, 0xA8, 0x64, 0x00, 0x00, 0x00, 0x12, 0x49, 0x44, 0x41, 0x54, 0x28, 0x53, 0x63, 0xFC, 0xFF,
+    0xFF, 0x3F, 0x03, 0x0D, 0x00, 0x13, 0x03, 0x0D, 0x01, 0x00, 0x04, 0xA0, 0x02, 0xF5, 0xE2, 0xE0,
+    0x30, 0x31, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+};
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     _currentEngineProtooQueue = dispatch_queue_create("com.vrv.mediasoupProtoo", DISPATCH_QUEUE_SERIAL);
@@ -572,12 +584,8 @@
                     // 这是用于比较的测试数据
                     [strongSelf addMessage:@"🔍 开始比较二进制数据..." type:@"system"];
                     
-                    // 创建相同的测试数据用于比较
-                    NSMutableData *expectedData = [NSMutableData data];
-                    for (int i = 0; i < 1024; i++) {
-                        uint8_t byte = (uint8_t)(i % 256);
-                        [expectedData appendBytes:&byte length:1];
-                    }
+                    // 使用静态PNG数据进行比较
+                    NSData *expectedData = [NSData dataWithBytes:image_data length:sizeof(image_data)];
                     
                     // 比较收到的数据与预期数据
                     BOOL isEqual = NO;
@@ -586,7 +594,7 @@
                     }
                     
                     if (isEqual) {
-                        [strongSelf addMessage:@"✅ 二进制数据完全匹配！" type:@"system"];
+                        [strongSelf addMessage:@"✅ 二进制数据完全匹配！PNG图片数据传输成功" type:@"system"];
                     } else {
                         [strongSelf addMessage:[NSString stringWithFormat:@"❌ 二进制数据不匹配！预期大小: %lu bytes, 实际大小: %lu bytes", 
                                             (unsigned long)expectedData.length, (unsigned long)binary.length] type:@"system"];
@@ -819,13 +827,8 @@
 - (void)sendBinaryButtonTapped:(id)sender {
     // 确保Socket已连接
     if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
-        // 创建模拟二进制数据
-        NSMutableData *binaryData = [NSMutableData data];
-        for (int i = 0; i < 1024; i++) {
-            // 填充简单数据：0-255循环
-            uint8_t byte = (uint8_t)(i % 256);
-            [binaryData appendBytes:&byte length:1];
-        }
+        // 使用静态PNG数据
+        NSData *binaryData = [NSData dataWithBytes:image_data length:sizeof(image_data)];
         
         NSString *text = @"iOS客户端发送的二进制测试数据";
         
@@ -858,46 +861,41 @@
 // 二进制ACK测试按钮点击事件
 - (void)binaryAckTestButtonTapped:(id)sender {
     // 确保Socket已连接
-    if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
-        [self addMessage:@"🔄 开始二进制ACK测试..." type:@"system"];
-        
-        // 创建模拟二进制数据
-        NSMutableData *binaryData = [NSMutableData data];
-        for (int i = 0; i < 512; i++) {
-            // 填充随机数据
-            uint8_t randomByte = (uint8_t)(arc4random_uniform(256));
-            [binaryData appendBytes:&randomByte length:1];
-        }
-        
-        // 构造发送数据
-        NSDictionary *sendData = @{
-            @"binaryData": binaryData,
-            @"text": @"iOS二进制ACK测试",
-            @"timestamp": @([NSDate date].timeIntervalSince1970)
-        };
-        
-        // 发送带ACK的二进制消息
-        [self.socket emitWithAck:@"binaryAckTest" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
-            if (error) {
-                [self addMessage:[NSString stringWithFormat:@"❌ 二进制ACK测试失败: %@", error.localizedDescription] type:@"system"];
-            } else {
-                if (data && data.count > 0) {
-                    id ackData = data.firstObject;
-                    if ([ackData isKindOfClass:[NSDictionary class]]) {
-                        NSDictionary *ackDict = (NSDictionary *)ackData;
-                        [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", ackDict] type:@"system"];
-                    } else {
-                        [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", data] type:@"system"];
-                    }
+        if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
+            [self addMessage:@"🔄 开始二进制ACK测试..." type:@"system"];
+            
+            // 使用静态PNG数据
+            NSData *binaryData = [NSData dataWithBytes:image_data length:sizeof(image_data)];
+            
+            // 构造发送数据
+            NSDictionary *sendData = @{
+                @"binaryData": binaryData,
+                @"text": @"iOS二进制ACK测试",
+                @"timestamp": @([NSDate date].timeIntervalSince1970)
+            };
+            
+            // 发送带ACK的二进制消息
+            [self.socket emitWithAck:@"binaryAckTest" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+                if (error) {
+                    [self addMessage:[NSString stringWithFormat:@"❌ 二进制ACK测试失败: %@", error.localizedDescription] type:@"system"];
                 } else {
-                    [self addMessage:@"✅ 二进制ACK测试成功, 但未返回数据" type:@"system"];
+                    if (data && data.count > 0) {
+                        id ackData = data.firstObject;
+                        if ([ackData isKindOfClass:[NSDictionary class]]) {
+                            NSDictionary *ackDict = (NSDictionary *)ackData;
+                            [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", ackDict] type:@"system"];
+                        } else {
+                            [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", data] type:@"system"];
+                        }
+                    } else {
+                        [self addMessage:@"✅ 二进制ACK测试成功, 但未返回数据" type:@"system"];
+                    }
                 }
-            }
-        } timeout:15.0]; // 增加超时时间到15秒
-        
-    } else {
-        [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
-    }
+            } timeout:15.0]; // 增加超时时间到15秒
+            
+        } else {
+            [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
+        }
 }
 
 - (void)didReceiveMemoryWarning {
