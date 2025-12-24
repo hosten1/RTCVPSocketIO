@@ -47,6 +47,18 @@ NSString *const RTCVPSocketStatusConnected = @"connected";
 static id convertJsonValueToObjC(const Json::Value& jsonValue) {
     if (jsonValue.isNull()) {
         return [NSNull null];
+    } else if (sio::binary_helper::is_binary(jsonValue)) {
+        // 处理二进制数据，添加异常捕获防止崩溃
+        try {
+            rtc::Buffer buffer = sio::binary_helper::get_binary(jsonValue);
+            return [NSData dataWithBytes:buffer.data() length:buffer.size()];
+        } catch (const std::exception& e) {
+            // 处理异常，返回null
+            return [NSNull null];
+        } catch (...) {
+            // 处理未知异常，返回null
+            return [NSNull null];
+        }
     } else if (jsonValue.isBool()) {
         return [NSNumber numberWithBool:jsonValue.asBool()];
     } else if (jsonValue.isInt() || jsonValue.isUInt() || jsonValue.isInt64() || jsonValue.isUInt64()) {
@@ -608,22 +620,43 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     if ([obj isKindOfClass:[NSDictionary class]]) {
         NSDictionary* dict = (NSDictionary*)obj;
         Json::Value jsonObject(Json::objectValue);
-        for (NSString* key in dict) {
-            id value = dict[key];
-            jsonObject[std::string([key UTF8String])] = convertOCObjectToJsonValue(value);
+        for (id key in dict) {
+            // 确保键是NSString类型
+            if ([key isKindOfClass:[NSString class]]) {
+                NSString* ocKey = (NSString*)key;
+                id value = dict[key];
+                jsonObject[std::string([ocKey UTF8String])] = convertOCObjectToJsonValue(value);
+            }
+            // 跳过非NSString类型的键，防止崩溃
         }
         return jsonObject;
     }
     
     if ([obj isKindOfClass:[NSData class]]) {
-        // 二进制数据处理
-        NSData* data = (NSData*)obj;
-        Json::Value binary_json = sio::binary_helper::create_binary_value((const uint8_t*)data.bytes, data.length);
-        return binary_json;
+        // 二进制数据处理，添加异常捕获防止崩溃
+        try {
+            NSData* data = (NSData*)obj;
+            Json::Value binary_json = sio::binary_helper::create_binary_value((const uint8_t*)data.bytes, data.length);
+            return binary_json;
+        } catch (const std::exception& e) {
+            // 处理异常，返回null
+            return Json::Value::null;
+        } catch (...) {
+            // 处理未知异常，返回null
+            return Json::Value::null;
+        }
     }
     
-    // 其他类型默认转换为字符串
-    return Json::Value([NSString stringWithFormat:@"%@", obj].UTF8String);
+    // 其他类型默认转换为字符串，添加异常捕获防止崩溃
+    try {
+        return Json::Value([NSString stringWithFormat:@"%@", obj].UTF8String);
+    } catch (const std::exception& e) {
+        // 处理异常，返回null
+        return Json::Value::null;
+    } catch (...) {
+        // 处理未知异常，返回null
+        return Json::Value::null;
+    }
 }
 
 - (void)emit:(NSString *)event items:(NSArray *)items ack:(int)ack {

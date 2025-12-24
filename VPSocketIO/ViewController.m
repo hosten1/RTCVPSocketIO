@@ -580,7 +580,7 @@ static const uint8_t image_data[] = {
                 [strongSelf addMessage:message type:@"received"];
                 
                 // 比较二进制数据
-                if (text && [text containsString:@"testData"]) {
+                if ([text isKindOfClass:[NSString class]] && [text containsString:@"testData"]) {
                     // 这是用于比较的测试数据
                     [strongSelf addMessage:@"🔍 开始比较二进制数据..." type:@"system"];
                     

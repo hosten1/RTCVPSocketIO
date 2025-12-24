@@ -825,6 +825,12 @@ void SioPacketBuilder::restore_binary_data(
             int index = data["num"].asInt();
             std::cout << "Found placeholder at index: " << index << ", binary_parts size: " << binary_parts.size() << std::endl;
             
+            // 检查binary_parts是否为空
+            if (binary_parts.empty()) {
+                std::cout << "Warning: binary_parts is empty, skipping placeholder replacement" << std::endl;
+                return; // 跳过替换，等待完整的二进制数据
+            }
+            
             if (index >= 0 && index < static_cast<int>(binary_parts.size())) {
                 const SmartBuffer& buffer = binary_parts[index];
                 if (!buffer.empty()) {
@@ -834,7 +840,7 @@ void SioPacketBuilder::restore_binary_data(
                     std::cout << "Binary buffer at index " << index << " is empty!" << std::endl;
                 }
             } else {
-                std::cout << "Invalid binary index: " << index << " (max: " << binary_parts.size() - 1 << ")" << std::endl;
+                std::cout << "Invalid binary index: " << index << " (max: " << (binary_parts.size() > 0 ? static_cast<int>(binary_parts.size()) - 1 : -1) << ")" << std::endl;
             }
             return;
         }

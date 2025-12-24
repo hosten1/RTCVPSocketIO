@@ -200,22 +200,6 @@ const handleConnection = (socket) => {
   socket.on('binaryEvent', (data, callback) => {
     console.log(`[${namespace}] Binary event received from`, socket.id, ':', data);
     
-    // 检查是否包含二进制数据
-    let binaryData = null;
-    let textData = null;
-    
-    if (typeof data === 'object' && data !== null) {
-      // 检查是否有二进制属性
-      if (data.binaryData) {
-        binaryData = data.binaryData;
-        textData = data.text;
-        console.log(`[${namespace}] Binary data size:`, binaryData.length, 'bytes');
-      } else {
-        // 直接发送的二进制数据
-        binaryData = data;
-        console.log(`[${namespace}] Direct binary data size:`, binaryData.length, 'bytes');
-      }
-    }
     
     // 回复ACK - 确保只返回简单的JSON数据，不包含二进制数据
     if (typeof callback === 'function') {
@@ -225,7 +209,7 @@ const handleConnection = (socket) => {
         success: true,
         timestamp: new Date().toISOString(),
         message: 'Binary data received successfully',
-        receivedSize: binaryData ? binaryData.length : 0,
+        receivedSize: data.length,
         sender: socket.id,
         namespace: namespace
       };
@@ -238,14 +222,7 @@ const handleConnection = (socket) => {
       }
     }
     
-    // 广播二进制消息给当前命名空间的所有客户端，确保二进制数据完整传递
-    socket.nsp.emit('binaryEvent', {
-      sender: socket.id,
-      binaryData: binaryData,
-      text: textData,
-      timestamp: new Date().toISOString(),
-      namespace: namespace
-    });
+    socket.nsp.emit('binaryEvent', data);
   });
   
   // 监听二进制ACK测试
@@ -330,7 +307,7 @@ const handleConnection = (socket) => {
       }
     });
   }
-});
+}
 
 // 使用中间件处理所有命名空间的连接
 // 这会自动允许所有命名空间

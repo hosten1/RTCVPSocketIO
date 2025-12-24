@@ -355,13 +355,15 @@ sendBinaryBtn.addEventListener('click', () => {
         const textMessage = 'testData: HTML客户端发送的二进制测试数据';
         
         addMessage(`📤 Sending binary data: Size ${binaryData.length} bytes, Text: ${textMessage}`, 'sent');
-        
+            const data = {
+            "text":textMessage,
+            "timestamp":Date.now(),
+            "namespace":"/",
+            "binaryData":binaryData
+             }
         // 发送二进制消息
-        socket.emit('binaryEvent', {
-            binaryData: binaryData,
-            text: textMessage,
-            timestamp: Date.now()
-        }, (ack) => {
+        socket.emit('binaryEvent',
+           data, (ack) => {
             if (ack && ack.success) {
                 addMessage(`✅ Binary message ACK: ${JSON.stringify(ack)}`, 'system');
             } else {

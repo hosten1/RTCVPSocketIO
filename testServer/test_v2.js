@@ -374,13 +374,14 @@ sendBinaryBtn.addEventListener('click', () => {
         
         addMessage(`📤 Sending binary data: Size ${binaryData.length} bytes, Text: ${textMessage}`, 'sent');
         
-        // Socket.IO v2 正确的二进制数据发送方式：
-        // 1. 可以将二进制数据作为单独的参数发送
-        // 2. 或者将二进制数据作为事件数据的直接参数
-        
-        // 方式1: 直接发送二进制数据（Socket.IO v2 推荐方式）
-        // Socket.IO v2 要求二进制数据必须作为最后一个普通参数（在回调函数之前）
-        socket.emit('binaryEvent', textMessage, Date.now(), binaryData, (ack) => {
+        const data = {
+            "text":textMessage,
+            "timestamp":Date.now(),
+            "namespace":"/",
+            "binaryData":binaryData
+             }
+             //dh=
+        socket.emit('binaryEvent',data, (ack) => {
             if (ack && ack.success) {
                 addMessage(`✅ Binary message ACK: ${JSON.stringify(ack)}`, 'system');
             } else {
