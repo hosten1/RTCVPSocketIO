@@ -95,6 +95,8 @@ static NSString *const headerWSVersionValue    = @"13";
 static NSString *const headerWSKeyName         = @"Sec-WebSocket-Key";
 static NSString *const headerOriginName        = @"Origin";
 static NSString *const headerWSAcceptName      = @"Sec-WebSocket-Accept";
+static NSString *const headerWSExtensionsName  = @"Sec-WebSocket-Extensions";
+static NSString *const headerWSExtensionsValue = @"permessage-deflate; client_max_window_bits";
 NS_ASSUME_NONNULL_END
 
 //Class Constants
@@ -119,6 +121,7 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
         self.certValidated = NO;
         self.voipEnabled = NO;
         self.selfSignedSSL = NO;
+        self.enableCompression = NO;
         self.queue = dispatch_get_main_queue();
         self.url = url;
         self.readStack = [NSMutableArray new];
@@ -245,6 +248,13 @@ static const size_t  RTCJFRMaxFrameSize        = 32;
     CFHTTPMessageSetHeaderFieldValue(urlRequest,
                                      (__bridge CFStringRef)headerOriginName,
                                      (__bridge CFStringRef)[self origin]);
+    
+    // 添加压缩扩展头
+    if (self.enableCompression) {
+        CFHTTPMessageSetHeaderFieldValue(urlRequest,
+                                         (__bridge CFStringRef)headerWSExtensionsName,
+                                         (__bridge CFStringRef)headerWSExtensionsValue);
+    }
     
     for(NSString *key in self.headers) {
         CFHTTPMessageSetHeaderFieldValue(urlRequest,

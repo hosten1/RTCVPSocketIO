@@ -39,6 +39,7 @@
     self.ws.voipEnabled = YES;
     self.ws.selfSignedSSL = self.config.allowSelfSignedCertificates;
     self.ws.security = self.config.security;
+    self.ws.enableCompression = self.config.compressionEnabled;
     // 添加 headers
     if (self.config.cookies.count > 0) {
         NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies:self.config.cookies];

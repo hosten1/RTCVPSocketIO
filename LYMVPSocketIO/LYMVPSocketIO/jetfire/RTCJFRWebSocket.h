@@ -126,6 +126,12 @@
 @property(nonatomic, assign)BOOL selfSignedSSL;
 
 /**
+ Enable permessage-deflate compression for WebSocket messages.
+ Default setting is No.
+ */
+@property(nonatomic, assign)BOOL enableCompression;
+
+/**
  Use for SSL pinning.
  */
 @property(nonatomic, strong, nullable)RTCJFRSecurity *security;
