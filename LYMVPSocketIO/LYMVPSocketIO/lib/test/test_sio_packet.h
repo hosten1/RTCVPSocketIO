@@ -1,6 +1,18 @@
 #ifndef SIO_PACKET_TEST_H
 #define SIO_PACKET_TEST_H
 
+/**
+ * Socket.IO Packet 测试框架
+ * Socket.IO 协议参考: https://socket.io/docs/v4/protocol/
+ * Engine.IO 协议参考: https://github.com/socketio/engine.io-protocol
+ * 
+ * 测试覆盖范围:
+ * - 嵌套结构中的二进制数据处理
+ * - PacketSender 和 PacketReceiver 的异步操作
+ * - Socket.IO v2/v3/v4 版本兼容性
+ * - 二进制事件的完整生命周期
+ */
+
 #include "sio_packet.h"
 #include "sio_packet_impl.h"
 #include "sio_jsoncpp_binary_helper.hpp"

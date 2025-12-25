@@ -1,3 +1,16 @@
+// RTCVPSocketIO 二进制处理测试程序
+// 测试目标: 验证RTCVPSocketIO中二进制数据的完整处理流程
+// Socket.IO 二进制事件参考: https://socket.io/docs/v4/binary-events/
+// 测试流程:
+// 1. 创建测试二进制数据
+// 2. 创建SmartBuffer管理二进制数据
+// 3. 测试binary_helper::create_binary_value功能
+// 4. 测试binary_helper::is_binary功能
+// 5. 测试binary_helper::get_binary_shared_ptr功能
+// 6. 验证二进制数据内容完整性
+// 7. 测试二进制数据在JSON数组中的处理
+// 8. 遍历并检查JSON数组中的元素类型
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,6 +26,7 @@ using namespace sio;
 using namespace std;
 
 /**
+ * RTCVPSocketIO 二进制处理测试主函数
  * 测试OC数组到C++ Json::Value转换功能，以及二进制数据处理
  */
 int main(int argc, char* argv[]) {

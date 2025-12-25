@@ -194,10 +194,13 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
                 [self.postWait addObject:binaryMessage];
                 [self log:[NSString stringWithFormat:@"📋 编码后的二进制消息已添加到队列，长度: %lu字符", (unsigned long)binaryMessage.length] level:RTCLogLevelDebug];
             } else {
-                // v3/v4协议：直接发送base64字符串（不带前缀）
-                // 根据Engine.IO v3/v4协议，二进制附件应该作为独立的base64消息发送
+                // v3/v4协议：使用特殊的二进制帧格式
+                // Engine.IO v3/v4在polling模式下，二进制数据应该作为独立的帧发送，格式为：
+                // - 前缀 "b" + base64编码的数据
                 [self log:@"🔢 使用Socket.IO v3/v4协议，将二进制数据转换为base64" level:RTCLogLevelDebug];
-                [self.postWait addObject:base64String];
+                NSString *binaryFrame = [NSString stringWithFormat:@"b%@", base64String];
+                [self.postWait addObject:binaryFrame];
+                [self log:[NSString stringWithFormat:@"📋 编码后的二进制帧已添加到队列，长度: %lu字符", (unsigned long)binaryFrame.length] level:RTCLogLevelDebug];
             }
         }
     }
@@ -205,7 +208,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     // 立即发送重要消息
     BOOL isImportantMessage = (type == RTCVPSocketEnginePacketTypeMessage && [message hasPrefix:@"0"]);
     if (isImportantMessage) {
-        [self log:@"� 检测到重要消息（连接/命名空间消息），立即发送" level:RTCLogLevelInfo];
+        [self log:@"🔔 检测到重要消息（连接/命名空间消息），立即发送" level:RTCLogLevelInfo];
         [self flushWaitingForPost];
     } else if (self.postWait.count > 0 && !self.waitingForPost) {
         [self log:[NSString stringWithFormat:@"📤 发送队列中有 %lu 条消息，开始发送", (unsigned long)self.postWait.count]

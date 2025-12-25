@@ -1,3 +1,17 @@
+// Socket.IO 二进制包测试程序
+// 测试目标: 验证Socket.IO二进制事件的完整发送和接收流程
+// Socket.IO 协议参考: https://socket.io/docs/v4/protocol/
+// Socket.IO 二进制事件参考: https://socket.io/docs/v4/binary-events/
+//
+// 测试流程:
+// 1. 创建TaskQueueFactory用于异步操作
+// 2. 初始化PacketSender和PacketReceiver
+// 3. 设置事件回调处理
+// 4. 创建包含二进制数据的测试事件
+// 5. 使用PacketSender发送事件
+// 6. 验证事件接收和二进制数据完整性
+// 7. 清理资源
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -13,6 +27,10 @@
 using namespace sio;
 using namespace std;
 
+/**
+ * Socket.IO 二进制包测试主函数
+ * 演示了从事件创建、发送到接收、验证的完整流程
+ */
 int main(int argc, char* argv[]) {
     cout << "=== Socket.IO 二进制包测试程序 ===\n";
     
