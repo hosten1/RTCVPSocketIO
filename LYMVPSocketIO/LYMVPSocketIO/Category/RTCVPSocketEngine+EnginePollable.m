@@ -13,7 +13,6 @@
 #import "RTCVPSocketEngine+EngineWebsocket.h"
 #import "NSString+Random.h"
 
-
 typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* response, NSError* error);
 
 @implementation RTCVPSocketEngine (EnginePollable)
@@ -33,17 +32,14 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) return;
         
-        // 获取 engineQueue 的引用，避免 strongSelf 被释放后访问 nil
         dispatch_queue_t engineQueue = strongSelf.engineQueue;
         if (!engineQueue) return;
         
-        dispatch_async(engineQueue, ^{ 
-            // 再次检查 strongSelf，确保在队列执行时仍有效
+        dispatch_async(engineQueue, ^{
             __strong typeof(weakSelf) strongSelfInQueue = weakSelf;
             if (!strongSelfInQueue) return;
             
             @autoreleasepool {
-                // 使用局部变量存储状态，避免频繁访问实例变量
                 BOOL isPolling = strongSelfInQueue.polling;
                 BOOL isClosed = strongSelfInQueue.closed;
                 BOOL isFastUpgrade = strongSelfInQueue.fastUpgrade;
@@ -52,7 +48,6 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
                     return;
                 }
                 
-                // 检查 HTTP 状态码
                 NSInteger statusCode = 200;
                 if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
                     statusCode = ((NSHTTPURLResponse *)response).statusCode;
@@ -69,6 +64,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
                     [strongSelfInQueue log:@"Polling received empty data" level:RTCLogLevelError];
                     [strongSelfInQueue didError:@"Empty response"];
                 } else {
+                    // 解析轮询响应
                     NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                     if (responseString) {
                         [strongSelfInQueue log:[NSString stringWithFormat:@"Polling response: %@", responseString] level:RTCLogLevelDebug];
@@ -80,19 +76,15 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
                     }
                 }
                 
-                // 安全设置实例变量
                 strongSelfInQueue.waitingForPoll = NO;
                 
-                // 再次检查状态，避免过时信息
                 isPolling = strongSelfInQueue.polling;
                 isClosed = strongSelfInQueue.closed;
                 isFastUpgrade = strongSelfInQueue.fastUpgrade;
                 
-                // 如果快速升级标记已设置，执行升级
                 if (isFastUpgrade) {
                     [strongSelfInQueue doFastUpgrade];
                 }
-                // 否则继续轮询
                 else if (isPolling && !isClosed) {
                     [strongSelfInQueue doPoll];
                 }
@@ -121,7 +113,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     }
     
     if (self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3) {
-        // Engine.IO v4 格式：使用 \x1e 分隔多个消息
+        // Engine.IO v3/v4 格式：使用 \x1e 分隔多个消息
         NSArray<NSString *> *messages = [string componentsSeparatedByString:@"\x1e"];
         for (NSString *message in messages) {
             if (message.length > 0) {
@@ -129,7 +121,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
             }
         }
     } else {
-        // Engine.IO v3 格式：length:message
+        // Engine.IO v2 格式：length:message
         RTCVPStringReader *reader = [[RTCVPStringReader alloc] init:string];
         
         while (reader.hasNext) {
@@ -157,34 +149,72 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     // 构建消息字符串：类型 + 消息内容
     NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
     
-    [self log:[NSString stringWithFormat:@"Sending poll message: %@", fullMessage] level:RTCLogLevelDebug];
-    
+    [self log:[NSString stringWithFormat:@"Sending text poll message: %@", fullMessage] level:RTCLogLevelDebug];
     // 添加到待发送队列
     [self.postWait addObject:fullMessage];
     
-    // 添加二进制数据（如果需要）
+    // 立即发送重要消息 如果同时有文本和二进制，先发二进制，然后发文本
+    BOOL isImportantMessage = (type == RTCVPSocketEnginePacketTypeMessage && [message hasPrefix:@"0"]);
+    if (isImportantMessage) {
+        [self log:@"📤 立即发送重要消息" level:RTCLogLevelInfo];
+        [self flushWaitingForPost];
+    } else if (self.postWait.count > 0 && !self.waitingForPost) {
+        [self flushWaitingForPost];
+    }
+    // 根据协议版本处理二进制数据
     if (self.config.enableBinary && data.count > 0) {
+        // 对于二进制数据，按照 Socket.IO 协议处理
+        // 首先发送消息包（包含占位符）
+        // 然后逐个发送二进制数据
+        
+        // 构建包含占位符的消息
+        NSString *placeholderMessage = [self createMessageWithPlaceholderForType:type
+                                                                        message:message
+                                                                     binaryCount:data.count];
+        
+        [self log:[NSString stringWithFormat:@"Sending binary poll message with placeholder: %@", placeholderMessage]
+            level:RTCLogLevelDebug];
+        
+        // 添加到待发送队列
+        [self.postWait addObject:placeholderMessage];
+        
+        // 逐个添加二进制数据
         for (NSData *binaryData in data) {
-            NSString *binaryMessage;
-            if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2){
+            if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
+                // v2 协议：base64 编码
                 NSString *base64String = [binaryData base64EncodedStringWithOptions:0];
-                binaryMessage = [NSString stringWithFormat:@"b4%@", base64String];
-            }else{
-                binaryMessage = [[NSString alloc]initWithData:binaryData encoding:NSUTF8StringEncoding];
+                NSString *binaryMessage = [NSString stringWithFormat:@"b4%@", base64String];
+                [self.postWait addObject:binaryMessage];
+            } else {
+                // v3/v4 协议：直接发送二进制数据
+                // 注意：这里我们使用 NSData 对象，而不是字符串
+                [self.postWait addObject:binaryData];
             }
-            [self.postWait addObject:binaryMessage];
+        }
+        // 立即发送重要消息
+        BOOL isImportantMessage = (type == RTCVPSocketEnginePacketTypeMessage && [message hasPrefix:@"0"]);
+        if (isImportantMessage) {
+            [self log:@"📤 立即发送重要消息" level:RTCLogLevelInfo];
+            [self flushWaitingForPost];
+        } else if (self.postWait.count > 0 && !self.waitingForPost) {
+            [self flushWaitingForPost];
         }
     }
     
-    //    / 重要消息：立即发送，不等待轮询
-    if (type == RTCVPSocketEnginePacketTypeMessage && [message isEqualToString:@"0"]) {
-        // Socket.IO connect packet：立即发送
-        [self log:@"📤 立即发送Socket.IO connect packet" level:RTCLogLevelInfo];
-        [self flushWaitingForPost];
-    } else if (self.postWait.count > 0 && !self.waitingForPost) {
-        // 其他消息：按照正常逻辑发送
-        [self flushWaitingForPost];
-    }
+    
+}
+
+// 创建包含占位符的消息
+- (NSString *)createMessageWithPlaceholderForType:(RTCVPSocketEnginePacketType)type
+                                          message:(NSString *)message
+                                       binaryCount:(NSUInteger)binaryCount {
+    // 根据 Socket.IO 协议，二进制数据需要在消息中使用占位符
+    // 格式示例: 51-["binaryEvent",{"_placeholder":true,"num":0}]
+    
+    // 这里需要根据实际的消息结构来构建
+    // 注意：这需要与你的 Socket.IO 消息结构匹配
+    
+    return [NSString stringWithFormat:@"%ld%@", (long)type, message];
 }
 
 - (void)disconnectPolling {
@@ -192,12 +222,62 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
         // 添加关闭消息到队列
         NSString *closeMessage = [NSString stringWithFormat:@"%ld", (long)RTCVPSocketEnginePacketTypeClose];
         [self.postWait addObject:closeMessage];
+        [self _sendWaitPostWithDisconnect:YES];
         
-        // 发送最后的请求
-        if (self.postWait.count > 0) {
-            NSURLRequest *request = [self createRequestForPostWithPostWait];
-            [[self.session dataTaskWithRequest:request] resume];
+    }
+}
+
+-(void) _sendWaitPostWithDisconnect:(BOOL)isDisconnect{
+    // 发送最后的请求
+    if (self.postWait.count > 0) {
+        NSArray *pstArr = [self.postWait copy];
+        [self.postWait removeAllObjects];
+        for (NSInteger i = 0; i < pstArr.count; i++) {
+            id packet = pstArr[i];
+            NSURLRequest *request = [self createRequestForPostWithPostWaitWithData:packet];
+            if (isDisconnect) {
+                [[self.session dataTaskWithRequest:request] resume];
+            }else{
+                __weak typeof(self) weakSelf = self;
+                NSURLSessionDataTask *task = [self.session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+                    __strong typeof(weakSelf) strongSelf = weakSelf;
+                    if (!strongSelf) return;
+                    
+                    dispatch_queue_t engineQueue = strongSelf.engineQueue;
+                    if (!engineQueue) return;
+                    
+                    dispatch_async(engineQueue, ^{
+                        __strong typeof(weakSelf) strongSelfInQueue = weakSelf;
+                        if (!strongSelfInQueue) return;
+                        
+                        strongSelfInQueue.waitingForPost = NO;
+                        
+                        BOOL isPolling = strongSelfInQueue.polling;
+                        BOOL isFastUpgrade = strongSelfInQueue.fastUpgrade;
+                        
+                        if (error) {
+                            [strongSelfInQueue log:[NSString stringWithFormat:@"POST error: %@", error.localizedDescription] level:RTCLogLevelError];
+                            if (isPolling) {
+                                [strongSelfInQueue didError:error.localizedDescription];
+                            }
+                        } else {
+                            [strongSelfInQueue log:@"POST successful" level:RTCLogLevelDebug];
+                            
+                            isFastUpgrade = strongSelfInQueue.fastUpgrade;
+                            
+                            if (!isFastUpgrade) {
+                                [strongSelfInQueue flushWaitingForPost];
+                                [strongSelfInQueue doPoll];
+                            }
+                        }
+                    });
+                }];
+                
+                [task resume];
+            }
+            
         }
+        
     }
 }
 
@@ -213,50 +293,9 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     
     self.waitingForPost = YES;
     
-    NSURLRequest *request = [self createRequestForPostWithPostWait];
+    [self _sendWaitPostWithDisconnect:NO];
         
-    __weak typeof(self) weakSelf = self;
-    NSURLSessionDataTask *task = [self.session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (!strongSelf) return;
-        
-        // 获取 engineQueue 的引用，避免 strongSelf 被释放后访问 nil
-        dispatch_queue_t engineQueue = strongSelf.engineQueue;
-        if (!engineQueue) return;
-        
-        dispatch_async(engineQueue, ^{ 
-            // 再次检查 strongSelf，确保在队列执行时仍有效
-            __strong typeof(weakSelf) strongSelfInQueue = weakSelf;
-            if (!strongSelfInQueue) return;
-            
-            // 安全设置实例变量
-            strongSelfInQueue.waitingForPost = NO;
-            
-            // 使用局部变量存储状态
-            BOOL isPolling = strongSelfInQueue.polling;
-            BOOL isFastUpgrade = strongSelfInQueue.fastUpgrade;
-            
-            if (error) {
-                [strongSelfInQueue log:[NSString stringWithFormat:@"POST error: %@", error.localizedDescription] level:RTCLogLevelError];
-                if (isPolling) {
-                    [strongSelfInQueue didError:error.localizedDescription];
-                }
-            } else {
-                [strongSelfInQueue log:@"POST successful" level:RTCLogLevelDebug];
-                
-                // 再次检查 fastUpgrade 状态
-                isFastUpgrade = strongSelfInQueue.fastUpgrade;
-                
-                // 如果有更多消息等待发送，继续发送
-                if (!isFastUpgrade) {
-                    [strongSelfInQueue flushWaitingForPost];
-                    [strongSelfInQueue doPoll];
-                }
-            }
-        });
-    }];
     
-    [task resume];
 }
 
 #pragma mark - URL 构建
@@ -265,28 +304,22 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     if (!self.url) {
         return nil;
     }
-    // 生成并添加 t 参数（防止缓存）
+    
     NSString *tParam = [self generateTParameter];
-    // 如果是连接中且不是v2版本那就按照现有格式拼接
+    
     if (self.config.protocolVersion > RTCVPSocketIOProtocolVersion2 && self.connected) {
-        // 使用 NSURLComponents 构建 URL，更安全可靠
         NSURLComponents *components = [[NSURLComponents alloc] init];
         components.scheme = self.url.scheme;
         components.host = self.url.host;
         components.port = self.url.port;
         components.path = @"/socket.io/";
         
-        // 构建查询参数
         NSMutableArray<NSURLQueryItem *> *queryItems = [NSMutableArray array];
         
-        // 添加 EIO 参数（Engine.IO v4 使用 EIO=4）
         [queryItems addObject:[[NSURLQueryItem alloc] initWithName:@"EIO" value:@"4"]];
-        
-        // 添加传输方式
         [queryItems addObject:[[NSURLQueryItem alloc] initWithName:@"transport" value:@"polling"]];
         [queryItems addObject:[[NSURLQueryItem alloc] initWithName:@"t" value:tParam]];
         
-        // 添加 sid（如果有）
         if (self.sid.length > 0) {
             [queryItems addObject:[[NSURLQueryItem alloc] initWithName:@"sid" value:self.sid]];
         }
@@ -296,7 +329,6 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
         return components.URL;
     }
     
-    // 旧版本处理（Engine.IO v2）
     if (!self.urlPolling) {
         return nil;
     }
@@ -304,13 +336,11 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     NSURLComponents *components = [NSURLComponents componentsWithURL:self.urlPolling resolvingAgainstBaseURL:NO];
     NSMutableArray<NSURLQueryItem *> *queryItems = [NSMutableArray array];
     
-    // 保留现有查询参数
     if (components.queryItems) {
         [queryItems addObjectsFromArray:components.queryItems];
     }
     [queryItems addObject:[[NSURLQueryItem alloc] initWithName:@"t" value:tParam]];
     
-    // 添加 sid（如果有）
     if (self.sid.length > 0) {
         [queryItems addObject:[[NSURLQueryItem alloc] initWithName:@"sid" value:self.sid]];
     }
@@ -354,51 +384,54 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     return tParam;
 }
 
-- (NSURLRequest *)createRequestForPostWithPostWait {
-    if (self.postWait.count == 0) return nil;
-
-    NSMutableString *body = [NSMutableString string];
-
+- (NSURLRequest *)createRequestForPostWithPostWaitWithData:(id)packet {
     BOOL isV3 = self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3;
-
-    for (NSInteger i = 0; i < self.postWait.count; i++) {
-        NSString *packet = self.postWait[i];
-
-        if (isV3) {
-            // Engine.IO v3 / v4
-            if (i > 0) [body appendString:@"\x1e"];
-            [body appendString:packet];
-        } else {
-            // Engine.IO v2
-            NSString *framed =
-                [NSString stringWithFormat:@"%lu:%@",
-                 (unsigned long)packet.length,
-                 packet];
-            [body appendString:framed];
-        }
-    }
-
-    [self.postWait removeAllObjects];
+    
 
     NSURL *url = [self urlPollingWithSid];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     [self addHeadersToRequest:request];
 
     request.HTTPMethod = @"POST";
-    request.HTTPBody = [body dataUsingEncoding:NSUTF8StringEncoding];
-    [request setValue:@"text/plain; charset=UTF-8"
-   forHTTPHeaderField:@"Content-Type"];
+    
+    
+    if (isV3) {
+        // Engine.IO v3/v4
+        
+        if ([packet isKindOfClass:[NSString class]]) {
+            // 文本消息
+            NSData *textData = [(NSString *)packet dataUsingEncoding:NSUTF8StringEncoding];
+            request.HTTPBody = textData;
+            [request setValue:@"text/plain; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+
+
+        } else if ([packet isKindOfClass:[NSData class]]) {
+            // 二进制数据
+            // 对于二进制数据，直接添加到 body 中
+            request.HTTPBody = packet;
+            [request setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
+
+        }
+    } else {
+        // Engine.IO v2
+        if ([packet isKindOfClass:[NSString class]]) {
+            NSString *framed = [NSString stringWithFormat:@"%lu:%@",
+                               (unsigned long)[(NSString *)packet length],
+                               (NSString *)packet];
+            request.HTTPBody = [framed dataUsingEncoding:NSUTF8StringEncoding];
+            [request setValue:@"text/plain; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+
+        }
+        // v2 协议中，二进制数据会被编码为字符串，所以这里不会出现 NSData
+    }
 
     return request;
 }
 
-
 - (void)stopPolling {
-      self.waitingForPoll = NO;
-      self.waitingForPost = NO;
-      [self.session finishTasksAndInvalidate];
+    self.waitingForPoll = NO;
+    self.waitingForPost = NO;
+    [self.session finishTasksAndInvalidate];
 }
-
-
 
 @end
