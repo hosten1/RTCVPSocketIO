@@ -304,7 +304,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
     if (!self.url) {
         return nil;
     }
-    
+    // 生成并添加 t 参数（防止缓存）
     NSString *tParam = [self generateTParameter];
     
     if (self.config.protocolVersion > RTCVPSocketIOProtocolVersion2 && self.connected) {
