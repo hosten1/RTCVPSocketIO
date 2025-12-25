@@ -266,8 +266,13 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
 //              return webrtc::TimeDelta::ms(1000);
 //        });
         
+        // 根据配置选择协议版本
         sio::SocketIOVersion versions = sio::SocketIOVersion::V3;
-        
+        if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
+            versions = sio::SocketIOVersion::V2;
+        } else if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion3) {
+            versions = sio::SocketIOVersion::V3;
+        }
         
         ack_manager_ = sio::SioAckManager::Create(taskQueueFactory_.get());
         // 初始化PacketSender和PacketReceiver，移除模板参数，使用正确的构造函数
@@ -940,6 +945,10 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"📣 收到事件，事件名称: %@, 数据: %@, ACK ID: %@, 内部消息: %@, 当前状态: %@", 
                                 event, data, @(ack), internalMessage ? @"是" : @"否", [self statusStringForStatus:self.status]]
                               type:self.logType];
+    //如果是v2 且不是连接，重置成连接
+//    if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2 && (_status != RTCVPSocketIOClientStatusConnected && [event isEqualToString:RTCVPSocketEventConnect])) {
+//        [self handleConnect:@"/"];
+//    }
     
     // 检查是否可以处理事件
     if (_status == RTCVPSocketIOClientStatusConnected || _status == RTCVPSocketIOClientStatusOpened || internalMessage) {

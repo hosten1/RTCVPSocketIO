@@ -387,6 +387,7 @@ bool PacketReceiver::process_text_packet(const std::string& text_packet) {
     SioPacket packet = packet_builder_->decode_packet(text_packet);
     
     if (packet.event_name.empty() && packet.args.empty()) {
+        RTC_LOG(LS_ERROR)<<"Empty packet or packet with only binary data packet:"<<packet.to_string();
         webrtc::MutexLock lock(&stats_mutex_);
         stats_.parse_errors++;
         return false;
