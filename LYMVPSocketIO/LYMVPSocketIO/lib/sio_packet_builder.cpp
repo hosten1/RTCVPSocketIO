@@ -195,6 +195,7 @@ SioPacket SioPacketBuilder::decode_packet(
     SocketIOVersion detected_version = version_;
     
     // 根据包内容检测版本
+   /*
     if (text_packet.length() >= 2) {
         char first_char = text_packet[0];
         if (first_char >= '0' && first_char <= '9') {
@@ -222,6 +223,7 @@ SioPacket SioPacketBuilder::decode_packet(
             }
         }
     }
+    */
     
     // 使用检测到的版本进行解码
     SioPacket result;
@@ -803,16 +805,22 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     // 构建V2文本包
     std::stringstream ss;
     
-    // 包类型 - 基于实际二进制数据
-    int packet_type = static_cast<int>(packet.type);
+    // V2协议使用的包类型编号
+    int packet_type;
     if (result.is_binary) {
-        if (packet.type == PacketType::EVENT) {
-            packet_type = static_cast<int>(PacketType::BINARY_EVENT);
-        } else if (packet.type == PacketType::ACK) {
-            packet_type = static_cast<int>(PacketType::BINARY_ACK);
+        if (packet.type == PacketType::EVENT || packet.type == PacketType::BINARY_EVENT) {
+            packet_type = static_cast<int>(PacketType::BINARY_EVENT); // V2: 5
+        } else {
+            packet_type = static_cast<int>(PacketType::BINARY_ACK); // V2: 6
         }
-        RTC_LOG(LS_INFO) << "Converted to V2 binary packet type: " << packet_type;
+    } else {
+        if (packet.type == PacketType::EVENT || packet.type == PacketType::BINARY_EVENT) {
+            packet_type = static_cast<int>(PacketType::EVENT); // V2: 2
+        } else {
+            packet_type = static_cast<int>(PacketType::ACK); // V2: 3
+        }
     }
+    RTC_LOG(LS_INFO) << "V2 packet type: " << packet_type << " for original type: " << static_cast<int>(packet.type);
     ss << packet_type;
     
     // 命名空间（如果不是根命名空间）
@@ -830,7 +838,6 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
         ss << packet.ack_id;
         RTC_LOG(LS_INFO) << "Added V2 ACK ID: " << packet.ack_id;
     }
-    
     // V2二进制计数在JSON中处理，不在头部
     
     // JSON数据
@@ -841,12 +848,13 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     writer["dropNullPlaceholders"] = false;
     writer["enableYAMLCompatibility"] = false;
     
-    std::string json_str = Json::writeString(writer, json_obj);
+    std::string json_str = Json::writeString(writer, json_obj["args"]);
     ss << json_str;
     
     result.text_packet = ss.str();
     
     RTC_LOG(LS_INFO) << "Encoded V2 packet: text length=" << result.text_packet.length() << ", binary parts=" << result.binary_parts.size();
+    RTC_LOG(LS_INFO) << "Encoded V2 packet content: " << result.text_packet;
     return result;
 }
 
@@ -1015,14 +1023,34 @@ SioPacket SioPacketBuilder::decode_v2_packet(
                     }
                 }
             } else if (json_value.isArray()) {
-                // ACK包：直接是参数数组
-                std::map<std::string, int> binary_map;
-                for (Json::ArrayIndex i = 0; i < json_value.size(); i++) {
-                    Json::Value restored_arg = json_value[i];
-                    restore_binary_data(restored_arg, binaries, binary_map);
-                    packet.args.push_back(restored_arg);
+                // 检查包类型
+                if (packet.type == PacketType::EVENT || packet.type == PacketType::BINARY_EVENT) {
+                    // 事件包数组格式：["event_name", ...args]
+                    if (json_value.size() > 0) {
+                        // 第一个元素是事件名称
+                        packet.event_name = json_value[0].asString();
+                        RTC_LOG(LS_INFO) << "Extracted V2 event name from array: " << packet.event_name;
+                        
+                        // 剩下的元素是参数
+                        for (Json::ArrayIndex i = 1; i < json_value.size(); i++) {
+                            Json::Value restored_arg = json_value[i];
+                            // 处理二进制数据
+                            std::map<std::string, int> binary_map;
+                            restore_binary_data(restored_arg, binaries, binary_map);
+                            packet.args.push_back(restored_arg);
+                        }
+                        RTC_LOG(LS_INFO) << "Processed V2 array event args, count: " << packet.args.size();
+                    }
+                } else {
+                    // ACK包：直接是参数数组
+                    std::map<std::string, int> binary_map;
+                    for (Json::ArrayIndex i = 0; i < json_value.size(); i++) {
+                        Json::Value restored_arg = json_value[i];
+                        restore_binary_data(restored_arg, binaries, binary_map);
+                        packet.args.push_back(restored_arg);
+                    }
+                    RTC_LOG(LS_INFO) << "Processed V2 ACK array, args count: " << packet.args.size();
                 }
-                RTC_LOG(LS_INFO) << "Processed V2 ACK array, args count: " << packet.args.size();
             }
         }
     }
