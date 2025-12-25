@@ -233,8 +233,16 @@
     
     [self log:[NSString stringWithFormat:@"Flushing %lu post wait messages to WebSocket", (unsigned long)self.postWait.count] level:RTCLogLevelDebug];
     
-    for (NSString *packet in self.postWait) {
-        [self.ws writeString:packet];
+    for (id item in self.postWait) {
+        if ([item isKindOfClass:[NSString class]]) {
+            [self.ws writeString:item];
+        } else if ([item isKindOfClass:[NSData class]]) {
+//            // 添加 0x04 前缀表示二进制消息（engine binary packet）
+//            const Byte binaryPrefix = 0x04;
+//            NSMutableData *binaryPacket = [NSMutableData dataWithBytes:&binaryPrefix length:1];
+//            [binaryPacket appendData:item];
+            [self.ws writeData:item];
+        }
     }
     
     [self.postWait removeAllObjects];

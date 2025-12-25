@@ -146,7 +146,7 @@ connectBtn.addEventListener('click', () => {
         
         // Socket.IO v3 连接配置
         const socketOptions = {
-            transports: ['websocket'],
+            transports: ['polling'],
             timeout: 5000,
             forceNew: true,
             reconnection: true,

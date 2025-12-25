@@ -152,16 +152,15 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
 
 /// 轮训模式发送消息
 - (void)sendPollMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
-    if (message && message.length > 0) {
-        // 构建消息字符串：类型 + 消息内容
-        NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
-        
-        [self log:[NSString stringWithFormat:@"Sending poll message: %@", fullMessage] level:RTCLogLevelDebug];
-        
-        // 添加到待发送队列
-        [self.postWait addObject:fullMessage];
-    }
+    if (!self.connected || self.closed) return;
+
+    // 构建消息字符串：类型 + 消息内容
+    NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
     
+    [self log:[NSString stringWithFormat:@"Sending poll message: %@", fullMessage] level:RTCLogLevelDebug];
+    
+    // 添加到待发送队列
+    [self.postWait addObject:fullMessage];
     
     // 添加二进制数据（如果需要）
     if (self.config.enableBinary && data.count > 0) {
@@ -177,7 +176,7 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
         }
     }
     
-//    / 重要消息：立即发送，不等待轮询
+    //    / 重要消息：立即发送，不等待轮询
     if (type == RTCVPSocketEnginePacketTypeMessage && [message isEqualToString:@"0"]) {
         // Socket.IO connect packet：立即发送
         [self log:@"📤 立即发送Socket.IO connect packet" level:RTCLogLevelInfo];
@@ -356,37 +355,43 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
 }
 
 - (NSURLRequest *)createRequestForPostWithPostWait {
-   // 构建 POST 数据
-    NSMutableString *postData = [NSMutableString string];
-    
-    if (self.config.protocolVersion < RTCVPSocketIOProtocolVersion3) {
-        // Engine.IO v3 格式：length:message
-        for (NSString *packet in self.postWait) {
-            [postData appendFormat:@"%lu:%@", (unsigned long)packet.length, packet];
+    if (self.postWait.count == 0) return nil;
+
+    NSMutableString *body = [NSMutableString string];
+
+    BOOL isV3 = self.config.protocolVersion >= RTCVPSocketIOProtocolVersion3;
+
+    for (NSInteger i = 0; i < self.postWait.count; i++) {
+        NSString *packet = self.postWait[i];
+
+        if (isV3) {
+            // Engine.IO v3 / v4
+            if (i > 0) [body appendString:@"\x1e"];
+            [body appendString:packet];
+        } else {
+            // Engine.IO v2
+            NSString *framed =
+                [NSString stringWithFormat:@"%lu:%@",
+                 (unsigned long)packet.length,
+                 packet];
+            [body appendString:framed];
         }
-    } else {
-        // Engine.IO v4 格式：直接发送消息，多个消息用\x1e分隔
-        [postData appendString:[self.postWait componentsJoinedByString:@"\x1e"]];
     }
-    
+
     [self.postWait removeAllObjects];
 
     NSURL *url = [self urlPollingWithSid];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    NSLog(@"轮训模式POST消息到：%@ body:%@",[url relativeString],postData);
-
     [self addHeadersToRequest:request];
-    
+
     request.HTTPMethod = @"POST";
-    request.HTTPBody = [postData dataUsingEncoding:NSUTF8StringEncoding];
-    [request setValue:@"text/plain; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
-    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)request.HTTPBody.length] forHTTPHeaderField:@"Content-Length"];
-    
-    [self log:[NSString stringWithFormat:@"POST request to: %@", url.absoluteString] level:RTCLogLevelDebug];
-    [self log:[NSString stringWithFormat:@"POST data: %@", postData] level:RTCLogLevelDebug];
-    
+    request.HTTPBody = [body dataUsingEncoding:NSUTF8StringEncoding];
+    [request setValue:@"text/plain; charset=UTF-8"
+   forHTTPHeaderField:@"Content-Type"];
+
     return request;
 }
+
 
 - (void)stopPolling {
       self.waitingForPoll = NO;

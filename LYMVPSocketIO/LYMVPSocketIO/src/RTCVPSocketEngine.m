@@ -1120,6 +1120,10 @@ NSURLSessionDelegate>
 #pragma mark - 发送消息
 
 - (void)write:(NSString *)msg withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
+    NSMutableArray *dataArr = [NSMutableArray array];
+    for (NSData *dataA in data) {
+        [dataArr addObject:[dataA copy]];
+    }
     dispatch_async(self.engineQueue, ^{
         if (!self.connected || self.closed) {
             [self log:@"Cannot write, engine not connected" level:RTCLogLevelWarning];
@@ -1127,16 +1131,16 @@ NSURLSessionDelegate>
         }
         
         if (self.websocket) {
-            [self sendWebSocketMessage:msg withType:type withData:data];
+            [self sendWebSocketMessage:msg withType:type withData:[dataArr copy]];
         } else if (self.probing) {
             // 在探测期间，缓存消息
             RTCVPProbe *probe = [[RTCVPProbe alloc] init];
             probe.message = msg;
             probe.type = type;
-            probe.data = data;
+            probe.data = [dataArr copy];
             [self.probeWait addObject:probe];
         } else {
-            [self sendPollMessage:msg withType:type withData:data];
+            [self sendPollMessage:msg withType:type withData:[dataArr copy]];
         }
     });
 }
