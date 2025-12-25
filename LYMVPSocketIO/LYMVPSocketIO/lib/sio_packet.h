@@ -5,6 +5,10 @@
 //  Created by luoyongmeng on 2025/12/18.
 //  Copyright © 2025 Vasily Popov. All rights reserved.
 //
+// Socket.IO Packet Handling Library
+// Socket.IO Protocol Reference: https://socket.io/docs/v4/protocol/
+// Engine.IO Protocol Reference: https://github.com/socketio/engine.io-protocol
+// Binary Data Handling: https://socket.io/docs/v4/binary-events/
 
 #ifndef SIO_PACKET_H
 #define SIO_PACKET_H
@@ -25,7 +29,24 @@
 
 namespace sio {
 
-// 分包器：将包含二进制的包拆分为文本部分和二进制部分
+/**
+ * Socket.IO Packet Splitter
+ * 
+ * 功能: 将包含二进制数据的Socket.IO包拆分为文本部分和二进制部分，或合并它们
+ * 
+ * Socket.IO二进制数据处理机制:
+ * 1. 当发送包含二进制数据的事件时，二进制数据会被提取出来，替换为占位符
+ * 2. 文本部分包含带占位符的JSON字符串，占位符格式: {"_placeholder":true, "num":0}
+ * 3. 二进制部分按顺序发送，每个二进制数据对应一个占位符
+ * 4. 接收端根据占位符索引将二进制数据重新插入到JSON结构中
+ * 
+ * 示例流程:
+ * 发送: {"event":"message", "data":{"text":"hello", "file":<binary_data>}}
+ * 拆分: 
+ *   - 文本部分: {"event":"message", "data":{"text":"hello", "file":{"_placeholder":true, "num":0}}}
+ *   - 二进制部分: [<binary_data>]
+ * 接收合并: 还原为原始数据结构
+ */
 template <typename T>
 class PacketSplitter {
 public:
@@ -96,37 +117,86 @@ private:
     static int get_placeholder_index(const Json::Value& value);
 };
 
-// 包处理工具类
+/**
+ * Socket.IO Packet Utilities
+ * 
+ * 功能: 提供Socket.IO包的构建、解析和验证等实用方法
+ * 
+ * Socket.IO包类型说明:
+ * - 0: CONNECT - 连接到命名空间
+ * - 1: DISCONNECT - 断开连接
+ * - 2: EVENT - 发送事件
+ * - 3: ACK - 事件确认
+ * - 4: ERROR - 错误
+ * - 5: BINARY_EVENT - 二进制事件
+ * - 6: BINARY_ACK - 二进制事件确认
+ * 
+ * 包格式示例:
+ * - 普通事件: 2["eventName", {"data":"value"}]
+ * - 带ACK的事件: 2["eventName", {"data":"value"}, 123]
+ * - 二进制事件: 51-["eventName", {"_placeholder":true, "num":0}]
+ * - 连接包: 0{"auth":{"token":"123"}}
+ */
 class PacketUtils {
 public:
-    // 检测包类型
+    /**
+     * 检测包类型
+     * @param packet_str Socket.IO包字符串
+     * @return 包类型枚举值
+     */
     static PacketType detect_packet_type(const std::string& packet_str) {
         return PacketParser::getInstance().getPacketType(packet_str);
     }
     
-    // 获取包ID
+    /**
+     * 获取包ID（用于ACK机制）
+     * @param packet_str Socket.IO包字符串
+     * @return 包ID，-1表示无ID
+     */
     static int get_packet_id(const std::string& packet_str) {
         return PacketParser::getInstance().getPacketId(packet_str);
     }
     
-    // 获取命名空间
+    /**
+     * 获取命名空间
+     * @param packet_str Socket.IO包字符串
+     * @return 命名空间字符串，默认为"/"
+     */
     static std::string get_namespace(const std::string& packet_str) {
         return PacketParser::getInstance().getNamespace(packet_str);
     }
     
-    // 验证包格式
+    /**
+     * 验证包格式
+     * @param packet_str Socket.IO包字符串
+     * @return 是否为有效格式
+     */
     static bool validate_packet(const std::string& packet_str) {
         return PacketParser::getInstance().validatePacket(packet_str);
     }
     
-    // 构建连接包
+    /**
+     * 构建连接包
+     * @param auth_data 认证数据
+     * @param nsp 命名空间
+     * @param query_params 查询参数
+     * @return 连接包字符串
+     */
     static std::string build_connect_packet(const Json::Value& auth_data = Json::Value(),
                                           const std::string& nsp = "/",
                                           const Json::Value& query_params = Json::Value()) {
         return PacketParser::getInstance().buildConnectString(auth_data, nsp, query_params);
     }
     
-    // 构建事件包
+    /**
+     * 构建事件包
+     * @param event_name 事件名称
+     * @param data 事件数据
+     * @param ack_id ACK ID，-1表示不需要ACK
+     * @param nsp 命名空间
+     * @param is_binary 是否为二进制事件
+     * @return 事件包字符串
+     */
     static std::string build_event_packet(const std::string& event_name,
                                         const Json::Value& data = Json::Value(),
                                         int ack_id = -1,
@@ -135,7 +205,14 @@ public:
         return PacketParser::getInstance().buildEventString(event_name, data, ack_id, nsp, is_binary);
     }
     
-    // 构建ACK包
+    /**
+     * 构建ACK包
+     * @param ack_id ACK ID，对应原始事件的ID
+     * @param data ACK数据
+     * @param nsp 命名空间
+     * @param is_binary 是否为二进制ACK
+     * @return ACK包字符串
+     */
     static std::string build_ack_packet(int ack_id,
                                       const Json::Value& data = Json::Value(),
                                       const std::string& nsp = "/",
@@ -143,19 +220,33 @@ public:
         return PacketParser::getInstance().buildAckString(ack_id, data, nsp, is_binary);
     }
     
-    // 构建断开连接包
+    /**
+     * 构建断开连接包
+     * @param nsp 命名空间
+     * @return 断开连接包字符串
+     */
     static std::string build_disconnect_packet(const std::string& nsp = "/") {
         return PacketParser::getInstance().buildDisconnectString(nsp);
     }
     
-    // 构建错误包
+    /**
+     * 构建错误包
+     * @param error_message 错误信息
+     * @param error_data 错误数据
+     * @param nsp 命名空间
+     * @return 错误包字符串
+     */
     static std::string build_error_packet(const std::string& error_message,
                                         const Json::Value& error_data = Json::Value(),
                                         const std::string& nsp = "/") {
         return PacketParser::getInstance().buildErrorString(error_message, error_data, nsp);
     }
     
-    // 解析包
+    /**
+     * 解析Socket.IO包
+     * @param packet_str Socket.IO包字符串
+     * @return 解析结果对象，包含包信息和状态
+     */
     static ParseResult parse_packet(const std::string& packet_str) {
         return PacketParser::getInstance().parsePacket(packet_str);
     }

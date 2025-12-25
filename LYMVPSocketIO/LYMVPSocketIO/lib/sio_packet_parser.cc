@@ -190,17 +190,24 @@ std::string PacketParser::readJson(const std::string& str, size_t& cursor) {
 
 // ==================== 核心解析方法 ====================
 
+/**
+ * 核心解析方法 - 根据Socket.IO版本自动选择解析逻辑
+ * @param packet_str Socket.IO包字符串
+ * @return 解析结果对象
+ */
 ParseResult PacketParser::parseImpl(const std::string& packet_str) {
     ParseResult result;
     result.raw_message = packet_str;
     
     if (packet_str.empty()) {
         result.error = "Empty packet string";
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser] Empty packet received";
         return result;
     }
     
     // 根据版本选择解析方法
     SocketIOVersion version = detectVersion(packet_str);
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser] Detected version: " << static_cast<int>(version);
     
     if (static_cast<int>(version) < 3) {
         return parseV2Format(packet_str);
@@ -209,20 +216,30 @@ ParseResult PacketParser::parseImpl(const std::string& packet_str) {
     }
 }
 
+/**
+ * Socket.IO v2格式解析实现
+ * 包格式: <type><binary_count>-<namespace>,<id><data>
+ * @param packet_str Socket.IO包字符串
+ * @return 解析结果对象
+ */
 ParseResult PacketParser::parseV2Format(const std::string& packet_str) {
     ParseResult result;
     result.raw_message = packet_str;
     
     if (packet_str.empty()) {
         result.error = "Empty packet string";
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Empty packet received";
         return result;
     }
     
     size_t cursor = 0;
     
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Parsing packet: " << packet_str;
+    
     // 1. 解析包类型（只读取一个字符）
     if (cursor >= packet_str.length() || !std::isdigit(packet_str[cursor])) {
         result.error = "Invalid packet type: no numeric prefix found";
+        RTC_LOG(LS_ERROR) << "[Socket.IO Parser V2] Invalid packet type: " << packet_str;
         return result;
     }
     int type_int = packet_str[cursor] - '0';
@@ -230,19 +247,24 @@ ParseResult PacketParser::parseV2Format(const std::string& packet_str) {
     
     if (!isValidPacketType(type_int)) {
         result.error = "Invalid packet type: " + std::to_string(type_int);
+        RTC_LOG(LS_ERROR) << "[Socket.IO Parser V2] Invalid packet type: " << type_int;
         return result;
     }
     
     PacketType type = static_cast<PacketType>(type_int);
     result.packet.type = type;
     result.is_binary_packet = isBinaryPacketType(type);
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Packet type: " << static_cast<int>(type) 
+                      << ", Is binary: " << (result.is_binary_packet ? "Yes" : "No");
     
     // 2. 解析二进制计数（如果是二进制包）
     if (result.is_binary_packet && cursor < packet_str.length() && std::isdigit(packet_str[cursor])) {
         result.binary_count = readNumber(packet_str, cursor);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Binary count: " << result.binary_count;
         // 检查并跳过 '-' 分隔符
         if (cursor < packet_str.length() && packet_str[cursor] == V2_BINARY_SEPARATOR) {
             cursor++;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Skipped binary separator";
         }
     }
     
@@ -255,13 +277,16 @@ ParseResult PacketParser::parseV2Format(const std::string& packet_str) {
         }
         
         result.namespace_str = packet_str.substr(start, cursor - start);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Namespace: " << result.namespace_str;
         
         // 跳过逗号分隔符（如果有）
         if (cursor < packet_str.length() && packet_str[cursor] == NAMESPACE_SEPARATOR) {
             cursor++;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Skipped namespace separator";
         }
     } else {
         result.namespace_str = "/";
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Default namespace '/' used";
     }
     
     // 转换为命名空间索引
@@ -270,8 +295,10 @@ ParseResult PacketParser::parseV2Format(const std::string& packet_str) {
     // 4. 解析包ID
     if (cursor < packet_str.length() && std::isdigit(packet_str[cursor])) {
         result.packet.id = readNumber(packet_str, cursor);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Packet ID: " << result.packet.id;
     } else {
         result.packet.id = -1;
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] No packet ID";
     }
     
     // 5. 解析数据部分
@@ -280,28 +307,45 @@ ParseResult PacketParser::parseV2Format(const std::string& packet_str) {
         if (packet_str[cursor] == '[' || packet_str[cursor] == '{') {
             result.json_data = readJson(packet_str, cursor);
             result.packet.data = result.json_data;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] JSON data: " << result.json_data.substr(0, 100) 
+                              << (result.json_data.length() > 100 ? "..." : "");
         }
         // 否则可能没有数据部分（如connect/disconnect包）
+        else {
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] No JSON data found, remaining: " 
+                              << packet_str.substr(cursor);
+        }
     }
     
     result.success = true;
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser V2] Parse completed successfully";
     return result;
 }
 
+/**
+ * Socket.IO v3/v4格式解析实现
+ * 包格式: <type><namespace>,<id><data>
+ * @param packet_str Socket.IO包字符串
+ * @return 解析结果对象
+ */
 ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
     ParseResult result;
     result.raw_message = packet_str;
     
     if (packet_str.empty()) {
         result.error = "Empty packet string";
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Empty packet received";
         return result;
     }
     
     size_t cursor = 0;
     
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Parsing packet: " << packet_str;
+    
     // 1. 解析包类型（只读取一个字符）
     if (cursor >= packet_str.length() || !std::isdigit(packet_str[cursor])) {
         result.error = "Invalid packet type: no numeric prefix found";
+        RTC_LOG(LS_ERROR) << "[Socket.IO Parser V3] Invalid packet type: " << packet_str;
         return result;
     }
     int type_int = packet_str[cursor] - '0';
@@ -309,12 +353,15 @@ ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
     
     if (!isValidPacketType(type_int)) {
         result.error = "Invalid packet type: " + std::to_string(type_int);
+        RTC_LOG(LS_ERROR) << "[Socket.IO Parser V3] Invalid packet type: " << type_int;
         return result;
     }
     
     PacketType type = static_cast<PacketType>(type_int);
     result.packet.type = type;
     result.is_binary_packet = isBinaryPacketType(type);
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Packet type: " << static_cast<int>(type) 
+                      << ", Is binary: " << (result.is_binary_packet ? "Yes" : "No");
     
     // 2. 解析命名空间（V3格式：命名空间在类型后立即开始）
     // 检查是否是数字命名空间（v3+支持）
@@ -322,6 +369,7 @@ ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
         // 数字命名空间
         int nsp_num = readNumber(packet_str, cursor);
         result.namespace_str = "/" + std::to_string(nsp_num);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Numeric namespace: " << result.namespace_str;
     } else if (cursor < packet_str.length() && packet_str[cursor] == '/') {
         // 字符串命名空间
         size_t start = cursor;
@@ -329,13 +377,16 @@ ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
             cursor++;
         }
         result.namespace_str = packet_str.substr(start, cursor - start);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] String namespace: " << result.namespace_str;
         
         // 跳过逗号分隔符（如果有）
         if (cursor < packet_str.length() && packet_str[cursor] == NAMESPACE_SEPARATOR) {
             cursor++;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Skipped namespace separator";
         }
     } else {
         result.namespace_str = "/";
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Default namespace '/' used";
     }
     
     // 转换为命名空间索引
@@ -344,17 +395,21 @@ ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
     // 3. 解析二进制计数（V3格式：在命名空间后）
     if (result.is_binary_packet && cursor < packet_str.length() && std::isdigit(packet_str[cursor])) {
         result.binary_count = readNumber(packet_str, cursor);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Binary count: " << result.binary_count;
         // 检查并跳过 '-' 分隔符
         if (cursor < packet_str.length() && packet_str[cursor] == V3_BINARY_SEPARATOR) {
             cursor++;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Skipped binary separator";
         }
     }
     
     // 4. 解析包ID（V3格式：在二进制计数后）
     if (cursor < packet_str.length() && std::isdigit(packet_str[cursor])) {
         result.packet.id = readNumber(packet_str, cursor);
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Packet ID: " << result.packet.id;
     } else {
         result.packet.id = -1;
+        RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] No packet ID";
     }
     
     // 5. 解析数据部分
@@ -363,15 +418,19 @@ ParseResult PacketParser::parseV3Format(const std::string& packet_str) {
         if (packet_str[cursor] == '[' || packet_str[cursor] == '{') {
             result.json_data = readJson(packet_str, cursor);
             result.packet.data = result.json_data;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] JSON data: " << result.json_data.substr(0, 100) 
+                              << (result.json_data.length() > 100 ? "..." : "");
         } else {
             // 可能没有数据或数据是字符串（如connect包的sid）
             // 读取剩余部分作为数据
             result.json_data = packet_str.substr(cursor);
             result.packet.data = result.json_data;
+            RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Raw data: " << result.json_data;
         }
     }
     
     result.success = true;
+    RTC_LOG(LS_INFO) << "[Socket.IO Parser V3] Parse completed successfully";
     return result;
 }
 

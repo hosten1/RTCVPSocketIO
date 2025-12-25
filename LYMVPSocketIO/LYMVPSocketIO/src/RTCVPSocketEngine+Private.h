@@ -45,7 +45,7 @@ typedef enum : NSUInteger{
 
 @property (nonatomic, strong) NSURLSession *session;
 @property (nonatomic, strong) RTCJFRWebSocket *ws;
-@property (nonatomic, strong) NSMutableArray *postWait;
+@property (nonatomic, strong) NSMutableOrderedSet *postWait;
 @property (nonatomic, strong) NSMutableArray<RTCVPProbe *> *probeWait;
 
 @property (nonatomic, assign) NSInteger pingInterval;

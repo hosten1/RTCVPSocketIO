@@ -117,7 +117,7 @@ NSURLSessionDelegate>
     
     // 初始化数据
     _sid = @"";
-    _postWait = [NSMutableArray array];
+    _postWait = [NSMutableOrderedSet orderedSet];
     _probeWait = [NSMutableArray array];
     
     // 设置心跳参数
@@ -1182,6 +1182,8 @@ NSURLSessionDelegate>
         }
     }
     
+    [request setValue:@"gzip, deflate, br, zstd" forHTTPHeaderField:@"Accept-encoding"];
+    [request setValue:@"zh-CN,zh;q=0.9"          forHTTPHeaderField:@"Accept-language"];
     // 设置 User-Agent
     NSString *userAgent = [NSString stringWithFormat:@"RTCVPSocketIO/%@ (iOS)", @"1.0.0"];
     [request setValue:userAgent forHTTPHeaderField:@"User-Agent"];

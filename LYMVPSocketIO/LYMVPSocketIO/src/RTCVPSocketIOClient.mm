@@ -421,35 +421,69 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
     }];
 }
 
+/// 带超时的连接方法
+/// Socket.IO连接流程参考: https://socket.io/docs/v4/how-it-works/
+/// 连接状态: 
+/// - NotConnected: 初始状态，尚未开始连接
+/// - Connecting: 正在连接中
+/// - Connected: 连接成功
+/// - Disconnected: 连接已断开
+/// @param timeout 连接超时时间（秒）
+/// @param handler 超时回调处理
 - (void)connectWithTimeoutAfter:(NSTimeInterval)timeout withHandler:(RTCVPSocketIOVoidHandler)handler {
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"🔌 开始连接到服务器，超时时间: %.1f秒，当前状态: %@", timeout, [self statusStringForStatus:self.status]]
+                                  type:self.logType];
+    
     if (_status != RTCVPSocketIOClientStatusConnected) {
+        // 更新连接状态为正在连接
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"🔄 更新连接状态: %@ -> %@", [self statusStringForStatus:self.status], [self statusStringForStatus:RTCVPSocketIOClientStatusConnecting]]
+                                      type:self.logType];
         self.status = RTCVPSocketIOClientStatusConnecting;
+        
+        // 触发连接状态变化事件
+        [self handleClientEvent:RTCVPSocketEventStatusChange withData:@[@"connecting"]];
         
         // 保留原有引擎连接逻辑，用于向后兼容
         if (self.engine == nil || self.forceNew) {
+            [RTCDefaultSocketLogger.logger log:@"🆕 创建新的Socket.IO引擎实例" type:self.logType];
             [self addEngine];
+        } else {
+            [RTCDefaultSocketLogger.logger log:@"♻️ 使用现有Socket.IO引擎实例" type:self.logType];
         }
         
+        // 调用引擎连接方法
+        [RTCDefaultSocketLogger.logger log:@"📞 调用引擎连接方法" type:self.logType];
         [self.engine connect];
         
+        // 设置连接超时
         if (timeout > 0) {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"⏱️ 设置连接超时: %.1f秒", timeout] type:self.logType];
             __weak __typeof(self) weakSelf = self;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)),
                           self.handleQueue, ^{
                 __strong __typeof(weakSelf) strongSelf = weakSelf;
-                if (strongSelf &&
-                    (strongSelf.status == RTCVPSocketIOClientStatusConnecting ||
-                     strongSelf.status == RTCVPSocketIOClientStatusNotConnected)) {
-                    [strongSelf didDisconnect:@"Connection timeout"];
-                    if (handler) {
-                        handler();
+                if (strongSelf) {
+                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"⏱️ 检查连接超时，当前状态: %@", [strongSelf statusStringForStatus:strongSelf.status]] type:self.logType];
+                    if ((strongSelf.status == RTCVPSocketIOClientStatusConnecting ||
+                         strongSelf.status == RTCVPSocketIOClientStatusNotConnected)) {
+                        [RTCDefaultSocketLogger.logger error:@"❌ 连接超时，断开连接" type:self.logType];
+                        [strongSelf didDisconnect:@"Connection timeout"];
+                        if (handler) {
+                            [RTCDefaultSocketLogger.logger log:@"📞 调用超时回调处理" type:self.logType];
+                            handler();
+                        }
+                    } else {
+                        [RTCDefaultSocketLogger.logger log:@"✅ 连接已成功，超时检查被忽略" type:self.logType];
                     }
                 }
             });
         }
     } else {
-        [RTCDefaultSocketLogger.logger log:@"Tried connecting on an already connected socket"
-                                      type:self.logType];
+        [RTCDefaultSocketLogger.logger log:@"⚠️ 尝试在已连接的Socket上再次连接" type:self.logType];
+        if (handler) {
+            [RTCDefaultSocketLogger.logger log:@"📞 已连接，立即调用回调处理" type:self.logType];
+            handler();
+        }
     }
 }
 
@@ -853,7 +887,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
 #pragma mark - 发送ACK响应
 
 - (void)sendAck:(NSInteger)ackId withData:(NSArray *)data {
-    if (_status != RTCVPSocketIOClientStatusConnected) {
+    if (_status != RTCVPSocketIOClientStatusConnected && _status != RTCVPSocketIOClientStatusOpened) {
         [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"无法发送ACK %@，Socket未连接", @(ackId)] type:self.logType];
         return;
     }
@@ -889,35 +923,63 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     [self handleEvent:event withData:data isInternalMessage:YES];
 }
 
+/// 处理Socket.IO事件
+/// Socket.IO事件系统参考: https://socket.io/docs/v4/events/
+/// 事件类型: 
+/// - 系统事件: connect, disconnect, error, connect_error, connect_timeout
+/// - 自定义事件: 由应用程序定义，如 chatMessage, userConnected
+/// ACK机制: 服务器或客户端可以请求事件确认，通过ack参数实现
+/// @param event 事件名称
+/// @param data 事件数据数组
+/// @param internalMessage 是否是内部消息（即使未连接也会处理）
+/// @param ack ACK ID（-1表示不需要ACK）
 - (void)handleEvent:(NSString *)event
            withData:(NSArray *)data
   isInternalMessage:(BOOL)internalMessage
             withAck:(NSInteger)ack {
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"📣 收到事件，事件名称: %@, 数据: %@, ACK ID: %@, 内部消息: %@, 当前状态: %@", 
+                                event, data, @(ack), internalMessage ? @"是" : @"否", [self statusStringForStatus:self.status]]
+                              type:self.logType];
     
-    if (_status == RTCVPSocketIOClientStatusConnected || internalMessage) {
+    // 检查是否可以处理事件
+    if (_status == RTCVPSocketIOClientStatusConnected || _status == RTCVPSocketIOClientStatusOpened || internalMessage) {
+        // 事件处理逻辑
         if ([event isEqualToString:RTCVPSocketEventError]) {
-            [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"Socket error: %@", data.firstObject]
+            // 错误事件，使用错误日志级别
+            [RTCDefaultSocketLogger.logger error:[NSString stringWithFormat:@"❌ Socket错误事件: %@", data.firstObject]
                                             type:self.logType];
         } else {
-            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"处理事件: %@, 数据: %@, ack: %@",
+            // 普通事件，使用普通日志级别
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"✅ 处理事件: %@, 数据: %@, ACK ID: %@",
                                                 event, data, @(ack)]
                                           type:self.logType];
         }
         
-        // 调用全局事件处理器
+        // 调用全局事件处理器（如果有）
         if (_anyHandler) {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"🌐 调用全局事件处理器处理事件: %@", event]
+                                          type:self.logType];
             _anyHandler([[RTCVPSocketAnyEvent alloc] initWithEvent:event andItems:data]);
         }
         
         // 复制处理程序数组以避免在遍历时修改
         NSArray<RTCVPSocketEventHandler *> *handlersCopy = [NSArray arrayWithArray:self.handlers];
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"🔍 查找匹配的事件处理器，当前注册的处理器数量: %lu", (unsigned long)handlersCopy.count]
+                                      type:self.logType];
         
         // 查找并执行匹配的事件处理器
+        BOOL handlerFound = NO;
         for (RTCVPSocketEventHandler *handler in handlersCopy) {
             if ([handler.event isEqualToString:event]) {
+                handlerFound = YES;
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"✅ 找到匹配的事件处理器: %@, 事件名称: %@", handler, event]
+                                              type:self.logType];
+                
                 // 创建ACK发射器（如果需要ACK）
                 RTCVPSocketAckEmitter *emitter = nil;
                 if (ack >= 0) {
+                    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"📩 创建ACK发射器，ACK ID: %@", @(ack)]
+                                                  type:self.logType];
                     __weak __typeof(self) weakSelf = self;
                     emitter = [[RTCVPSocketAckEmitter alloc] initWithAckId:ack emitBlock:^(NSArray *items) {
                         __strong __typeof(weakSelf) strongSelf = weakSelf;
@@ -926,11 +988,19 @@ Json::Value convertOCObjectToJsonValue(id obj) {
                 }
                 
                 // 执行事件处理器
+                [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"▶️ 执行事件处理器，事件: %@, ACK ID: %@", event, @(ack)]
+                                              type:self.logType];
                 [handler executeCallbackWith:data withAck:ack withSocket:self withEmitter:emitter];
             }
         }
+        
+        if (!handlerFound) {
+            [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"⚠️ 未找到匹配的事件处理器，事件: %@", event]
+                                          type:self.logType];
+        }
     } else if (!internalMessage) {
-        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"忽略未连接时的事件: %@", event]
+        // 非内部消息且未连接，忽略事件
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"⏭️ 忽略未连接时的事件: %@", event]
                                       type:self.logType];
     }
 }
@@ -1245,32 +1315,58 @@ Json::Value convertOCObjectToJsonValue(id obj) {
     [self handleAck:(int)ackId withData:data];
 }
 
+/// 解析Engine.IO文本消息
+/// Socket.IO协议参考: https://socket.io/docs/v4/protocol/
+/// Engine.IO协议参考: https://github.com/socketio/engine.io-protocol
+/// 格式示例: 0{"sid":"sJYph1R_jHJfhbQbAAAd","upgrades":["websocket"],"pingInterval":25000,"pingTimeout":5000}
+/// @param msg 原始的Engine.IO消息字符串
 - (void)parseEngineMessage:(NSString *)msg {
-    // 实现缺失的协议方法
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"解析引擎消息: %@", msg]
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"📦 解析Engine.IO文本消息: %@", msg]
                                   type:@"SocketParser"];
     
+    // 检查消息是否为空
+    if (!msg || msg.length == 0) {
+        [RTCDefaultSocketLogger.logger error:@"❌ 尝试解析空的Engine.IO消息" type:@"SocketParser"];
+        return;
+    }
     
     // 使用PacketReceiver处理消息
     if (self->pack_receiver) {
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"🔄 调用PacketReceiver处理消息，消息长度: %lu字符", (unsigned long)msg.length]
+                                      type:@"SocketParser"];
         self->pack_receiver->process_text_packet(msg.UTF8String);
+    } else {
+        [RTCDefaultSocketLogger.logger error:@"❌ PacketReceiver未初始化，无法处理Engine.IO消息" type:@"SocketParser"];
     }
 }
 
+/// 解析Engine.IO二进制数据
+/// Socket.IO二进制协议参考: https://socket.io/docs/v4/binary-events/
+/// 格式: 二进制数据通过WebSocket或HTTP POST请求发送
+/// @param data 原始的Engine.IO二进制数据
 - (void)parseEngineBinaryData:(NSData *)data{
-    
-    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"收到二进制数据，长度: %ld", (long)data.length]
+    [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"📦 收到Engine.IO二进制数据，长度: %ld字节", (long)data.length]
                                   type:@"SocketParser"];
+    
+    // 检查数据是否为空
+    if (!data || data.length == 0) {
+        [RTCDefaultSocketLogger.logger error:@"❌ 尝试解析空的Engine.IO二进制数据" type:@"SocketParser"];
+        return;
+    }
     
     // 使用PacketReceiver处理二进制数据
     if (self->pack_receiver) {
-        // 将NSData转换为SmartBuffer
+        [RTCDefaultSocketLogger.logger log:[NSString stringWithFormat:@"🔄 调用PacketReceiver处理二进制数据，数据长度: %ld字节", (long)data.length]
+                                      type:@"SocketParser"];
+        
+        // 将NSData转换为SmartBuffer（C++类型）
         sio::SmartBuffer smart_buffer((const uint8_t*)data.bytes, data.length);
         
         // 处理二进制数据
         self->pack_receiver->process_binary_data(smart_buffer);
+        [RTCDefaultSocketLogger.logger log:@"✅ 二进制数据处理完成" type:@"SocketParser"];
     } else {
-        [RTCDefaultSocketLogger.logger error:@"PacketReceiver未初始化，无法处理二进制数据" type:@"SocketParser"];
+        [RTCDefaultSocketLogger.logger error:@"❌ PacketReceiver未初始化，无法处理Engine.IO二进制数据" type:@"SocketParser"];
     }
     
 }

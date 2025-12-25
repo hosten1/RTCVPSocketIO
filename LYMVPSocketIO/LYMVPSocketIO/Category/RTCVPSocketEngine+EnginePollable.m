@@ -143,78 +143,103 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
 }
 
 /// 轮训模式发送消息
+/// Socket.IO轮询协议参考: https://github.com/socketio/engine.io-protocol#polling
+/// 消息格式: 
+/// - 普通消息: <type><message> 例如: 40 (心跳), 2["event", {"data": "value"}] (事件)
+/// - 二进制消息: 
+///   - v2: <type><message_with_placeholders> 例如: 5["binaryEvent",{"_placeholder":true,"num":0}] 后跟 base64编码的二进制数据
+///   - v3/v4: <type><message_with_placeholders> 例如: 51-["binaryEvent",{"_placeholder":true,"num":0}] 后跟原始二进制数据
+/// @param message 消息内容（不包含类型前缀）
+/// @param type 消息类型
+/// @param data 二进制数据数组（如果有）
 - (void)sendPollMessage:(NSString *)message withType:(RTCVPSocketEnginePacketType)type withData:(NSArray *)data {
-    if (!self.connected || self.closed) return;
-
-    // 构建消息字符串：类型 + 消息内容
-    NSString *fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
+    [self log:[NSString stringWithFormat:@"📤 准备发送轮询消息，类型: %ld, 内容: %@, 二进制数据数量: %lu", (long)type, message, (unsigned long)data.count]
+        level:RTCLogLevelDebug];
     
-    [self log:[NSString stringWithFormat:@"Sending text poll message: %@", fullMessage] level:RTCLogLevelDebug];
-    // 添加到待发送队列
-    [self.postWait addObject:fullMessage];
-    
-    // 立即发送重要消息 如果同时有文本和二进制，先发二进制，然后发文本
-    BOOL isImportantMessage = (type == RTCVPSocketEnginePacketTypeMessage && [message hasPrefix:@"0"]);
-    if (isImportantMessage) {
-        [self log:@"📤 立即发送重要消息" level:RTCLogLevelInfo];
-        [self flushWaitingForPost];
-    } else if (self.postWait.count > 0 && !self.waitingForPost) {
-        [self flushWaitingForPost];
+    if (!self.connected || self.closed) {
+        [self log:@"❌ 连接已关闭或未连接，无法发送消息" level:RTCLogLevelError];
+        return;
     }
+
+    // 构建包含占位符的消息
+    NSString *placeholderMessage = [self createMessageWithPlaceholderForType:type
+                                                                    message:message
+                                                                 binaryCount:data.count];
+    
+    [self log:[NSString stringWithFormat:@"📦 构建轮询消息（包含占位符）: %@", placeholderMessage]
+        level:RTCLogLevelDebug];
+    
+    // 添加到待发送队列
+    [self.postWait addObject:placeholderMessage];
+    [self log:[NSString stringWithFormat:@"📋 消息已添加到发送队列，当前队列长度: %lu", (unsigned long)self.postWait.count]
+        level:RTCLogLevelDebug];
+    
     // 根据协议版本处理二进制数据
     if (self.config.enableBinary && data.count > 0) {
-        // 对于二进制数据，按照 Socket.IO 协议处理
-        // 首先发送消息包（包含占位符）
-        // 然后逐个发送二进制数据
-        
-        // 构建包含占位符的消息
-        NSString *placeholderMessage = [self createMessageWithPlaceholderForType:type
-                                                                        message:message
-                                                                     binaryCount:data.count];
-        
-        [self log:[NSString stringWithFormat:@"Sending binary poll message with placeholder: %@", placeholderMessage]
+        [self log:[NSString stringWithFormat:@"🔄 处理二进制数据，数量: %lu，协议版本: %ld", (unsigned long)data.count, (long)self.config.protocolVersion]
             level:RTCLogLevelDebug];
         
-        // 添加到待发送队列
-        [self.postWait addObject:placeholderMessage];
-        
         // 逐个添加二进制数据
-        for (NSData *binaryData in data) {
+        for (NSInteger i = 0; i < data.count; i++) {
+            NSData *binaryData = data[i];
+            [self log:[NSString stringWithFormat:@"📦 处理第 %ld 个二进制数据，大小: %ld字节", (long)i, (long)binaryData.length]
+                level:RTCLogLevelDebug];
+            // 无论v2还是v3/v4协议，在polling模式下都需要转换为base64
+            NSString *base64String = [binaryData base64EncodedStringWithOptions:0];
+            
             if (self.config.protocolVersion == RTCVPSocketIOProtocolVersion2) {
-                // v2 协议：base64 编码
-                NSString *base64String = [binaryData base64EncodedStringWithOptions:0];
+                [self log:@"🔢 使用Socket.IO v2协议，将二进制数据转换为base64" level:RTCLogLevelDebug];
+                // v2协议：添加"b4"前缀
                 NSString *binaryMessage = [NSString stringWithFormat:@"b4%@", base64String];
                 [self.postWait addObject:binaryMessage];
+                [self log:[NSString stringWithFormat:@"📋 编码后的二进制消息已添加到队列，长度: %lu字符", (unsigned long)binaryMessage.length] level:RTCLogLevelDebug];
             } else {
-                // v3/v4 协议：直接发送二进制数据
-                // 注意：这里我们使用 NSData 对象，而不是字符串
-                [self.postWait addObject:binaryData];
+                // v3/v4协议：直接发送base64字符串（不带前缀）
+                // 根据Engine.IO v3/v4协议，二进制附件应该作为独立的base64消息发送
+                [self log:@"🔢 使用Socket.IO v3/v4协议，将二进制数据转换为base64" level:RTCLogLevelDebug];
+                [self.postWait addObject:base64String];
             }
-        }
-        // 立即发送重要消息
-        BOOL isImportantMessage = (type == RTCVPSocketEnginePacketTypeMessage && [message hasPrefix:@"0"]);
-        if (isImportantMessage) {
-            [self log:@"📤 立即发送重要消息" level:RTCLogLevelInfo];
-            [self flushWaitingForPost];
-        } else if (self.postWait.count > 0 && !self.waitingForPost) {
-            [self flushWaitingForPost];
         }
     }
     
+    // 立即发送重要消息
+    BOOL isImportantMessage = (type == RTCVPSocketEnginePacketTypeMessage && [message hasPrefix:@"0"]);
+    if (isImportantMessage) {
+        [self log:@"� 检测到重要消息（连接/命名空间消息），立即发送" level:RTCLogLevelInfo];
+        [self flushWaitingForPost];
+    } else if (self.postWait.count > 0 && !self.waitingForPost) {
+        [self log:[NSString stringWithFormat:@"📤 发送队列中有 %lu 条消息，开始发送", (unsigned long)self.postWait.count]
+            level:RTCLogLevelInfo];
+        [self flushWaitingForPost];
+    } else {
+        [self log:[NSString stringWithFormat:@"⏳ 等待发送条件满足，当前发送中: %@，队列长度: %lu", self.waitingForPost ? @"是" : @"否", (unsigned long)self.postWait.count]
+            level:RTCLogLevelDebug];
+    }
     
 }
 
-// 创建包含占位符的消息
+/// 创建包含占位符的消息
+/// Socket.IO二进制消息格式参考: https://socket.io/docs/v4/binary-events/
+/// 占位符格式: {"_placeholder":true,"num":0}
+/// 消息结构: 
+/// - v2: <type><message> 例如: 5["binaryEvent",{"_placeholder":true,"num":0}]
+/// - v3/v4: <type><attachments>-<message> 例如: 51-["binaryEvent",{"_placeholder":true,"num":0}] 其中1表示有1个二进制附件
+/// @param type 消息类型
+/// @param message 消息内容（不包含类型前缀）
+/// @param binaryCount 二进制数据数量
+/// @return 完整的消息字符串（包含类型前缀和占位符）
 - (NSString *)createMessageWithPlaceholderForType:(RTCVPSocketEnginePacketType)type
                                           message:(NSString *)message
                                        binaryCount:(NSUInteger)binaryCount {
-    // 根据 Socket.IO 协议，二进制数据需要在消息中使用占位符
-    // 格式示例: 51-["binaryEvent",{"_placeholder":true,"num":0}]
+    [self log:[NSString stringWithFormat:@"🧩 开始创建包含占位符的消息，类型: %ld, 消息内容: %@, 二进制数量: %lu", (long)type, message, (unsigned long)binaryCount]
+        level:RTCLogLevelDebug];
     
-    // 这里需要根据实际的消息结构来构建
-    // 注意：这需要与你的 Socket.IO 消息结构匹配
+    NSString *fullMessage = nil;
     
-    return [NSString stringWithFormat:@"%ld%@", (long)type, message];
+    fullMessage = [NSString stringWithFormat:@"%ld%@", (long)type, message];
+    
+    [self log:[NSString stringWithFormat:@"✅ 创建完成，完整消息: %@", fullMessage] level:RTCLogLevelDebug];
+    return fullMessage;
 }
 
 - (void)disconnectPolling {
@@ -394,7 +419,6 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
 
     request.HTTPMethod = @"POST";
     
-    
     if (isV3) {
         // Engine.IO v3/v4
         
@@ -409,7 +433,8 @@ typedef void (^EngineURLSessionDataTaskCallBack)(NSData* data, NSURLResponse* re
             // 二进制数据
             // 对于二进制数据，直接添加到 body 中
             request.HTTPBody = packet;
-            [request setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
+            [request setValue:@"text/plain; charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
+//            [request setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
 
         }
     } else {
