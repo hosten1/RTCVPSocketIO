@@ -298,7 +298,7 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
                 }
                 
                 if (packet.type == sio::PacketType::CONNECT) {
-                    [strongSelf handleConnect:@"/"];
+                    [strongSelf handleConnect:[NSString stringWithUTF8String:packet.event_name.c_str()]];
                 }else{
                     // 调用上层事件处理器
                     NSString *ocEvent = [NSString stringWithUTF8String:packet.event_name.c_str()];
