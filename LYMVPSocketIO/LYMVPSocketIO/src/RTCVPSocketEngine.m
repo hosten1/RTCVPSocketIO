@@ -213,6 +213,11 @@ NSURLSessionDelegate>
     params[@"EIO"] = eioValue;
     params[@"transport"] = @"polling";
     
+    // 添加压缩参数（如果启用）
+    if (self.config.compressionEnabled) {
+        params[@"compress"] = @"1"; // 告知服务器客户端支持压缩
+    }
+    
     // 对于 WebSocket，需要额外的参数
     NSMutableDictionary *wsParams = [params mutableCopy];
     wsParams[@"transport"] = @"websocket";
@@ -650,6 +655,13 @@ NSURLSessionDelegate>
     // 解析升级选项
     NSArray<NSString *> *upgrades = json[@"upgrades"];
     BOOL canUpgradeToWebSocket = upgrades && [upgrades containsObject:@"websocket"];
+    
+    // 解析压缩支持
+    NSNumber *compress = json[@"compress"];
+    BOOL serverSupportsCompress = compress && [compress boolValue];
+    if (serverSupportsCompress) {
+        [self log:[NSString stringWithFormat:@"服务器支持压缩，客户端压缩配置: %@", self.config.compressionEnabled ? @"启用" : @"禁用"] level:RTCLogLevelInfo];
+    }
     
     // 解析心跳参数
     NSNumber *pingInterval = json[@"pingInterval"];
