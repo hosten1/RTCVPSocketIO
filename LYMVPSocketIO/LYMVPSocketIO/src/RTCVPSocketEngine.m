@@ -284,45 +284,6 @@ NSURLSessionDelegate>
     return @"Engine.IO";
 }
 
-#pragma mark - 心跳管理
-
-// 修复 startPingTimer 方法，不再发送ping，只用于跟踪pong超时
-- (void)startPingTimer {
-    if (self.pingInterval <= 0 || !self.connected || self.closed) {
-        return;
-    }
-    
-    // 停止现有的心跳定时器
-    [self stopPingTimer];
-    
-    // 创建新的心跳定时器 - 只用于检测pong超时，不主动发送ping
-    __weak typeof(self) weakSelf = self;
-    self.pingTimer = [RTCVPTimer timerWithTimeInterval:self.pingInterval / 1000.0
-                                               repeats:YES
-                                                 queue:self.engineQueue
-                                                 block:^{ 
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        // 只检测pong超时，不主动发送ping
-        // Engine.IO协议规定：只有服务器能发送ping，客户端只回复pong
-        if (strongSelf.pongsMissed >= strongSelf.pongsMissedMax) {
-            [strongSelf log:@"Ping timeout (no pong received), closing connection" level:RTCLogLevelError];
-            [strongSelf disconnect:@"ping timeout"];
-        }
-    }];
-    
-    [self.pingTimer start];
-    
-    [self log:@"Ping timer started (only for pong timeout detection)" level:RTCLogLevelDebug];
-}
-
-- (void)stopPingTimer {
-    if (self.pingTimer) {
-        [self.pingTimer cancel];
-        self.pingTimer = nil;
-        [self log:@"Ping timer stopped" level:RTCLogLevelDebug];
-    }
-}
-
 
 
 #pragma mark - WebSocket 探测超时
@@ -518,8 +479,6 @@ NSURLSessionDelegate>
 - (void)resetEngine {
     [self log:@"Resetting engine state" level:RTCLogLevelDebug];
     
-    // 停止所有定时器
-    [self stopPingTimer];
     [self cancelProbeTimeout];
     [self cancelConnectionTimeout];
     
@@ -713,8 +672,6 @@ NSURLSessionDelegate>
     } else {
         [self log:@"Using polling transport" level:RTCLogLevelDebug];
         [self __sendConnectToServer];
-        // 开始心跳
-//        [self startPingTimer];
         // 继续轮询
         if (self.polling) {
             [self doPoll];
@@ -1094,8 +1051,6 @@ NSURLSessionDelegate>
     
     [self log:[NSString stringWithFormat:@"Closing engine: %@", reason] level:RTCLogLevelInfo];
     
-    // 停止所有定时器
-    [self stopPingTimer];
     [self cancelProbeTimeout];
     [self cancelConnectionTimeout];
     

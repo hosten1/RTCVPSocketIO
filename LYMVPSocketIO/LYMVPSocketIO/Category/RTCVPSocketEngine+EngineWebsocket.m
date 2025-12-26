@@ -206,8 +206,6 @@
     // 取消探测超时
     [self cancelProbeTimeout];
     
-    // 开始心跳
-    [self startPingTimer];
     
     // 发送缓存在探测期间的消息
     [self flushProbeWait];
@@ -262,9 +260,6 @@
         
         // 取消连接超时（如果存在）
         [self cancelConnectionTimeout];
-        
-        // 开始心跳
-        [self startPingTimer];
         
         // 如果已经有 sid，表示是重连
         if (self.sid.length > 0) {

@@ -65,7 +65,6 @@ typedef enum : NSUInteger{
 @property (nonatomic, strong, readonly) NSString* logType;
 
 // 添加定时器属性
-@property (nonatomic, strong) RTCVPTimer *pingTimer;
 @property (nonatomic, strong) RTCVPTimer *probeTimeoutTimer;
 @property (nonatomic, strong) RTCVPTimer *connectionTimeoutTimer;
 @property (nonatomic, copy) NSString *probeTimeoutTaskId;
@@ -97,10 +96,6 @@ typedef enum : NSUInteger{
 
 - (void)addHeadersToRequest:(NSMutableURLRequest *)request;
 
-// 心跳管理
-- (void)sendPing;
-- (void)startPingTimer;
-- (void)stopPingTimer;
 
 // 超时管理
 - (void)startProbeTimeout;

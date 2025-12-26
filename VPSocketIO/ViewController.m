@@ -574,6 +574,9 @@ static const uint8_t image_data[] = {
                 NSString *sender = binaryData[@"sender"];
                 NSString *text = binaryData[@"text"];
                 if (![binaryData[@"binaryData"] isKindOfClass:[NSData class]]) {
+                    NSString *message = [NSString stringWithFormat:@"📥 二进制消息来自: %@, 文本: %@, 但是无二进制",
+                                      sender, text ?: @"无文本"];
+                    [strongSelf addMessage:message type:@"received"];
                     return;
                 }
                 NSData *binary = binaryData[@"binaryData"];
