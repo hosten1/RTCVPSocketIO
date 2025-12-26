@@ -256,21 +256,23 @@ SioPacket SioPacketBuilder::decode_packet(
  *       - namespace: 可选，以"/"开头
  *       - ack_id: 可选，数字字符串
  *       - data: JSON数据部分
- * @example V2数据包示例：2/chat,1["hello"]
- *          - type: 2 (EVENT)
+ * @example V2数据包示例： 51-/chat,0["binaryEvent",{"text":"testData",...},{"_placeholder":true,"num":0}]
+ *          - type: 5 (EVENT binary)
+ *          - attachments: 1 有一个二进制
  *          - namespace: /chat
  *          - ack_id: 1
  *          - data: ["hello"]
- */SioPacketBuilder::PacketHeader SioPacketBuilder::parse_v2_header(const std::string& packet) {
-     
-     // Socket.IO v2 header 顺序统一规则：
-     // <packetType>[-<binaryCount>][<namespace>][,<ackId>]<json>
+ */
+SioPacketBuilder::PacketHeader SioPacketBuilder::parse_v2_header(const std::string& packet) {
+    
+    // Socket.IO v2 header 顺序统一规则：
+    // <packetType>[<binaryCount>-][<namespace>][,<ackId>]<json>
     PacketHeader header;
     if (packet.empty()) {
         RTC_LOG(LS_WARNING) << "Empty packet, returning empty header";
         return header;
     }
-
+    
     size_t pos = 0;
     
     // 1. 包类型
@@ -283,9 +285,34 @@ SioPacket SioPacketBuilder::decode_packet(
     
     // 检查是否为二进制包
     bool is_binary_packet = (header.type == PacketType::BINARY_EVENT ||
-                            header.type == PacketType::BINARY_ACK);
+                             header.type == PacketType::BINARY_ACK);
     
-    // 2. 命名空间（可选）
+    // 2. 二进制计数和减号（二进制包特有）
+    if (is_binary_packet) {
+        size_t count_start = pos;
+        while (pos < packet.size() && isdigit(packet[pos])) {
+            pos++;
+        }
+        
+        if (pos > count_start) {
+            std::string count_str = packet.substr(count_start, pos - count_start);
+            try {
+                header.binary_count = std::stoi(count_str);
+                RTC_LOG(LS_INFO) << "Parsed binary count: " << header.binary_count;
+            } catch (...) {
+                RTC_LOG(LS_WARNING) << "Failed to parse binary count: " << count_str;
+                header.binary_count = 0;
+            }
+        }
+        
+        // 检查减号
+        if (pos < packet.size() && packet[pos] == '-') {
+            pos++;
+        }
+    }
+    RTC_LOG(LS_INFO) << "V2 binary packet detected, binary_count=" << header.binary_count;
+    
+    // 3. 命名空间（可选）
     if (pos < packet.size() && packet[pos] == '/') {
         size_t nsp_start = pos;
         
@@ -304,12 +331,12 @@ SioPacket SioPacketBuilder::decode_packet(
         header.namespace_str = "/";
     }
     
-    // 3. 跳过逗号（如果有）
+    // 4. 跳过逗号（如果有）
     if (pos < packet.size() && packet[pos] == ',') {
         pos++;
     }
     
-    // 4. ACK ID（可选）
+    // 5. ACK ID（可选）
     if (pos < packet.size() && isdigit(packet[pos])) {
         size_t ack_start = pos;
         while (pos < packet.size() && isdigit(packet[pos])) {
@@ -327,16 +354,14 @@ SioPacket SioPacketBuilder::decode_packet(
         }
     }
     
-    // V2二进制计数在JSON数据中，不在头部
-    header.binary_count = 0;
-    
-    // 数据起始位置
+    // 6. 数据起始位置
     header.data_start_pos = pos;
     
-    RTC_LOG(LS_INFO) << "Parsed V2 header: type=" << static_cast<int>(header.type) 
-                     << ", namespace=" << header.namespace_str 
-                     << ", ack_id=" << header.ack_id 
-                     << ", data_start_pos=" << header.data_start_pos;
+    RTC_LOG(LS_INFO) << "Parsed V2 header: type=" << static_cast<int>(header.type)
+    << ", namespace=" << header.namespace_str
+    << ", ack_id=" << header.ack_id
+    << ", binary_count=" << header.binary_count
+    << ", data_start_pos=" << header.data_start_pos;
     
     return header;
 }

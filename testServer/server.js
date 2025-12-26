@@ -197,9 +197,16 @@ const handleConnection = (socket) => {
   });
   
   // 监听二进制消息
-  socket.on('binaryEvent', (data, callback) => {
+  socket.on('binaryEvent', (textData, binaryData, callback) => {
     // 不要直接打印包含二进制数据的对象
     console.log(`[${namespace}] Binary event received from`, socket.id);
+    console.log(`[${namespace}] Text data:`, textData);
+    
+    // 检查callback位置 - 可能只有textData和callback，没有binaryData
+    if (typeof binaryData === 'function') {
+      callback = binaryData;
+      binaryData = undefined;
+    }
     
     // 回复ACK - 确保只返回简单的JSON数据，不包含二进制数据
     if (typeof callback === 'function') {
@@ -209,7 +216,7 @@ const handleConnection = (socket) => {
         success: true,
         timestamp: new Date().toISOString(),
         message: 'Binary data received successfully',
-        receivedSize: data.binaryData ? data.binaryData.length : 0,
+        receivedSize: binaryData ? binaryData.length : 0,
         sender: socket.id,
         namespace: namespace
       };
@@ -223,30 +230,31 @@ const handleConnection = (socket) => {
     }
     
     // 只广播给除了发送者之外的其他客户端
-    socket.broadcast.emit('binaryEvent', data);
+    // 直接传递接收到的数据格式
+    socket.broadcast.emit('binaryEvent', textData, binaryData);
   });
   
   // 监听二进制ACK测试
-  socket.on('binaryAckTest', (data, callback) => {
-    console.log(`[${namespace}] Binary ACK test received:`, data);
+  socket.on('binaryAckTest', (eventData, binaryData, callback) => {
+    console.log(`[${namespace}] Binary ACK test received:`, eventData);
+    
+    // 检查callback位置
+    if (typeof binaryData === 'function') {
+      callback = binaryData;
+      binaryData = undefined;
+    }
     
     // 检查是否包含二进制数据
-    let binaryData = null;
-    let textData = null;
+    let textData = eventData;
     
-    if (typeof data === 'object' && data !== null) {
-      // 检查是否有二进制属性
-      if (data.binaryData) {
-        binaryData = data.binaryData;
-        textData = data.text;
-        console.log(`[${namespace}] Binary data size:`, binaryData.length, 'bytes');
-      }
+    if (binaryData) {
+      console.log(`[${namespace}] Binary data size:`, binaryData.length, 'bytes');
     }
     
     // 模拟处理二进制数据 - 只返回元数据，不包含原始二进制数据
     let processedData = {
       receivedSize: binaryData ? binaryData.length : 0,
-      text: textData,
+      text: typeof textData === 'object' ? textData.text : textData,
       processedAt: new Date().toISOString(),
       result: 'success',
       checksum: Math.random().toString(36).substring(7),
