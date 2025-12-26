@@ -262,6 +262,9 @@ SioPacket SioPacketBuilder::decode_packet(
  *          - ack_id: 1
  *          - data: ["hello"]
  */SioPacketBuilder::PacketHeader SioPacketBuilder::parse_v2_header(const std::string& packet) {
+     
+     // Socket.IO v2 header 顺序统一规则：
+     // <packetType>[-<binaryCount>][<namespace>][,<ackId>]<json>
     PacketHeader header;
     if (packet.empty()) {
         RTC_LOG(LS_WARNING) << "Empty packet, returning empty header";
@@ -490,7 +493,11 @@ SioPacket SioPacketBuilder::decode_packet(
     }
 }
 
-/*** @brief 编码V3格式的数据包* @param packet 要编码的SioPacket对象* @return 编码后的EncodedPacket对象，包含文本部分和二进制部分* @note V3协议编码流程：*       1. 构建JSON数据，将二进制数据替换为占位符
+/***
+ @brief 编码V3格式的数据包*
+ @param packet 要编码的SioPacket对象*
+ @return 编码后的EncodedPacket对象，包含文本部分和二进制部分*
+ @note V3协议编码流程：*       1. 构建JSON数据，将二进制数据替换为占位符
 *       2. 提取二进制数据到binary_parts
 *       3. 构建文本数据包，包含类型、二进制计数、命名空间、ACK ID和JSON数据
 * @example V3事件数据包编码：
@@ -510,8 +517,7 @@ SioPacket SioPacketBuilder::decode_packet(
     std::vector<SmartBuffer> binary_parts;
     std::map<std::string, int> binary_map;
     
-    if (packet.type == PacketType::ACK || packet.type == PacketType::BINARY_ACK) {
-        // ACK包：直接是参数数组
+    if (packet.type == PacketType::ACK || packet.type == PacketType::BINARY_ACK) {        // ACK包：直接是参数数组
         Json::Value args_array(Json::arrayValue);
         for (const auto& arg : packet.args) {
             Json::Value processed_arg;
@@ -747,60 +753,85 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     EncodedPacket result;
     
     // 构建JSON数据
-    Json::Value json_obj(Json::objectValue);
+    Json::Value json_sio_body(Json::arrayValue);
     std::vector<SmartBuffer> binary_parts;
     std::map<std::string, int> binary_map;
     
+    // V2协议：EVENT格式为 ["event_name", ...args]
+    //         ACK格式为 [...args]
     if (packet.type == PacketType::ACK || packet.type == PacketType::BINARY_ACK) {
-        // V2 ACK包：{"args": [...]}  
-        Json::Value args_array(Json::arrayValue);
+        /*****************************
+         ACK格式（V2协议）：
+         3/chat,22[...args]    // 普通ACK
+         6-/chat,22[...args]   // BINARY_ACK（有1个二进制附件）
+         
+         JSON结构：
+         [...args]  // 只包含参数数组，不包含ackId
+         
+         注意：ackId在header中，不在JSON中
+         *****************************/
+
+        RTC_DCHECK(packet.ack_id >= 0) << "ACK包必须有ack_id";
+        // ACK包：只有参数数组
         for (const auto& arg : packet.args) {
             Json::Value processed_arg;
             extract_binary_data(arg, processed_arg, binary_parts, binary_map);
-            args_array.append(processed_arg);
+            json_sio_body.append(processed_arg);
         }
-        json_obj["args"] = args_array;
         
-        // V2需要ackId
-        if (packet.ack_id >= 0) {
-            json_obj["ackId"] = packet.ack_id;
-        }
-        RTC_LOG(LS_INFO) << "Built V2 ACK JSON data, args count: " << args_array.size() << ", ackId: " << packet.ack_id;
+        RTC_LOG(LS_INFO) << "Built V2 ACK JSON data, args count: "
+        << packet.args.size() << ", ackId: " << packet.ack_id;
+      
     } else {
-        // V2事件包：{"name": "event_name", "args": [...]}  
-        json_obj["name"] = Json::Value(packet.event_name);
+        /*****************************
+         示例：EVENT（BINARY_EVENT，包含 1 个 binary）
+
+         5-/chat,123[["upload",{"file":{"_placeholder":true,"num":0}}]]
+
+         含义：
+         5        → PacketType.BINARY_EVENT
+         /chat    → namespace
+         123      → ackId（位于 header 中）
+
+         JSON 说明：
+         [
+           "upload",                         // event_name
+           {
+             "name": "file",
+             "data": {
+               "_placeholder": true,         // 二进制占位符
+               "num": 0                      // 对应 binary_parts[0]
+             }
+           }
+         ]
+
+         协议要点：
+         - binary 数据不会出现在 JSON 中
+         - 实际 binary 紧随文本包之后单独发送
+         - placeholder.num 与 binary frame 顺序严格对应
+         *****************************/
+        RTC_DCHECK(!packet.event_name.empty()) << "EVENT包必须有event_name";
+        // V2事件包：["event_name",  {}]
+        // EVENT包：第一个元素是事件名
+        json_sio_body.append(packet.event_name);
         
-        Json::Value args_array(Json::arrayValue);
+        
+        // 然后是参数数组
         for (const auto& arg : packet.args) {
             Json::Value processed_arg;
             extract_binary_data(arg, processed_arg, binary_parts, binary_map);
-            args_array.append(processed_arg);
+            json_sio_body.append(processed_arg);
         }
-        json_obj["args"] = args_array;
         
-        // V2需要ackId
-        if (packet.ack_id >= 0) {
-            json_obj["ackId"] = packet.ack_id;
-        }
-        RTC_LOG(LS_INFO) << "Built V2 EVENT JSON data, event: " << packet.event_name << ", args count: " << args_array.size() << ", ackId: " << packet.ack_id;
+        RTC_LOG(LS_INFO) << "Built V2 EVENT JSON data, event: "
+        << packet.event_name << ", args count: " << packet.args.size();
     }
-    
     // 确定是否为二进制包 - 基于实际提取的二进制数据数量
     result.binary_parts = binary_parts;
     result.binary_count = static_cast<int>(binary_parts.size());
     result.is_binary = !binary_parts.empty();
     
     RTC_LOG(LS_INFO) << "Extracted V2 binary parts: " << binary_parts.size() << ", is_binary: " << result.is_binary;
-    
-    // V2二进制包的特殊处理：在args数组末尾添加二进制映射（仅适用于事件包）
-    if (result.is_binary && !binary_parts.empty() && (packet.type == PacketType::EVENT || packet.type == PacketType::BINARY_EVENT)) {
-        Json::Value binary_map_obj(Json::objectValue);
-        for (size_t i = 0; i < binary_parts.size(); i++) {
-            binary_map_obj[std::to_string(i)] = static_cast<Json::Int>(i);
-        }
-        json_obj["args"].append(binary_map_obj);
-        RTC_LOG(LS_INFO) << "Added binary map to args, size: " << binary_parts.size();
-    }
     
     // 构建V2文本包
     std::stringstream ss;
@@ -823,16 +854,25 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     RTC_LOG(LS_INFO) << "V2 packet type: " << packet_type << " for original type: " << static_cast<int>(packet.type);
     ss << packet_type;
     
+    bool has_namespace = (!packet.namespace_s.empty() && packet.namespace_s != "/");
     // 命名空间（如果不是根命名空间）
-    if (!packet.namespace_s.empty() && packet.namespace_s != "/") {
-        ss << packet.namespace_s;
+    if (has_namespace) {
+        // 确保命名空间以斜杠开头
+        if (packet.namespace_s[0] != '/') {
+            ss << "/" << packet.namespace_s;
+        } else {
+            ss << packet.namespace_s;
+        }
         RTC_LOG(LS_INFO) << "Added V2 namespace: " << packet.namespace_s;
     }
+    
+    // 添加ACK ID（如果有）
+    bool has_ack_id = (packet.ack_id >= 0);
     
     // ACK ID（如果有）
     if (packet.ack_id >= 0) {
         // 如果有命名空间且不是根，需要逗号分隔
-        if (!packet.namespace_s.empty() && packet.namespace_s != "/") {
+        if (has_namespace) {
             ss << ",";
         }
         ss << packet.ack_id;
@@ -848,7 +888,7 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     writer["dropNullPlaceholders"] = false;
     writer["enableYAMLCompatibility"] = false;
     
-    std::string json_str = Json::writeString(writer, json_obj["args"]);
+    std::string json_str = Json::writeString(writer, json_sio_body);
     ss << json_str;
     
     result.text_packet = ss.str();
@@ -903,14 +943,14 @@ SioPacket SioPacketBuilder::decode_v2_packet(
     RTC_LOG(LS_INFO) << "Parsed V2 header: type=" << static_cast<int>(packet.type) << ", namespace=" << packet.namespace_s << ", ack_id=" << packet.ack_id << ", binary_count=" << packet.binary_count;
     
     // 获取数据部分
-    if (header.data_start_pos >= text.length() && (packet.type != PacketType::CONNECT)) {
+    if ((packet.type != PacketType::CONNECT) && header.data_start_pos >= text.length()) {
         RTC_LOG(LS_WARNING) << "Data start position beyond text length for non-CONNECT packet, returning packet without data";
         return packet;
     }
     
     std::string json_str = text.substr(header.data_start_pos);
     
-    if (json_str.empty() && (packet.type != PacketType::CONNECT)) {
+    if ((packet.type != PacketType::CONNECT) && json_str.empty() ) {
         RTC_LOG(LS_WARNING) << "Empty JSON data for non-CONNECT packet, returning packet without data";
         return packet;
     }

@@ -13,6 +13,8 @@
 #include "lib/sio_packet_parser.h"
 #include "lib/sio_packet_types.h"
 #include "lib/sio_jsoncpp_binary_helper.hpp"
+#include "rtc_base/checks.h"
+#include "rtc_base/thread_checker.h"
 
 
 namespace sio {
