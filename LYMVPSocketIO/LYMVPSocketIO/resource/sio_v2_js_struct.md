@@ -32,18 +32,19 @@ Engine.IO版本: 3
   ]
 }
 
-20["binaryEvent","testData: HTML客户端发送的二进制测试数据",1766553800174,{'0': 0,...}] {
-  type: 2,
+ 51-0["binaryEvent",{"text":"testData: HTML客户端发送的二进制测试数据","timestamp":1766718059043,"namespace":"/"},{"_placeholder":true,"num":0}] {
+  type: 5,
+  attachments: 1,
   nsp: '/',
   id: 0,
   data: [
     'binaryEvent',
-    'testData: HTML客户端发送的二进制测试数据',
-    1766553800174,
     {
-      '0': 0,
-     ...
-    }
+      text: 'testData: HTML客户端发送的二进制测试数据',
+      timestamp: 1766718059043,
+      namespace: '/'
+    },
+    { _placeholder: true, num: 0 }
   ]
 }
 ```
@@ -75,18 +76,49 @@ Engine.IO版本: 3
   ]
 }
 
- 2/chat,10["binaryEvent","testData: HTML客户端发送的二进制测试数据",1766553445364,{"0":0,...}] {
-  type: 2,
+ 51-/chat,0["binaryEvent",{"text":"testData: HTML客户端发送的二进制测试数据","timestamp":1766718219141,"namespace":"/"},{"_placeholder":true,"num":0}] {
+  type: 5,
+  attachments: 1,
   nsp: '/chat',
-  id: 10,
+  id: 0,
   data: [
     'binaryEvent',
-    'testData: HTML客户端发送的二进制测试数据',
-    1766553445364,
     {
-      '0': 0,
-      ...
-    }
+      text: 'testData: HTML客户端发送的二进制测试数据',
+      timestamp: 1766718219141,
+      namespace: '/'
+    },
+    { _placeholder: true, num: 0 }
   ]
 }
+```
+
+# v2 二进制不允许在文本中
+也就是这种：
+```js
+const data = {
+            "text":textMessage,
+            "timestamp":Date.now(),
+            "namespace":"/",
+            "binaryData":binaryData
+             }
+```
+必须是这种：
+```js
+const meta = {
+    text: textMessage,
+    timestamp: Date.now(),
+    namespace: "/"
+};
+
+// 将 Uint8Array 转成 Blob
+const binaryBlob = new Blob([binaryData]);
+
+socket.emit('binaryEvent', meta, binaryBlob, (ack) => {
+    if (ack && ack.success) {
+        addMessage(`✅ Binary message ACK: ${JSON.stringify(ack)}`, 'system');
+    } else {
+        addMessage(`❌ Binary message failed: ${JSON.stringify(ack)}`, 'system');
+    }
+});
 ```

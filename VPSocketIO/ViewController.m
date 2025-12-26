@@ -834,27 +834,50 @@ static const uint8_t image_data[] = {
         NSData *binaryData = [NSData dataWithBytes:image_data length:sizeof(image_data)];
         
         NSString *text = @"iOS客户端发送的二进制测试数据";
+        //v2 不支持放到 对象里
         
-        // 构造发送数据
-        NSDictionary *sendData = @{
-            @"binaryData": binaryData,
-            @"text": @"testData: iOS客户端发送的二进制测试数据",
-            @"timestamp": @([NSDate date].timeIntervalSince1970)
-        };
+        if (self.protocolSegment.selectedSegmentIndex == 0) {
+            // 构造发送数据
+            NSDictionary *sendData = @{
+                @"text": @"testData: iOS客户端发送的二进制测试数据",
+                @"timestamp": @([NSDate date].timeIntervalSince1970)
+            };
+            [self addMessage:[NSString stringWithFormat:@"v2 📤 发送二进制数据: 大小 %lu 字节, 文本: %@", (unsigned long)binaryData.length, text] type:@"sent"];
+            // 发送二进制消息
+            [self.socket emitWithAck:@"binaryEvent" items:@[sendData,binaryData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+                // UI更新必须在主线程执行
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (error) {
+                        [self addMessage:[NSString stringWithFormat:@"❌ 二进制消息发送失败: %@", error.localizedDescription] type:@"system"];
+                    } else {
+                        [self addMessage:[NSString stringWithFormat:@"✅ 二进制消息发送成功, ACK: %@", data] type:@"system"];
+                    }
+                });
+            } timeout:10.0];
+        }else{
+            // 构造发送数据
+            NSDictionary *sendData = @{
+                @"binaryData": binaryData,
+                @"text": @"testData: iOS客户端发送的二进制测试数据",
+                @"timestamp": @([NSDate date].timeIntervalSince1970)
+            };
+            [self addMessage:[NSString stringWithFormat:@"v3 📤 发送二进制数据: 大小 %lu 字节, 文本: %@", (unsigned long)binaryData.length, text] type:@"sent"];
+            
+            // 发送二进制消息
+            [self.socket emitWithAck:@"binaryEvent" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+                // UI更新必须在主线程执行
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (error) {
+                        [self addMessage:[NSString stringWithFormat:@"❌ 二进制消息发送失败: %@", error.localizedDescription] type:@"system"];
+                    } else {
+                        [self addMessage:[NSString stringWithFormat:@"✅ 二进制消息发送成功, ACK: %@", data] type:@"system"];
+                    }
+                });
+            } timeout:10.0];
+        }
         
-        [self addMessage:[NSString stringWithFormat:@"📤 发送二进制数据: 大小 %lu 字节, 文本: %@", (unsigned long)binaryData.length, text] type:@"sent"];
         
-        // 发送二进制消息
-        [self.socket emitWithAck:@"binaryEvent" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
-            // UI更新必须在主线程执行
-            dispatch_async(dispatch_get_main_queue(), ^{  
-                if (error) {
-                    [self addMessage:[NSString stringWithFormat:@"❌ 二进制消息发送失败: %@", error.localizedDescription] type:@"system"];
-                } else {
-                    [self addMessage:[NSString stringWithFormat:@"✅ 二进制消息发送成功, ACK: %@", data] type:@"system"];
-                }
-            });
-        } timeout:10.0];
+       
         
     } else {
         [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];
@@ -865,36 +888,64 @@ static const uint8_t image_data[] = {
 - (void)binaryAckTestButtonTapped:(id)sender {
     // 确保Socket已连接
         if (self.socket.status == RTCVPSocketIOClientStatusConnected || self.socket.status == RTCVPSocketIOClientStatusOpened) {
-            [self addMessage:@"🔄 开始二进制ACK测试..." type:@"system"];
+           
             
             // 使用静态PNG数据
             NSData *binaryData = [NSData dataWithBytes:image_data length:sizeof(image_data)];
-            
-            // 构造发送数据
-            NSDictionary *sendData = @{
-                @"binaryData": binaryData,
-                @"text": @"iOS二进制ACK测试",
-                @"timestamp": @([NSDate date].timeIntervalSince1970)
-            };
-            
-            // 发送带ACK的二进制消息
-            [self.socket emitWithAck:@"binaryAckTest" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
-                if (error) {
-                    [self addMessage:[NSString stringWithFormat:@"❌ 二进制ACK测试失败: %@", error.localizedDescription] type:@"system"];
-                } else {
-                    if (data && data.count > 0) {
-                        id ackData = data.firstObject;
-                        if ([ackData isKindOfClass:[NSDictionary class]]) {
-                            NSDictionary *ackDict = (NSDictionary *)ackData;
-                            [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", ackDict] type:@"system"];
-                        } else {
-                            [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", data] type:@"system"];
-                        }
+            if (self.protocolSegment.selectedSegmentIndex == 0) {
+                [self addMessage:@"🔄 开始V2二进制ACK测试..." type:@"system"];
+                // 构造发送数据
+                NSDictionary *sendData = @{
+                    @"text": @"iOS二进制ACK测试",
+                    @"timestamp": @([NSDate date].timeIntervalSince1970)
+                };
+                
+                // 发送带ACK的二进制消息
+                [self.socket emitWithAck:@"binaryAckTest" items:@[sendData,binaryData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+                    if (error) {
+                        [self addMessage:[NSString stringWithFormat:@"❌ 二进制ACK测试失败: %@", error.localizedDescription] type:@"system"];
                     } else {
-                        [self addMessage:@"✅ 二进制ACK测试成功, 但未返回数据" type:@"system"];
+                        if (data && data.count > 0) {
+                            id ackData = data.firstObject;
+                            if ([ackData isKindOfClass:[NSDictionary class]]) {
+                                NSDictionary *ackDict = (NSDictionary *)ackData;
+                                [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", ackDict] type:@"system"];
+                            } else {
+                                [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", data] type:@"system"];
+                            }
+                        } else {
+                            [self addMessage:@"✅ 二进制ACK测试成功, 但未返回数据" type:@"system"];
+                        }
                     }
-                }
-            } timeout:15.0]; // 增加超时时间到15秒
+                } timeout:15.0]; // 增加超时时间到15秒
+            }else{
+                [self addMessage:@"🔄 开始V3二进制ACK测试..." type:@"system"];
+                // 构造发送数据
+                NSDictionary *sendData = @{
+                    @"binaryData": binaryData,
+                    @"text": @"iOS二进制ACK测试",
+                    @"timestamp": @([NSDate date].timeIntervalSince1970)
+                };
+                
+                // 发送带ACK的二进制消息
+                [self.socket emitWithAck:@"binaryAckTest" items:@[sendData] ackBlock:^(NSArray * _Nullable data, NSError * _Nullable error) {
+                    if (error) {
+                        [self addMessage:[NSString stringWithFormat:@"❌ 二进制ACK测试失败: %@", error.localizedDescription] type:@"system"];
+                    } else {
+                        if (data && data.count > 0) {
+                            id ackData = data.firstObject;
+                            if ([ackData isKindOfClass:[NSDictionary class]]) {
+                                NSDictionary *ackDict = (NSDictionary *)ackData;
+                                [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", ackDict] type:@"system"];
+                            } else {
+                                [self addMessage:[NSString stringWithFormat:@"✅ 二进制ACK测试成功, 结果: %@", data] type:@"system"];
+                            }
+                        } else {
+                            [self addMessage:@"✅ 二进制ACK测试成功, 但未返回数据" type:@"system"];
+                        }
+                    }
+                } timeout:15.0]; // 增加超时时间到15秒
+            }
             
         } else {
             [self addMessage:@"⚠️ Socket尚未完全连接" type:@"system"];

@@ -851,8 +851,16 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
             packet_type = static_cast<int>(PacketType::ACK); // V2: 3
         }
     }
-    RTC_LOG(LS_INFO) << "V2 packet type: " << packet_type << " for original type: " << static_cast<int>(packet.type);
-    ss << packet_type;
+    
+    
+    // 关键修复：V2协议二进制包需要在类型后添加 "{binary_count}-"
+     if (result.is_binary) {
+         ss << packet_type << result.binary_count << "-";
+     } else {
+         ss << packet_type;
+     }
+     
+     RTC_LOG(LS_INFO) << "V2 packet type: " << packet_type << " for original type: " << static_cast<int>(packet.type);
     
     bool has_namespace = (!packet.namespace_s.empty() && packet.namespace_s != "/");
     // 命名空间（如果不是根命名空间）
@@ -870,7 +878,7 @@ SioPacketBuilder::EncodedPacket SioPacketBuilder::encode_v2_packet(const SioPack
     bool has_ack_id = (packet.ack_id >= 0);
     
     // ACK ID（如果有）
-    if (packet.ack_id >= 0) {
+    if (has_ack_id) {
         // 如果有命名空间且不是根，需要逗号分隔
         if (has_namespace) {
             ss << ",";

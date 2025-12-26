@@ -374,14 +374,18 @@ sendBinaryBtn.addEventListener('click', () => {
         
         addMessage(`📤 Sending binary data: Size ${binaryData.length} bytes, Text: ${textMessage}`, 'sent');
         
-        const data = {
-            "text":textMessage,
-            "timestamp":Date.now(),
-            "namespace":"/",
-            "binaryData":binaryData
-             }
-             //dh=
-        socket.emit('binaryEvent',data, (ack) => {
+         const meta = {
+            text: textMessage,
+            timestamp: Date.now(),
+            namespace: "/"
+            };
+            // 将 Uint8Array 转成 Blob
+            const binaryBlob = new Blob([binaryData]);
+            socket.emit(
+            'binaryEvent',
+            meta,          // 普通 JSON
+            binaryBlob,    // ⚠️ 二进制必须是独立参数
+            (ack) => {
             if (ack && ack.success) {
                 addMessage(`✅ Binary message ACK: ${JSON.stringify(ack)}`, 'system');
             } else {
@@ -395,14 +399,17 @@ sendBinaryBtn.addEventListener('click', () => {
 testBinaryAckBtn.addEventListener('click', async () => {
     if (socket) {
         addMessage('🔄 Starting binary ACK test...', 'system');
-        
+      
         // 创建模拟二进制数据
         const binaryData = generateTestBinaryData(); // 使用静态PNG数据
         const textMessage = 'Binary ACK test from HTML client';
-        
-        // Socket.IO v2 正确的二进制ACK测试发送方式
-        // Socket.IO v2 要求二进制数据必须作为最后一个普通参数（在回调函数之前）
-        socket.emit('binaryAckTest', textMessage, Date.now(), binaryData, (ack) => {
+          const jsonData  = 
+        {
+            text: textMessage,
+            timestamp: Date.now()
+        };
+        const binaryBlob = new Blob([binaryData]);
+        socket.emit('binaryAckTest',jsonData, binaryBlob, (ack) => {
             if (ack && ack.result === 'success') {
                 addMessage(`✅ Binary ACK test success: ${JSON.stringify(ack)}`, 'system');
             } else {

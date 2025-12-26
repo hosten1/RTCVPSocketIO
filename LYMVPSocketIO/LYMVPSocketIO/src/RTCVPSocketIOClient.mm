@@ -622,81 +622,126 @@ static id convertJsonValueToObjC(const Json::Value& jsonValue) {
 }
 
 // OC对象转换为Json::Value的辅助函数
+// 使用显式栈的非递归转换函数
 Json::Value convertOCObjectToJsonValue(id obj) {
     if (obj == nil || obj == [NSNull null]) {
         return Json::Value::null;
     }
     
-    if ([obj isKindOfClass:[NSString class]]) {
-        return Json::Value([(NSString*)obj UTF8String]);
-    }
+    // 使用栈来模拟递归
+    struct StackItem {
+        id obj;
+        Json::Value* target;
+        bool is_key;  // 是否为字典键处理
+        std::string key;  // 如果是字典值，存储对应的键
+    };
     
-    if ([obj isKindOfClass:[NSNumber class]]) {
-        NSNumber* num = (NSNumber*)obj;
-        if (strcmp(num.objCType, @encode(BOOL)) == 0) {
-            return Json::Value([num boolValue]);
-        } else if (strcmp(num.objCType, @encode(int)) == 0) {
-            return Json::Value([num intValue]);
-        } else if (strcmp(num.objCType, @encode(long)) == 0) {
-            return Json::Value(static_cast<Json::Int64>([num longValue]));
-        } else if (strcmp(num.objCType, @encode(float)) == 0) {
-            return Json::Value([num floatValue]);
-        } else if (strcmp(num.objCType, @encode(double)) == 0) {
-            return Json::Value([num doubleValue]);
-        } else {
-            return Json::Value([num doubleValue]); // 默认转换为double
+    Json::Value root;
+    std::vector<StackItem> stack;
+    
+    // 初始项
+    stack.push_back({obj, &root, false, ""});
+    
+    while (!stack.empty()) {
+        StackItem item = stack.back();
+        stack.pop_back();
+        
+        id currentObj = item.obj;
+        Json::Value* currentTarget = item.target;
+        
+        // 处理当前对象
+        if ([currentObj isKindOfClass:[NSString class]]) {
+            *currentTarget = Json::Value([(NSString*)currentObj UTF8String]);
         }
-    }
-    
-    if ([obj isKindOfClass:[NSArray class]]) {
-        NSArray* array = (NSArray*)obj;
-        Json::Value jsonArray(Json::arrayValue);
-        for (id item in array) {
-            jsonArray.append(convertOCObjectToJsonValue(item));
-        }
-        return jsonArray;
-    }
-    
-    if ([obj isKindOfClass:[NSDictionary class]]) {
-        NSDictionary* dict = (NSDictionary*)obj;
-        Json::Value jsonObject(Json::objectValue);
-        for (id key in dict) {
-            // 确保键是NSString类型
-            if ([key isKindOfClass:[NSString class]]) {
-                NSString* ocKey = (NSString*)key;
-                id value = dict[key];
-                jsonObject[std::string([ocKey UTF8String])] = convertOCObjectToJsonValue(value);
+        else if ([currentObj isKindOfClass:[NSNumber class]]) {
+            NSNumber* num = (NSNumber*)currentObj;
+            const char* type = num.objCType;
+            
+            if (strcmp(type, @encode(BOOL)) == 0 || strcmp(type, @encode(bool)) == 0) {
+                *currentTarget = Json::Value([num boolValue]);
             }
-            // 跳过非NSString类型的键，防止崩溃
+            else if (strcmp(type, @encode(char)) == 0) {
+                *currentTarget = Json::Value(static_cast<int>([num charValue]));
+            }
+            else if (strcmp(type, @encode(short)) == 0) {
+                *currentTarget = Json::Value(static_cast<int>([num shortValue]));
+            }
+            else if (strcmp(type, @encode(int)) == 0) {
+                *currentTarget = Json::Value([num intValue]);
+            }
+            else if (strcmp(type, @encode(long)) == 0) {
+                *currentTarget = Json::Value(static_cast<Json::Int64>([num longValue]));
+            }
+            else if (strcmp(type, @encode(long long)) == 0) {
+                *currentTarget = Json::Value(static_cast<Json::Int64>([num longLongValue]));
+            }
+            else if (strcmp(type, @encode(float)) == 0) {
+                *currentTarget = Json::Value([num floatValue]);
+            }
+            else if (strcmp(type, @encode(double)) == 0) {
+                *currentTarget = Json::Value([num doubleValue]);
+            }
+            else {
+                // 默认转换为double
+                *currentTarget = Json::Value([num doubleValue]);
+            }
         }
-        return jsonObject;
+        else if ([currentObj isKindOfClass:[NSArray class]]) {
+            NSArray* array = (NSArray*)currentObj;
+            *currentTarget = Json::Value(Json::arrayValue);
+            
+            // 反向推入栈，这样顺序处理时能保持原顺序
+            for (NSInteger i = array.count - 1; i >= 0; i--) {
+                id itemObj = [array objectAtIndex:i];
+                Json::Value* newItem = &(*currentTarget)[(Json::ArrayIndex)i];
+                stack.push_back({itemObj, newItem, false, ""});
+            }
+        }
+        else if ([currentObj isKindOfClass:[NSDictionary class]]) {
+            NSDictionary* dict = (NSDictionary*)currentObj;
+            *currentTarget = Json::Value(Json::objectValue);
+            
+            // 处理字典的所有键值对
+            for (NSString* key in dict) {
+                id value = dict[key];
+                std::string cppKey = [key UTF8String];
+                
+                // 为字典值创建一个JSON值
+                Json::Value* newValue = &(*currentTarget)[cppKey];
+                stack.push_back({value, newValue, false, cppKey});
+            }
+        }
+        else if ([currentObj isKindOfClass:[NSData class]]) {
+            NSData* data = (NSData*)currentObj;
+            try {
+                *currentTarget = sio::binary_helper::create_binary_value(
+                    static_cast<const uint8_t*>(data.bytes),
+                    data.length
+                );
+            }
+            catch (const std::exception& e) {
+                *currentTarget = Json::Value::null;
+                NSLog(@"Failed to convert NSData to JSON binary: %s", e.what());
+            }
+            catch (...) {
+                *currentTarget = Json::Value::null;
+                NSLog(@"Unknown error converting NSData to JSON binary");
+            }
+        }
+        else {
+            // 其他类型转换为字符串
+            @try {
+                NSString* str = [NSString stringWithFormat:@"%@", currentObj];
+                *currentTarget = Json::Value([str UTF8String]);
+            }
+            @catch (NSException* exception) {
+                *currentTarget = Json::Value::null;
+                NSLog(@"Failed to convert object to string: %@", exception);
+            }
+        }
     }
     
-    if ([obj isKindOfClass:[NSData class]]) {
-        // 二进制数据处理，添加异常捕获防止崩溃
-        try {
-            NSData* data = (NSData*)obj;
-            Json::Value binary_json = sio::binary_helper::create_binary_value((const uint8_t*)data.bytes, data.length);
-            return binary_json;
-        } catch (const std::exception& e) {
-            // 处理异常，返回null
-            return Json::Value::null;
-        } catch (...) {
-            // 处理未知异常，返回null
-            return Json::Value::null;
-        }
-    }
-    
-    // 其他类型默认转换为字符串，添加异常捕获防止崩溃
-    try {
-        return Json::Value([NSString stringWithFormat:@"%@", obj].UTF8String);
-    } catch (const std::exception& e) {
-        // 处理异常，返回null
-        return Json::Value::null;
-    } catch (...) {
-        // 处理未知异常，返回null
-        return Json::Value::null;
-    }
+    return root;
 }
 
 - (void)emit:(NSString *)event items:(NSArray *)items ack:(int)ack {
