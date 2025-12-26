@@ -18,7 +18,6 @@
 #include "rtc_base/buffer.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
-#include "lib/sio_packet.h"
 #include "lib/sio_smart_buffer.hpp"
 #include "rtc_base/task_queue.h"
 #include "api/task_queue/task_queue_factory.h"

@@ -40,7 +40,6 @@
 
 #include "lib/sio_packet_builder.h"
 #include "lib/sio_packet_impl.h"
-#include "lib/sio_packet_parser.h"
 #include "lib/sio_ack_manager.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "rtc_base/task_queue.h"

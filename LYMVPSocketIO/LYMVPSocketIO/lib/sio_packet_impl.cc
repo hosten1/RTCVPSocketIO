@@ -1,5 +1,4 @@
 #include "sio_packet_impl.h"
-#include "sio_packet_parser.h"
 #include "sio_ack_manager.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "rtc_base/task_queue.h"
