@@ -86,7 +86,7 @@ SioPacket SioPacketBuilder::build_event_packet(
     packet.args = args;
     packet.namespace_s = namespace_s;
     packet.ack_id = ack_id;
-    packet.need_ack = (ack_id > 0);
+    packet.need_ack = (ack_id >= 0);
     packet.version = version_;
     
     // 检查是否有二进制数据

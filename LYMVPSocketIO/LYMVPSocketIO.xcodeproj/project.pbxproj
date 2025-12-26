@@ -403,6 +403,10 @@
 		1BF5C6C62EF52FC300966BB3 /* RTCVPSocketEngineProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C37F2EF52FC300966BB3 /* RTCVPSocketEngineProtocol.h */; };
 		1BF5C6C72EF52FC300966BB3 /* crypt_string.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4352EF52FC300966BB3 /* crypt_string.h */; };
 		1BF5C6C82EF52FC300966BB3 /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BF5C4C42EF52FC300966BB3 /* version.h */; };
+		1BFE06EA2EFE655900499D66 /* sio_packet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BFE06E92EFE655900499D66 /* sio_packet.cpp */; };
+		1BFE06EB2EFE655900499D66 /* sio_packet.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BFE06E82EFE655900499D66 /* sio_packet.h */; };
+		1BFE06EC2EFE655900499D66 /* sio_packet.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1BFE06E92EFE655900499D66 /* sio_packet.cpp */; };
+		1BFE06EE2EFE659B00499D66 /* sio_packet_types.h in Headers */ = {isa = PBXBuildFile; fileRef = 1BFE06ED2EFE659B00499D66 /* sio_packet_types.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -711,6 +715,9 @@
 		1BF5C4CB2EF52FC300966BB3 /* json_valueiterator.inl */ = {isa = PBXFileReference; lastKnownFileType = text; path = json_valueiterator.inl; sourceTree = "<group>"; };
 		1BF5C4CC2EF52FC300966BB3 /* json_writer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = json_writer.cpp; sourceTree = "<group>"; };
 		1BF5C4D82EF52FC300966BB3 /* LYMVPSocketIO.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LYMVPSocketIO.h; sourceTree = "<group>"; };
+		1BFE06E82EFE655900499D66 /* sio_packet.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet.h; sourceTree = "<group>"; };
+		1BFE06E92EFE655900499D66 /* sio_packet.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sio_packet.cpp; sourceTree = "<group>"; };
+		1BFE06ED2EFE659B00499D66 /* sio_packet_types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sio_packet_types.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -799,6 +806,7 @@
 		1BF5C3672EF52FC300966BB3 /* lib */ = {
 			isa = PBXGroup;
 			children = (
+				1BFE06ED2EFE659B00499D66 /* sio_packet_types.h */,
 				1BF5C35E2EF52FC300966BB3 /* sio_jsoncpp_binary_helper.hpp */,
 				1BF5C3612EF52FC300966BB3 /* sio_packet_impl.h */,
 				1BF5C3622EF52FC300966BB3 /* sio_packet_impl.cc */,
@@ -809,6 +817,8 @@
 				1B3DCA082EFA3C820029C5FA /* sio_ack_manager_interface.h */,
 				1B3DCA142EFA85380029C5FA /* sio_packet_builder.h */,
 				1B3DCA152EFA85380029C5FA /* sio_packet_builder.cpp */,
+				1BFE06E82EFE655900499D66 /* sio_packet.h */,
+				1BFE06E92EFE655900499D66 /* sio_packet.cpp */,
 			);
 			path = lib;
 			sourceTree = "<group>";
@@ -1458,6 +1468,7 @@
 				1BF5C64F2EF52FC300966BB3 /* reader.h in Headers */,
 				1BF5C6502EF52FC300966BB3 /* deprecation.h in Headers */,
 				1BF5C6512EF52FC300966BB3 /* mutex_critical_section.h in Headers */,
+				1BFE06EE2EFE659B00499D66 /* sio_packet_types.h in Headers */,
 				1BF5C6522EF52FC300966BB3 /* bitrate_constraints.h in Headers */,
 				1BF5C6532EF52FC300966BB3 /* NSString+Random.h in Headers */,
 				1BF5C6542EF52FC300966BB3 /* base64.h in Headers */,
@@ -1475,6 +1486,7 @@
 				1BF5C6622EF52FC300966BB3 /* task_queue_base.h in Headers */,
 				1BF5C6632EF52FC300966BB3 /* compile_assert_c.h in Headers */,
 				1BF5C6642EF52FC300966BB3 /* critical_section.h in Headers */,
+				1BFE06EB2EFE655900499D66 /* sio_packet.h in Headers */,
 				1BF5C6662EF52FC300966BB3 /* const_init.h in Headers */,
 				1BF5C6672EF52FC300966BB3 /* logging.h in Headers */,
 				1BF5C6692EF52FC300966BB3 /* platform_thread.h in Headers */,
@@ -1749,6 +1761,7 @@
 				1BF5C5E12EF52FC300966BB3 /* time_delta.cc in Sources */,
 				1BF5C5E22EF52FC300966BB3 /* RTCVPSocketEngine+EngineWebsocket.m in Sources */,
 				1BF5C5E32EF52FC300966BB3 /* string_builder.cc in Sources */,
+				1BFE06EA2EFE655900499D66 /* sio_packet.cpp in Sources */,
 				1BF5C5E42EF52FC300966BB3 /* fifo_buffer.cc in Sources */,
 				1BF5C5E52EF52FC300966BB3 /* message_queue.cc in Sources */,
 				1BF5C5E72EF52FC300966BB3 /* json.cc in Sources */,
@@ -1873,6 +1886,7 @@
 				1BF5C5632EF52FC300966BB3 /* signal_thread.cc in Sources */,
 				1BF5C5642EF52FC300966BB3 /* aligned_malloc.cc in Sources */,
 				1BF5C5652EF52FC300966BB3 /* NSString+Random.m in Sources */,
+				1BFE06EC2EFE655900499D66 /* sio_packet.cpp in Sources */,
 				1BF5C5662EF52FC300966BB3 /* string_format.cc in Sources */,
 				1BF5C5672EF52FC300966BB3 /* RTCVPSocketIOClient.mm in Sources */,
 				1BF5C5682EF52FC300966BB3 /* logging.cc in Sources */,

@@ -42,52 +42,6 @@ enum class SocketIOVersion {
     V4 = 4   // Socket.IO v4.x (与v3兼容)
 };
 
-// Socket.IO数据包头部
-struct SIOHeader {
-    SocketIOVersion version;
-    PacketType type;
-    std::string namespace_str;
-    int nsp;  // 命名空间索引
-    int ack_id;   // 包ID（用于ACK）
-    int binary_count;
-    size_t data_start_pos;
-    
-    SIOHeader() : version(SocketIOVersion::V4), type(PacketType::EVENT), namespace_str("/"), nsp(0), ack_id(-1), binary_count(0), data_start_pos(0) {}
-    
-    SIOHeader(SocketIOVersion versionIn) : version(versionIn), type(PacketType::EVENT), namespace_str("/"), nsp(0), ack_id(-1), binary_count(0), data_start_pos(0) {}
-    
-    // 生成调试信息字符串
-    std::string to_string() const;
-};
-
-// Socket.IO数据包体
-struct sioBody {
-    std::string data;  // JSON数据
-    std::vector<SmartBuffer> attachments;  // 二进制附件（使用智能指针管理的Buffer）
-    
-    sioBody() {}
-    
-    // 检查是否包含二进制数据
-    bool has_binary() const { return !attachments.empty(); }
-    
-    // 生成调试信息字符串
-    std::string to_string() const;
-};
-
-// Socket.IO数据包结构
-struct Packet {
-    SIOHeader header;
-    sioBody body;
-    
-    Packet() {}
-    
-    // 检查是否包含二进制数据
-    bool has_binary() const { return body.has_binary(); }
-    
-    // 生成调试信息字符串
-    std::string to_string() const;
-};
-
 } // namespace sio
 
 #endif // SIO_PACKET_TYPES_H

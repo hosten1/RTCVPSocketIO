@@ -99,9 +99,9 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRWebSocket.h
     
     # lib 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_types.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_impl.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_parser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_builder.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_jsoncpp_binary_helper.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_printer.hpp
 )
@@ -138,9 +138,9 @@ set(SOURCE_FILES
     src/RTCVPSocketLogger.m
     src/RTCVPStringReader.m
     src/RTCVPProbe.m
-    lib/sio_packet.cc
     lib/sio_packet_impl.cc
-    lib/sio_packet_parser.cc
+    lib/sio_packet_builder.cpp
+    lib/sio_packet_types.cpp
     lib/sio_ack_manager.cpp
     
     # Source 目录 - utils
@@ -282,9 +282,9 @@ source_group("Test" FILES
 )
 
 add_executable(test_sio_packet
-    lib/sio_packet.cc
     lib/sio_packet_impl.cc
-    lib/sio_packet_parser.cc
+    lib/sio_packet_builder.cpp
+    lib/sio_packet_types.cpp
     lib/sio_ack_manager.cpp
     lib/test/test_sio_packet.cpp
     lib/test/main.cpp
@@ -292,9 +292,9 @@ add_executable(test_sio_packet
 
 # 添加二进制包测试
 add_executable(test_sio_binary_packet
-    lib/sio_packet.cc
     lib/sio_packet_impl.cc
-    lib/sio_packet_parser.cc
+    lib/sio_packet_builder.cpp
+    lib/sio_packet_types.cpp
     lib/sio_ack_manager.cpp
     lib/test/test_sio_binary_packet.cpp
 )

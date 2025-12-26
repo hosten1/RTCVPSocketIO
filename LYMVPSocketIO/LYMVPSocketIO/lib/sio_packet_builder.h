@@ -18,7 +18,7 @@
 
 namespace sio {
 
-// Socket.IO 协议包结构
+// Socket.IO 协议包结构（用于构建器）
 struct SioPacket {
     PacketType type;
     std::string event_name;
