@@ -14,6 +14,12 @@
 #import "RTCVPProbe.h"
 #import "RTCVPWebSocketProtocolFixer.h"
 
+#ifdef USE_CPP_WEBSOCKET
+#define RTC_WS_CLASS RTCCPPCWebSocket
+#else
+#define RTC_WS_CLASS RTCJFRWebSocket
+#endif
+
 @implementation RTCVPSocketEngine (EngineWebsocket)
 
 #pragma mark - WebSocket 管理
@@ -32,7 +38,7 @@
     [self log:@"Creating WebSocket connection..." level:RTCLogLevelDebug];
     [self log:[NSString stringWithFormat:@"WebSocket URL: %@", url.absoluteString] level:RTCLogLevelDebug];
     
-    self.ws = [[RTCJFRWebSocket alloc] initWithURL:url protocols:@[]];
+    self.ws = [[RTC_WS_CLASS alloc] initWithURL:url protocols:@[]];
     self.ws.queue = self.engineQueue;
     self.ws.delegate = self;
     // 配置 WebSocket
@@ -247,9 +253,9 @@
     [self.postWait removeAllObjects];
 }
 
-#pragma mark - RTCJFRWebSocketDelegate
+#pragma mark - RTC_WS_CLASSDelegate
 
-- (void)websocketDidConnect:(RTCJFRWebSocket *)socket {
+- (void)websocketDidConnect:(RTC_WS_CLASS *)socket {
     [self log:@"WebSocket connected" level:RTCLogLevelInfo];
     
     if (self.config.transport == RTCVPSocketIOTransportWebSocket) {
@@ -281,7 +287,7 @@
     }
 }
 
-- (void)websocketDidDisconnect:(RTCJFRWebSocket *)socket error:(NSError *)error {
+- (void)websocketDidDisconnect:(RTC_WS_CLASS *)socket error:(NSError *)error {
     NSString *errorDescription = error ? error.localizedDescription : @"Disconnected";
     [self log:[NSString stringWithFormat:@"WebSocket disconnected: %@", errorDescription] level:RTCLogLevelWarning];
     
@@ -325,12 +331,12 @@
     }
 }
 
-- (void)websocket:(RTCJFRWebSocket *)socket didReceiveMessage:(NSString *)string {
+- (void)websocket:(RTC_WS_CLASS *)socket didReceiveMessage:(NSString *)string {
     [self parseEngineMessage:string];
 }
 
 // 在 websocket:didReceiveData: 方法中，添加协议修复
-- (void)websocket:(RTCJFRWebSocket *)socket didReceiveData:(NSData *)data {
+- (void)websocket:(RTC_WS_CLASS *)socket didReceiveData:(NSData *)data {
     if (data.length == 0) {
         [self log:@"WebSocket received empty binary data" level:RTCLogLevelWarning];
         return;
@@ -340,7 +346,7 @@
     NSDictionary *frameInfo = [RTCVPWebSocketProtocolFixer analyzeWebSocketFrame:data];
     [self log:[NSString stringWithFormat:@"WebSocket帧分析: %@", frameInfo] level:RTCLogLevelDebug];
     
-    // RTCJFRWebSocket 已经正确解析了 WebSocket 帧
+    // RTC_WS_CLASS 已经正确解析了 WebSocket 帧
     // 我们收到的 data 已经是有效负载（去除了帧头、掩码等）
        
     [self log:[NSString stringWithFormat:@"📦 收到WebSocket二进制数据，长度: %lu", (unsigned long)data.length]

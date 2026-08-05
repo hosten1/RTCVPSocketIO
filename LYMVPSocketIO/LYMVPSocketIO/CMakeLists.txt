@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
 # 设置项目名称
-project(RTCVPSocketIO CXX OBJC OBJCXX)
+project(RTCVPSocketIO C CXX OBJC OBJCXX)
 
 # 设置 C++ 标准
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 启用 Objective-C 和 Objective-C++ 支持
@@ -35,19 +35,108 @@ if(APPLE)
     endif()
 endif()
 
-# 添加 libwebrtc 子项目
-set(LIBWEBRTC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libwebrtc")
+# ==================== 三方依赖 ====================
+set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 
-# 在添加子项目之前，设置 libwebrtc 的构建选项
+# ─── WebSocket 实现选择 ──────────────────────────────────────────
+option(USE_CPP_WEBSOCKET "Use C++ WebSocket implementation (libevent-based) instead of ObjC jetfire" OFF)
+if(USE_CPP_WEBSOCKET)
+    add_compile_definitions(USE_CPP_WEBSOCKET=1)
+    message(STATUS "WebSocket implementation: C++ (libevent-based)")
+else()
+    message(STATUS "WebSocket implementation: ObjC (jetfire)")
+endif()
+
+# ─── libwebrtc ────────────────────────────────────────────────────
+set(LIBWEBRTC_DIR "${THIRD_PARTY_DIR}/libwebrtc")
+
+# 关闭 libwebrtc 不需要的模块，加快编译
+set(WEBRTC_BUILD_WEBRTC_THREAD ON CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_WEBRTC_STUN ON CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_WEBRTC_AUDIO_TOOL OFF CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_RED OFF CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_FEC OFF CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_VIDEO OFF CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_COMMON_VIDEO OFF CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_GCC OFF CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_WEBRTC_LOGGING ON CACHE BOOL "" FORCE)
+
+add_subdirectory(${LIBWEBRTC_DIR} libwebrtc_build)
+
 set(LIBWEBRTC_INCLUDE_DIRS
     "${LIBWEBRTC_DIR}"
-    "${LIBWEBRTC_DIR}/lib"
-    "${LIBWEBRTC_DIR}/third_part"
-    "${LIBWEBRTC_DIR}/third_part/jsoncpp/include"
+    "${LIBWEBRTC_DIR}/libwebrtc"
+    "${LIBWEBRTC_DIR}/deps/abseil-cpp/abseil-cpp"
 )
 
-# 添加 libwebrtc 子项目
-add_subdirectory(${LIBWEBRTC_DIR} libwebrtc_build)
+# ─── libevent (仅 C++ WebSocket 模式需要) ─────────────────────────
+if(USE_CPP_WEBSOCKET)
+    set(LIBEVENT_DIR "${THIRD_PARTY_DIR}/libevent")
+
+    if(EXISTS "${LIBEVENT_DIR}/CMakeLists.txt")
+        message(STATUS "Found libevent source at ${LIBEVENT_DIR}")
+        
+        # 只构建静态库
+        set(EVENT__LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+        
+        # 设置 OpenSSL 变量，让 libevent 的 find_package(OpenSSL) 能找到 libwebrtc 的 OpenSSL
+        set(OPENSSL_FOUND TRUE)
+        set(OPENSSL_INCLUDE_DIR "${LIBWEBRTC_DIR}/deps/openssl-cmake/openssl-cmake-1.1.1w-20250419/include")
+        set(OPENSSL_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
+        set(OPENSSL_SSL_LIBRARY ssl)
+        set(OPENSSL_CRYPTO_LIBRARY crypto)
+        set(OPENSSL_LIBRARIES ssl crypto)
+        set(OPENSSL_VERSION "1.1.1w")
+        
+        set(EVENT__DISABLE_OPENSSL OFF CACHE BOOL "" FORCE)
+        set(EVENT__DISABLE_BENCHMARK ON CACHE BOOL "" FORCE)
+        set(EVENT__DISABLE_TESTS ON CACHE BOOL "" FORCE)
+        set(EVENT__DISABLE_REGRESS ON CACHE BOOL "" FORCE)
+        set(EVENT__DISABLE_SAMPLES ON CACHE BOOL "" FORCE)
+        set(EVENT__DISABLE_MM_REPLACEMENT ON CACHE BOOL "" FORCE)
+        
+        add_subdirectory(${LIBEVENT_DIR} libevent_build)
+        
+        set(LIBEVENT_INCLUDE_DIRS
+            "${LIBEVENT_DIR}/include"
+            "${CMAKE_BINARY_DIR}/libevent_build/include"
+        )
+        set(LIBEVENT_LIBRARIES event)
+    else()
+        message(FATAL_ERROR 
+            "libevent source not found at ${LIBEVENT_DIR}\n"
+            "Please download libevent and place it in:\n"
+            "  ${LIBEVENT_DIR}/\n"
+            "Download: https://github.com/libevent/libevent/releases\n"
+            "Or: git clone https://github.com/libevent/libevent.git ${LIBEVENT_DIR}"
+        )
+    endif()
+endif()
+
+# ─── jsoncpp ──────────────────────────────────────────────────────
+set(JSONCPP_DIR "${THIRD_PARTY_DIR}/jsoncpp")
+
+if(EXISTS "${JSONCPP_DIR}/CMakeLists.txt")
+    message(STATUS "Found jsoncpp source at ${JSONCPP_DIR}")
+    add_subdirectory(${JSONCPP_DIR} jsoncpp_build)
+    set(JSONCPP_INCLUDE_DIRS "${JSONCPP_DIR}/include")
+    set(JSONCPP_LIBRARIES jsoncpp)
+else()
+    message(FATAL_ERROR 
+        "jsoncpp source not found at ${JSONCPP_DIR}"
+    )
+endif()
+
+# ─── websocket (C++ WebSocket 实现，仅 USE_CPP_WEBSOCKET 时编译) ────
+if(USE_CPP_WEBSOCKET)
+    set(WEBSOCKET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket")
+    set(WS_USE_OPENSSL ON CACHE BOOL "" FORCE)
+    set(WS_USE_ZLIB OFF CACHE BOOL "" FORCE)
+    set(WS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+    add_subdirectory(${WEBSOCKET_DIR} websocket_build)
+endif()
 
 # 根据操作系统添加特定链接库
 if(APPLE)
@@ -161,6 +250,13 @@ set(SOURCE_FILES
     jetfire/RTCJFRWebSocket.m
 )
 
+# C++ WebSocket 模式下添加的源文件
+if(USE_CPP_WEBSOCKET)
+    list(APPEND SOURCE_FILES
+        lib/websocket/RTCCPPCWebSocket.mm
+    )
+endif()
+
 # 创建静态 framework
 add_library(libVPSocketIO STATIC
     ${SOURCE_FILES}
@@ -204,6 +300,7 @@ target_include_directories(libVPSocketIO
     # 原始源文件目录（用于.cpp/.mm文件）
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
+    ${JSONCPP_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/Category
@@ -211,6 +308,14 @@ target_include_directories(libVPSocketIO
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
+
+# C++ WebSocket 模式下额外添加的 include
+if(USE_CPP_WEBSOCKET)
+    target_include_directories(libVPSocketIO PRIVATE
+        ${LIBEVENT_INCLUDE_DIRS}
+        ${WEBSOCKET_DIR}
+    )
+endif()
 
 # ============================================
 # 关键修改5：修改头文件中的包含路径
@@ -226,6 +331,7 @@ target_compile_definitions(libVPSocketIO
 # 链接库
 target_link_libraries(libVPSocketIO
     libwebrtc
+    jsoncpp
     # iOS/macOS 系统库
     "-framework Foundation"
     "-framework CFNetwork"
@@ -234,6 +340,11 @@ target_link_libraries(libVPSocketIO
     pthread
 )
 
+# C++ WebSocket 模式下额外链接的库
+if(USE_CPP_WEBSOCKET)
+    target_link_libraries(libVPSocketIO websocket event)
+endif()
+
 # 设置输出目录
 set_target_properties(libVPSocketIO PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/framework"
@@ -241,6 +352,13 @@ set_target_properties(libVPSocketIO PROPERTIES
     FRAMEWORK_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/framework"
     LINKER_LANGUAGE OBJC
     CLANG_ENABLE_OBJC_ARC YES
+    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
+)
+
+# 确保 ARC 被启用
+target_compile_options(libVPSocketIO PRIVATE
+    -fobjc-arc
+    -fobjc-arc-exceptions
 )
 
 # 安装规则
@@ -287,6 +405,7 @@ add_executable(test_protocol_full
 target_include_directories(test_protocol_full
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
+    ${JSONCPP_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/Category
@@ -301,6 +420,7 @@ target_include_directories(test_protocol_full
 target_link_libraries(test_protocol_full
     PRIVATE
     libwebrtc
+    jsoncpp
     pthread
 )
 

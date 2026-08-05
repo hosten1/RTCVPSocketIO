@@ -7,7 +7,19 @@
 //
 
 #import "RTCVPSocketEngine.h"
+
+#ifdef USE_CPP_WEBSOCKET
+#import "RTCCPPCWebSocket.h"
+typedef RTCCPPCWebSocket RTCVPWebSocketClass;
+@protocol RTCVPWebSocketDelegate <RTCCPPCWebSocketDelegate>
+@end
+#else
 #import "RTCJFRWebSocket.h"
+typedef RTCJFRWebSocket RTCVPWebSocketClass;
+@protocol RTCVPWebSocketDelegate <RTCJFRWebSocketDelegate>
+@end
+#endif
+
 #import "RTCDefaultSocketLogger.h"
 
 typedef enum : NSUInteger{
@@ -44,7 +56,7 @@ typedef enum : NSUInteger{
 @property (nonatomic, strong) NSURL *urlWebSocket;
 
 @property (nonatomic, strong) NSURLSession *session;
-@property (nonatomic, strong) RTCJFRWebSocket *ws;
+@property (nonatomic, strong) RTCVPWebSocketClass *ws;
 @property (nonatomic, strong) NSMutableOrderedSet *postWait;
 @property (nonatomic, strong) NSMutableArray<RTCVPProbe *> *probeWait;
 

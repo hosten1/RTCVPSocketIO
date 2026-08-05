@@ -18,3 +18,4 @@ test-server/v2/node_modules/
 test-server/v3/node_modules/
 test-server/v2/package-lock.json
 test-server/v3/package-lock.json
+LYMVPSocketIO/LYMVPSocketIO/build-*

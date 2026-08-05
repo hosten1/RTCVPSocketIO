@@ -19,8 +19,13 @@
 #import "RTCVPTimer.h"
 
 
+#ifdef USE_CPP_WEBSOCKET
+@interface RTCVPSocketEngine()<RTCCPPCWebSocketDelegate,
+NSURLSessionDelegate>
+#else
 @interface RTCVPSocketEngine()<RTCJFRWebSocketDelegate,
 NSURLSessionDelegate>
+#endif
 
 
 @property (nonatomic, strong) NSString *socketPath;

@@ -9,7 +9,11 @@
 #import "RTCVPSocketEngine.h"
 #import "RTCVPSocketEngine+Private.h"
 
+#ifdef USE_CPP_WEBSOCKET
+@interface RTCVPSocketEngine (EngineWebsocket) <RTCCPPCWebSocketDelegate>
+#else
 @interface RTCVPSocketEngine (EngineWebsocket) <RTCJFRWebSocketDelegate>
+#endif
 
 -(void)sendWebSocketMessage:(nullable NSString*)message withType:(RTCVPSocketEnginePacketType)type withData:(nullable NSArray*)datas;
 
