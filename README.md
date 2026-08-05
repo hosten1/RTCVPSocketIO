@@ -2,9 +2,32 @@
 
 [toc]
 
-Socket.IO client for iOS. Supports Socket.IO 2.0+ and 3.0+ with a clean architecture and robust message handling.
+Socket.IO client for iOS/macOS. Supports Socket.IO 2.0+ and 3.0+ with a clean architecture and robust message handling.
+
+## 特性
+
+- ✅ 支持 **Socket.IO v2** 和 **Socket.IO v3/v4** 协议
+- ✅ 支持 **WebSocket** 和 **HTTP 轮询** 传输方式
+- ✅ 支持 **二进制数据** 传输（单二进制、多二进制、嵌套二进制）
+- ✅ 支持 **ACK 确认** 机制
+- ✅ **自动重连** 机制（可配置次数和间隔）
+- ✅ **心跳检测** 保活
+- ✅ **命名空间** (Namespace) 支持
+- ✅ **房间** (Room) 功能
+- ✅ 完整的 **日志系统**
+- ✅ 支持 HTTPS 和自签名证书
+- ✅ **C++ 底层协议实现**，高性能编解码
+- ✅ 提供 Mac / iOS Demo 应用
 
 ## 版本变更记录
+
+### v3.3 (2026-08-05)
+- 底层协议解析全部转为 C++ 实现（SIOPacket、SIOHeader、SIOBody）
+- 应用层增加 v2/v3 协议版本切换接口
+- 新增全量单元测试（117 个测试用例）
+- 新增 Mac 原生集成测试
+- 新增 Mac Demo 应用
+- 完善测试服务端（v2 + v3）
 
 ### v3.2 (2025-12-17)
 - 修复了二进制消息接收问题
@@ -27,6 +50,41 @@ Socket.IO client for iOS. Supports Socket.IO 2.0+ and 3.0+ with a clean architec
 ## 协议支持
 - **Socket.IO 2.0 (Engine.IO 3.x)** - 默认支持（服务端建议 Node.js ^2.5.0）
 - **Socket.IO 3.0 (Engine.IO 4.x)** - 新增支持，通过配置协议版本开启
+- **Socket.IO 4.x** - 与 v3 协议兼容，使用 v3 配置即可
+
+## 快速开始
+
+### 1. 运行 Demo
+
+```bash
+# 克隆项目
+git clone <repo-url>
+cd RTCVPSocketIO
+
+# 启动测试服务器
+cd test-server/v2 && npm install && node server.js &
+cd ../v3 && npm install && node server.js &
+
+# 构建并运行 Mac Demo
+cd ../../LYMVPSocketIO/LYMVPSocketIO
+mkdir -p build && cd build
+cmake ..
+make socketio_demo
+./test/socketio_demo
+```
+
+### 2. 协议版本切换
+
+```objective-c
+#import "RTCVPSocketIOConfig.h"
+
+// Socket.IO v2
+RTCVPSocketIOConfig *config = [RTCVPSocketIOConfig defaultConfig];
+config.protocolVersion = RTCVPSocketIOProtocolVersion2;
+
+// Socket.IO v3/v4
+config.protocolVersion = RTCVPSocketIOProtocolVersion3;
+```
 
 ## 主要特性
 - ✅ 支持 Socket.IO 2.0+ 和 3.0+
@@ -508,68 +566,156 @@ MIT License
 
 ## 14. 测试服务器使用指南
 
-### 14.1 安装依赖
+项目提供了 Socket.IO v2 和 v3 两个版本的测试服务器，用于验证和调试。
+
+### 14.1 V2 测试服务器
 
 ```bash
-cd ${PWD}/RTCVPSocketIO/testServer
+cd test-server/v2
 npm install
+node server.js
 ```
 
-### 14.2 启动服务器
+- 端口：3002
+- 协议：Socket.IO 2.5.0
+
+### 14.2 V3 测试服务器
 
 ```bash
-npm start
+cd test-server/v3
+npm install
+node server.js
 ```
 
-服务器将在以下地址运行：
-- HTTP服务：http://localhost:3000
-- HTTPS服务：https://localhost:3443
-- WebSocket端点：ws://localhost:3000 和 wss://localhost:3443
+- 端口：3003
+- 协议：Socket.IO 3.1.2
 
-### 14.3 端口占用排查
+### 14.3 测试服务器提供的事件
+
+| 事件名 | 方向 | 描述 |
+|--------|------|------|
+| `welcome` | 服务器→客户端 | 连接成功后自动发送 |
+| `ping` | 客户端→服务器 | 心跳测试 |
+| `pong` | 服务器→客户端 | 心跳响应 |
+| `echo` | 客户端→服务器 | 带 ACK 的回显 |
+| `chat message` | 双向 | 广播聊天消息 |
+| `binary test` | 客户端→服务器 | 二进制数据测试 |
+| `binary with json` | 客户端→服务器 | JSON+二进制混合测试 |
+| `join room` | 客户端→服务器 | 加入房间 |
+| `leave room` | 客户端→服务器 | 离开房间 |
+| `room message` | 双向 | 房间内消息 |
+
+### 14.4 命名空间
+
+- `/` - 默认命名空间
+- `/chat` - 聊天命名空间
+- `/news` - 新闻命名空间
+
+### 14.5 端口占用排查
 
 如果启动服务器时遇到"Address already in use"错误，说明端口已被占用。可以使用以下命令排查：
 
 ```bash
-# 查看占用3000端口的进程
-lsof -i :3000 | grep LISTEN
+# 查看占用3002端口的进程
+lsof -i :3002 | grep LISTEN
 
-# 查看占用3443端口的进程
-lsof -i :3443 | grep LISTEN
+# 查看占用3003端口的进程
+lsof -i :3003 | grep LISTEN
 ```
 
-### 14.4 终止占用端口的进程
-
-如果发现端口被占用，可以使用以下命令终止占用端口的进程：
+### 14.6 终止占用端口的进程
 
 ```bash
-# 终止占用3000端口的进程
-kill -9 $(lsof -t -i :3000)
+# 终止占用3002端口的进程
+kill -9 $(lsof -t -i :3002)
 
-# 终止占用3443端口的进程
-kill -9 $(lsof -t -i :3443)
+# 终止占用3003端口的进程
+kill -9 $(lsof -t -i :3003)
 ```
 
-### 14.5 测试流程
+## 15. Demo 应用
 
-1. **启动服务器**：按照上述步骤启动测试服务器
-2. **打开HTML测试页面**：直接在浏览器中打开 `http://localhost:3000/index.html` 或 `https://localhost:3443/index.html`
-3. **运行iOS Demo**：打开 `VPSocketIO.xcodeproj`，运行Demo应用
-4. **测试连接**：在iOS Demo或HTML页面中点击"Connect"按钮连接服务器
-5. **发送消息**：测试文本消息和二进制消息的发送与接收
-6. **测试ACK**：使用ACK测试按钮测试带确认的消息
+### 15.1 Mac Demo
 
-### 14.6 测试功能
+Mac 命令行 Demo 展示了库的所有核心功能。
 
-测试服务器支持以下功能：
-- 连接/断开连接事件
-- 聊天消息广播
-- 自定义事件处理
-- 二进制消息传输
-- 定期心跳消息
-- ACK响应机制
+**构建运行：**
 
-## 15. 联系方式
+```bash
+cd LYMVPSocketIO/LYMVPSocketIO
+mkdir -p build && cd build
+cmake ..
+make socketio_demo
+./test/socketio_demo
+```
+
+**Demo 功能：**
+
+1. 连接 V2 服务器 (localhost:3002)
+2. 连接 V3 服务器 (localhost:3003)
+3. 发送文本消息
+4. 发送二进制消息
+5. 发送带 ACK 的消息
+6. 加入房间
+7. 发送房间消息
+8. 断开连接
+9. 退出
+
+### 15.2 iOS Demo
+
+iOS Demo 可以通过 Xcode 打开 `LYMVPSocketIO.xcodeproj` 运行（如果存在）。
+
+## 16. 测试
+
+### 16.1 单元测试
+
+```bash
+cd LYMVPSocketIO/LYMVPSocketIO/build
+make test_protocol_full
+./test/test_protocol_full
+```
+
+- 测试数量：117 个
+- 覆盖：SIOHeader、SioPacketBuilder、二进制数据、SIOPacket、版本兼容性、边界情况
+
+### 16.2 集成测试
+
+```bash
+# 先启动 v2 和 v3 测试服务器
+cd LYMVPSocketIO/LYMVPSocketIO/build
+make test_native_integration
+./test/test_native_integration
+```
+
+- 使用真实 Socket.IO 服务端进行端到端测试
+- 覆盖：连接、事件、ACK、广播、二进制、断开连接
+- 分别测试 V2 和 V3 协议
+
+## 17. 项目结构
+
+```
+RTCVPSocketIO/
+├── LYMVPSocketIO/
+│   └── LYMVPSocketIO/
+│       ├── src/              # Objective-C 应用层
+│       │   ├── RTCVPSocketIOClient.h/mm
+│       │   ├── RTCVPSocketIOConfig.h/m
+│       │   └── utils/        # 工具类
+│       ├── lib/              # C++ 底层协议实现
+│       │   ├── sio_packet.h/cpp
+│       │   ├── sio_packet_builder.h/cpp
+│       │   └── test/         # 单元测试
+│       ├── jetfire/          # WebSocket 实现
+│       └── Category/         # ObjC 分类
+├── Demo/
+│   └── MacDemo/              # Mac Demo 应用
+├── test-server/
+│   ├── v2/                   # Socket.IO v2 测试服务器
+│   └── v3/                   # Socket.IO v3 测试服务器
+└── README.md
+```
+
+## 18. 联系方式
 
 如有问题，请提交Issue或联系维护者。
 

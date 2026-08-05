@@ -183,8 +183,9 @@ set_target_properties(libVPSocketIO PROPERTIES
         ${CMAKE_CURRENT_SOURCE_DIR}/LYMVPSocketIO.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOClientProtocol.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOClient.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketLogger.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOConfig.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOProtocolVersion.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketLogger.h
     "
     OUTPUT_NAME "LYMVPSocketIO"
 )
@@ -273,124 +274,7 @@ install(TARGETS libVPSocketIO
 #     add_dependencies(libVPSocketIO create_framework_symlinks)
 # endif()
 
-# 添加测试目标
-source_group("Test" FILES 
-    lib/test/test_sio_packet.cpp
-    lib/test/main.cpp
-    lib/test/test_sio_packet.h
-    lib/test/test_sio_binary_packet.cpp
-)
-
-add_executable(test_sio_packet
-    lib/sio_packet_impl.cc
-    lib/sio_packet_builder.cpp
-    lib/sio_packet.cpp
-    lib/sio_ack_manager.cpp
-    lib/test/test_sio_packet.cpp
-    lib/test/main.cpp
-)
-
-# 添加二进制包测试
-add_executable(test_sio_binary_packet
-    lib/sio_packet_impl.cc
-    lib/sio_packet_builder.cpp
-    lib/sio_packet.cpp
-    lib/sio_ack_manager.cpp
-    lib/test/test_sio_binary_packet.cpp
-)
-
-# 为二进制包测试设置include目录
-target_include_directories(test_sio_binary_packet
-    PRIVATE
-    ${LIBWEBRTC_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
-    # 测试目标也需要框架包含路径
-    ${CMAKE_BINARY_DIR}
-)
-
-# 为二进制包测试设置链接库
-target_link_libraries(test_sio_binary_packet
-    PRIVATE
-    libwebrtc
-    pthread
-)
-
-# 为二进制包测试设置属性
-set_target_properties(test_sio_binary_packet PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    LINKER_LANGUAGE CXX
-)
-
-# 添加RTCVP二进制处理测试
-add_executable(test_rtcvp_binary
-    lib/test/test_rtcvp_binary.cpp
-)
-
-# 为RTCVP二进制测试设置include目录
-target_include_directories(test_rtcvp_binary
-    PRIVATE
-    ${LIBWEBRTC_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
-    ${CMAKE_BINARY_DIR}
-)
-
-# 为RTCVP二进制测试设置链接库
-target_link_libraries(test_rtcvp_binary
-    PRIVATE
-    libwebrtc
-    pthread
-)
-
-# 为RTCVP二进制测试设置属性
-set_target_properties(test_rtcvp_binary PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    LINKER_LANGUAGE CXX
-)
-
-# 为测试目标设置include目录
-target_include_directories(test_sio_packet
-    PRIVATE
-    ${LIBWEBRTC_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
-    # 测试目标也需要框架包含路径
-    ${CMAKE_BINARY_DIR}
-)
-
-# 为测试目标设置链接库
-target_link_libraries(test_sio_packet
-    PRIVATE
-    libwebrtc
-    pthread
-)
-
-# 为测试目标设置属性
-set_target_properties(test_sio_packet PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
-    OUTPUT_NAME "test_sio_packet"
-    LINKER_LANGUAGE CXX
-)
-
-# 添加全量协议测试
+# 添加测试目标 - 全量协议单元测试
 add_executable(test_protocol_full
     lib/sio_packet_impl.cc
     lib/sio_packet_builder.cpp
@@ -427,4 +311,81 @@ set_target_properties(test_protocol_full PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
     OUTPUT_NAME "test_protocol_full"
     LINKER_LANGUAGE CXX
+)
+
+# 添加原生集成测试（Mac Objective-C）
+add_executable(test_native_integration
+    lib/test/test_native_integration.m
+)
+
+target_include_directories(test_native_integration
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_BINARY_DIR}
+)
+
+target_link_libraries(test_native_integration
+    PRIVATE
+    libVPSocketIO
+    libwebrtc
+    "-framework Foundation"
+    "-framework CFNetwork"
+    "-framework Security"
+    "-framework SystemConfiguration"
+    "-ObjC"
+    pthread
+)
+
+set_target_properties(test_native_integration PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    OUTPUT_NAME "test_native_integration"
+    LINKER_LANGUAGE OBJC
+    CLANG_ENABLE_OBJC_ARC YES
+)
+
+# Mac Demo 应用
+add_executable(socketio_demo
+    ${CMAKE_SOURCE_DIR}/../../Demo/MacDemo/SocketIODemo.m
+)
+
+target_include_directories(socketio_demo
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_BINARY_DIR}
+)
+
+target_link_libraries(socketio_demo
+    PRIVATE
+    libVPSocketIO
+    libwebrtc
+    "-framework Foundation"
+    "-framework CFNetwork"
+    "-framework Security"
+    "-framework SystemConfiguration"
+    "-ObjC"
+    pthread
+)
+
+set_target_properties(socketio_demo PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    OUTPUT_NAME "socketio_demo"
+    LINKER_LANGUAGE OBJC
+    CLANG_ENABLE_OBJC_ARC YES
 )
