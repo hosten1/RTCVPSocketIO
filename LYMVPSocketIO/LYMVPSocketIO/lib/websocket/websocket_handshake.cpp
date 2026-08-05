@@ -1,9 +1,12 @@
 #include "websocket_handshake.h"
-#include <sstream>
 #include <algorithm>
 #include <cstring>
-#include <random>
 #include <cctype>
+
+#include "rtc_base/logging.h"
+#include "rtc_base/strings/string_builder.h"
+#include "rtc_base/string_utils.h"
+#include "rtc_base/third_party/base64/base64.h"
 
 #ifdef __APPLE__
 #include <CommonCrypto/CommonDigest.h>
@@ -22,29 +25,7 @@ static const std::string base64_chars =
 
 std::string WebSocketHandshake::base64_encode(const uint8_t* data, size_t len) {
     std::string result;
-    result.reserve(((len + 2) / 3) * 4);
-    
-    size_t i = 0;
-    while (i < len) {
-        uint32_t octet_a = i < len ? data[i++] : 0;
-        uint32_t octet_b = i < len ? data[i++] : 0;
-        uint32_t octet_c = i < len ? data[i++] : 0;
-        
-        uint32_t triple = (octet_a << 16) | (octet_b << 8) | octet_c;
-        
-        result.push_back(base64_chars[(triple >> 18) & 0x3F]);
-        result.push_back(base64_chars[(triple >> 12) & 0x3F]);
-        result.push_back(base64_chars[(triple >> 6) & 0x3F]);
-        result.push_back(base64_chars[triple & 0x3F]);
-    }
-    
-    if (len % 3 == 1) {
-        result[result.size() - 1] = '=';
-        result[result.size() - 2] = '=';
-    } else if (len % 3 == 2) {
-        result[result.size() - 1] = '=';
-    }
-    
+    rtc::Base64::EncodeFromArray(data, len, &result);
     return result;
 }
 
@@ -61,11 +42,7 @@ std::string WebSocketHandshake::sha1(const std::string& input) {
 }
 
 std::string WebSocketHandshake::trim(const std::string& s) {
-    auto start = s.begin();
-    while (start != s.end() && std::isspace(*start)) start++;
-    auto end = s.end();
-    do { end--; } while (std::distance(start, end) > 0 && std::isspace(*end));
-    return std::string(start, end + 1);
+    return rtc::string_trim(s);
 }
 
 std::string WebSocketHandshake::to_lower(const std::string& s) {
@@ -75,19 +52,21 @@ std::string WebSocketHandshake::to_lower(const std::string& s) {
 }
 
 std::string WebSocketHandshake::generateKey() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<uint8_t> dis(0, 255);
+    RTC_LOG(LS_VERBOSE) << "Generating WebSocket key";
     
     uint8_t key_bytes[16];
     for (int i = 0; i < 16; i++) {
-        key_bytes[i] = dis(gen);
+        key_bytes[i] = static_cast<uint8_t>(rand() & 0xFF);
     }
-    return base64_encode(key_bytes, 16);
+    std::string key = base64_encode(key_bytes, 16);
+    RTC_LOG(LS_VERBOSE) << "Generated key: " << key;
+    return key;
 }
 
 std::string WebSocketHandshake::buildRequest(const HandshakeRequest& req) {
-    std::ostringstream ss;
+    RTC_LOG(LS_INFO) << "Building handshake request for " << req.host << ":" << req.port << req.path;
+    
+    rtc::StringBuilder ss;
     
     ss << "GET " << req.path << " HTTP/1.1\r\n";
     ss << "Host: " << req.host;
@@ -114,29 +93,43 @@ std::string WebSocketHandshake::buildRequest(const HandshakeRequest& req) {
     }
     
     ss << "\r\n";
-    return ss.str();
+    
+    std::string request = ss.str();
+    RTC_LOG(LS_VERBOSE) << "Handshake request built, size: " << request.size();
+    return request;
 }
 
 HandshakeResponse WebSocketHandshake::parseResponse(const std::string& response) {
+    RTC_LOG(LS_INFO) << "Parsing handshake response, size: " << response.size();
+    
     HandshakeResponse resp;
     
     size_t pos = response.find("\r\n\r\n");
     if (pos == std::string::npos) {
         resp.success = false;
         resp.error = "Incomplete response";
+        RTC_LOG(LS_WARNING) << "Handshake parse failed: " << resp.error;
         return resp;
     }
     
     std::string header_section = response.substr(0, pos);
+    if (!header_section.empty() && 
+        (header_section.size() < 2 || 
+         header_section[header_section.size()-2] != '\r' || 
+         header_section[header_section.size()-1] != '\n')) {
+        header_section += "\r\n";
+    }
     
     size_t line_end = header_section.find("\r\n");
     if (line_end == std::string::npos) {
         resp.success = false;
         resp.error = "Invalid status line";
+        RTC_LOG(LS_WARNING) << "Handshake parse failed: " << resp.error;
         return resp;
     }
     
     resp.status_line = header_section.substr(0, line_end);
+    RTC_LOG(LS_VERBOSE) << "Status line: " << resp.status_line;
     
     size_t first_space = resp.status_line.find(' ');
     size_t second_space = resp.status_line.find(' ', first_space + 1);
@@ -146,7 +139,10 @@ HandshakeResponse WebSocketHandshake::parseResponse(const std::string& response)
         resp.status_code = std::stoi(code_str);
     }
     
+    RTC_LOG(LS_VERBOSE) << "Status code: " << resp.status_code;
+    
     size_t header_start = line_end + 2;
+    int header_count = 0;
     while (header_start < header_section.size()) {
         size_t header_end = header_section.find("\r\n", header_start);
         if (header_end == std::string::npos) break;
@@ -158,14 +154,20 @@ HandshakeResponse WebSocketHandshake::parseResponse(const std::string& response)
             std::string key = to_lower(trim(line.substr(0, colon_pos)));
             std::string value = trim(line.substr(colon_pos + 1));
             resp.headers[key] = value;
+            header_count++;
+            RTC_LOG(LS_VERBOSE) << "Header: " << key << "=" << value;
         }
         
         header_start = header_end + 2;
     }
     
+    RTC_LOG(LS_VERBOSE) << "Parsed " << header_count << " headers";
+    
     if (resp.status_code != 101) {
         resp.success = false;
         resp.error = "Status code is not 101 Switching Protocols";
+        RTC_LOG(LS_ERROR) << "Handshake failed: " << resp.error 
+                          << ", got " << resp.status_code;
         return resp;
     }
     
@@ -176,6 +178,7 @@ HandshakeResponse WebSocketHandshake::parseResponse(const std::string& response)
     if (it_upgrade == resp.headers.end() || to_lower(it_upgrade->second) != "websocket") {
         resp.success = false;
         resp.error = "Missing or invalid Upgrade header";
+        RTC_LOG(LS_ERROR) << "Handshake failed: " << resp.error;
         return resp;
     }
     
@@ -183,6 +186,7 @@ HandshakeResponse WebSocketHandshake::parseResponse(const std::string& response)
         to_lower(it_connection->second).find("upgrade") == std::string::npos) {
         resp.success = false;
         resp.error = "Missing or invalid Connection header";
+        RTC_LOG(LS_ERROR) << "Handshake failed: " << resp.error;
         return resp;
     }
     
@@ -191,15 +195,23 @@ HandshakeResponse WebSocketHandshake::parseResponse(const std::string& response)
     }
     
     resp.success = true;
+    RTC_LOG(LS_INFO) << "Handshake response parsed successfully";
     return resp;
 }
 
 bool WebSocketHandshake::verifyAccept(const std::string& client_key, const std::string& server_accept) {
-    std::string expected = client_key + kMagicGuid;
-    std::string sha1_hash = sha1(expected);
-    std::string expected_accept = base64_encode(
+    RTC_LOG(LS_VERBOSE) << "Verifying accept key";
+    std::string expected = computeAccept(client_key);
+    bool match = (expected == server_accept);
+    RTC_LOG(LS_VERBOSE) << "Accept key verification: " << (match ? "PASS" : "FAIL");
+    return match;
+}
+
+std::string WebSocketHandshake::computeAccept(const std::string& client_key) {
+    std::string input = client_key + kMagicGuid;
+    std::string sha1_hash = sha1(input);
+    return base64_encode(
         reinterpret_cast<const uint8_t*>(sha1_hash.data()), sha1_hash.size());
-    return expected_accept == server_accept;
 }
 
 }

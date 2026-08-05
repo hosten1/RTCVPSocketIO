@@ -80,16 +80,20 @@ if(USE_CPP_WEBSOCKET)
         set(EVENT__LIBRARY_TYPE "STATIC" CACHE STRING "" FORCE)
         set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
         
-        # 设置 OpenSSL 变量，让 libevent 的 find_package(OpenSSL) 能找到 libwebrtc 的 OpenSSL
-        set(OPENSSL_FOUND TRUE)
-        set(OPENSSL_INCLUDE_DIR "${LIBWEBRTC_DIR}/deps/openssl-cmake/openssl-cmake-1.1.1w-20250419/include")
-        set(OPENSSL_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
-        set(OPENSSL_SSL_LIBRARY ssl)
-        set(OPENSSL_CRYPTO_LIBRARY crypto)
-        set(OPENSSL_LIBRARIES ssl crypto)
-        set(OPENSSL_VERSION "1.1.1w")
+        # 从 libwebrtc 的 OpenSSL target 获取信息，设置 libevent 需要的变量
+        if(TARGET OpenSSL::SSL AND TARGET OpenSSL::Crypto)
+            set(OPENSSL_FOUND TRUE)
+            get_target_property(OPENSSL_INCLUDE_DIR OpenSSL::SSL INTERFACE_INCLUDE_DIRECTORIES)
+            set(OPENSSL_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
+            set(OPENSSL_SSL_LIBRARY OpenSSL::SSL)
+            set(OPENSSL_CRYPTO_LIBRARY OpenSSL::Crypto)
+            set(OPENSSL_LIBRARIES OpenSSL::SSL OpenSSL::Crypto)
+            message(STATUS "Using OpenSSL from libwebrtc for libevent")
+        else()
+            set(EVENT__DISABLE_OPENSSL ON CACHE BOOL "" FORCE)
+            message(WARNING "OpenSSL not available, libevent built without OpenSSL support")
+        endif()
         
-        set(EVENT__DISABLE_OPENSSL OFF CACHE BOOL "" FORCE)
         set(EVENT__DISABLE_BENCHMARK ON CACHE BOOL "" FORCE)
         set(EVENT__DISABLE_TESTS ON CACHE BOOL "" FORCE)
         set(EVENT__DISABLE_REGRESS ON CACHE BOOL "" FORCE)
@@ -132,8 +136,11 @@ endif()
 if(USE_CPP_WEBSOCKET)
     set(WEBSOCKET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket")
     set(WS_USE_OPENSSL ON CACHE BOOL "" FORCE)
-    set(WS_USE_ZLIB OFF CACHE BOOL "" FORCE)
+    set(WS_USE_ZLIB ON CACHE BOOL "" FORCE)
     set(WS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(WS_USE_WEBRTC ON CACHE BOOL "" FORCE)
+    set(LIBWEBRTC_INCLUDE_DIRS ${LIBWEBRTC_INCLUDE_DIRS} CACHE STRING "" FORCE)
+    set(LIBWEBRTC_LIBRARIES libwebrtc CACHE STRING "" FORCE)
 
     add_subdirectory(${WEBSOCKET_DIR} websocket_build)
 endif()
@@ -193,6 +200,7 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_builder.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_jsoncpp_binary_helper.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_printer.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_client.h
 )
 
 # ============================================
@@ -231,6 +239,7 @@ set(SOURCE_FILES
     lib/sio_packet_builder.cpp
     lib/sio_packet.cpp
     lib/sio_ack_manager.cpp
+    lib/sio_client.cpp
     
     # Source 目录 - utils
     src/utils/NSString+RTCVPSocketIO.m
@@ -398,6 +407,7 @@ add_executable(test_protocol_full
     lib/sio_packet_builder.cpp
     lib/sio_packet.cpp
     lib/sio_ack_manager.cpp
+    lib/sio_client.cpp
     lib/test/test_protocol_full.cpp
 )
 
@@ -430,6 +440,50 @@ set_target_properties(test_protocol_full PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
     OUTPUT_NAME "test_protocol_full"
+    LINKER_LANGUAGE CXX
+)
+
+# Socket.IO 全量测试 + 边界测试 + 报告生成
+add_executable(test_socketio_full
+    lib/sio_packet_impl.cc
+    lib/sio_packet_builder.cpp
+    lib/sio_packet.cpp
+    lib/sio_ack_manager.cpp
+    lib/sio_client.cpp
+    lib/test/test_socketio_full.cpp
+)
+
+target_include_directories(test_socketio_full
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${JSONCPP_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_compile_definitions(test_socketio_full
+    PRIVATE
+    WS_USE_WEBRTC
+    JSONCPP_USING_SECURE_MEMORY=0
+)
+
+target_link_libraries(test_socketio_full
+    PRIVATE
+    websocket
+    libwebrtc
+    jsoncpp
+    base64
+    pthread
+    dl
+)
+
+set_target_properties(test_socketio_full PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    OUTPUT_NAME "test_socketio_full"
     LINKER_LANGUAGE CXX
 )
 
@@ -492,13 +546,17 @@ target_include_directories(socketio_demo
 target_link_libraries(socketio_demo
     PRIVATE
     libVPSocketIO
+    websocket
     libwebrtc
+    jsoncpp
+    base64
     "-framework Foundation"
     "-framework CFNetwork"
     "-framework Security"
     "-framework SystemConfiguration"
     "-ObjC"
     pthread
+    dl
 )
 
 set_target_properties(socketio_demo PROPERTIES
@@ -509,3 +567,80 @@ set_target_properties(socketio_demo PROPERTIES
     LINKER_LANGUAGE OBJC
     CLANG_ENABLE_OBJC_ARC YES
 )
+
+# WebSocket + 协议集成测试 (仅 C++ WebSocket 模式)
+if(USE_CPP_WEBSOCKET)
+    add_executable(test_websocket_unit
+        lib/websocket/test/test_websocket.cpp
+    )
+
+    target_include_directories(test_websocket_unit
+        PRIVATE
+        ${LIBWEBRTC_INCLUDE_DIRS}
+        ${JSONCPP_INCLUDE_DIRS}
+        ${LIBEVENT_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+        ${CMAKE_BINARY_DIR}
+    )
+
+    target_link_libraries(test_websocket_unit
+        PRIVATE
+        websocket
+        libwebrtc
+        jsoncpp
+        event
+        base64
+        pthread
+    )
+
+    set_target_properties(test_websocket_unit PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        OUTPUT_NAME "test_websocket_unit"
+        LINKER_LANGUAGE CXX
+    )
+
+    add_executable(test_websocket_integration
+        lib/sio_packet_impl.cc
+        lib/sio_packet_builder.cpp
+        lib/sio_packet.cpp
+        lib/sio_ack_manager.cpp
+        lib/test/test_websocket_integration.cpp
+    )
+
+    target_include_directories(test_websocket_integration
+        PRIVATE
+        ${LIBWEBRTC_INCLUDE_DIRS}
+        ${JSONCPP_INCLUDE_DIRS}
+        ${LIBEVENT_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+        ${CMAKE_CURRENT_SOURCE_DIR}/Category
+        ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+        ${CMAKE_BINARY_DIR}
+    )
+
+    target_link_libraries(test_websocket_integration
+        PRIVATE
+        websocket
+        libwebrtc
+        jsoncpp
+        event
+        base64
+        pthread
+    )
+
+    set_target_properties(test_websocket_integration PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        OUTPUT_NAME "test_websocket_integration"
+        LINKER_LANGUAGE CXX
+    )
+endif()

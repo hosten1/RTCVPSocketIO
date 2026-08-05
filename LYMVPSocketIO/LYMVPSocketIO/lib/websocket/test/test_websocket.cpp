@@ -34,6 +34,10 @@ static int g_tests_failed = 0;
     if (!((a) == (b))) { FAIL(#a " != " #b); return; } \
 } while(0)
 
+#define ASSERT_FALSE(cond) do { \
+    if ((cond)) { FAIL(#cond " is true"); return; } \
+} while(0)
+
 // ─── Frame Tests ──────────────────────────────────────────────────
 
 static void test_encode_text_short() {

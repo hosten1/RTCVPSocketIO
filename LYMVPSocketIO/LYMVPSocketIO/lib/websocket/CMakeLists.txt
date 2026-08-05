@@ -16,17 +16,21 @@ endif()
 option(WS_USE_OPENSSL "Enable OpenSSL TLS support" OFF)
 option(WS_USE_ZLIB "Enable permessage-deflate compression (zlib)" OFF)
 option(WS_BUILD_TESTS "Build WebSocket tests" OFF)
+option(WS_USE_WEBRTC "Use WebRTC for logging, threading, and synchronization" OFF)
 
 set(WEBSOCKET_SOURCES
     websocket_frame.cpp
     websocket_handshake.cpp
     websocket_client.cpp
+    websocket_logger.cpp
+    websocket_deflater.cpp
 )
 
 set(WEBSOCKET_HEADERS
     websocket_frame.h
     websocket_handshake.h
     websocket_client.h
+    websocket_logger.h
 )
 
 # ─── libevent ─────────────────────────────────────────────────────
@@ -117,6 +121,48 @@ if(WS_USE_ZLIB)
     endif()
 endif()
 
+# ─── WebRTC (可选，用于日志/线程/同步) ──────────────────────────────
+if(WS_USE_WEBRTC)
+    if(WS_STANDALONE)
+        get_filename_component(WS_THIRD_PARTY_DIR 
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party" ABSOLUTE)
+        
+        set(WEBRTC_DIR "${WS_THIRD_PARTY_DIR}/libwebrtc")
+        
+        if(EXISTS "${WEBRTC_DIR}/CMakeLists.txt")
+            message(STATUS "WebSocket: building WebRTC from source (${WEBRTC_DIR})")
+            
+            set(WEBRTC_BUILD_WEBRTC_LOGGING ON CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_WEBRTC_THREAD ON CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_WEBRTC_STUN OFF CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_WEBRTC_AUDIO_TOOL OFF CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_RED OFF CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_FEC OFF CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_VIDEO OFF CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_COMMON_VIDEO OFF CACHE BOOL "" FORCE)
+            set(WEBRTC_BUILD_GCC OFF CACHE BOOL "" FORCE)
+            
+            add_subdirectory(${WEBRTC_DIR} webrtc_build)
+            
+            set(WEBRTC_INCLUDE_DIRS
+                "${WEBRTC_DIR}"
+                "${WEBRTC_DIR}/libwebrtc"
+                "${WEBRTC_DIR}/deps/abseil-cpp/abseil-cpp"
+            )
+            set(WEBRTC_LIBRARIES libwebrtc)
+        else()
+            message(WARNING "WebSocket: WebRTC source not found, WebRTC integration disabled")
+            set(WS_USE_WEBRTC OFF)
+        endif()
+    else()
+        if(NOT LIBWEBRTC_INCLUDE_DIRS OR NOT LIBWEBRTC_LIBRARIES)
+            message(FATAL_ERROR "WebSocket: LIBWEBRTC_INCLUDE_DIRS and LIBWEBRTC_LIBRARIES must be set by parent project when WS_USE_WEBRTC=ON")
+        endif()
+        set(WEBRTC_INCLUDE_DIRS ${LIBWEBRTC_INCLUDE_DIRS})
+        set(WEBRTC_LIBRARIES ${LIBWEBRTC_LIBRARIES})
+    endif()
+endif()
+
 # ─── Library ────────────────────────────────────────────────────────
 add_library(websocket STATIC ${WEBSOCKET_SOURCES})
 
@@ -130,6 +176,12 @@ target_link_libraries(websocket
     PUBLIC
         ${LIBEVENT_LIBRARIES}
 )
+
+if(WS_USE_WEBRTC)
+    target_include_directories(websocket PUBLIC ${WEBRTC_INCLUDE_DIRS})
+    target_link_libraries(websocket PUBLIC ${WEBRTC_LIBRARIES})
+    target_compile_definitions(websocket PUBLIC WS_USE_WEBRTC)
+endif()
 
 if(WS_USE_OPENSSL AND OPENSSL_FOUND)
     if(OPENSSL_INCLUDE_DIRS)
@@ -161,5 +213,6 @@ message(STATUS "=== WebSocket Module ===")
 message(STATUS "  libevent:  source build")
 message(STATUS "  OpenSSL:   ${WS_USE_OPENSSL}")
 message(STATUS "  zlib:      ${WS_USE_ZLIB}")
+message(STATUS "  WebRTC:    ${WS_USE_WEBRTC}")
 message(STATUS "  tests:     ${WS_BUILD_TESTS}")
 message(STATUS "========================")

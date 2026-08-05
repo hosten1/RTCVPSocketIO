@@ -36,6 +36,8 @@ public:
     
     static bool verifyAccept(const std::string& client_key, const std::string& server_accept);
     
+    static std::string computeAccept(const std::string& client_key);
+    
 private:
     static std::string base64_encode(const uint8_t* data, size_t len);
     static std::string sha1(const std::string& input);

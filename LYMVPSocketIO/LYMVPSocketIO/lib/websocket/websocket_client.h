@@ -5,9 +5,12 @@
 #include <vector>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <atomic>
 #include <map>
+#include <deque>
+
+#include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread.h"
 
 namespace ws {
 

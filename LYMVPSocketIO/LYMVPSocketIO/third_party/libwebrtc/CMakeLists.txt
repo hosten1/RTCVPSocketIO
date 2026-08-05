@@ -99,17 +99,58 @@ if(WEBRTC_BUILD_WEBRTC_STUN)
     endif()
     set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
     
-    # 检查预编译库是否存在
+    # 检查预编译库是否存在（支持两种路径结构）
     set(OPENSSL_PREBUILT_FOUND FALSE)
+    
+    # 方式1：平台特定子目录结构（lib/${PLATFORM}/libssl.a）
     if(EXISTS ${OPENSSL_SSL_LIB} AND EXISTS ${OPENSSL_CRYPTO_LIB} AND EXISTS ${OPENSSL_INCLUDE_DIR})
         set(OPENSSL_PREBUILT_FOUND TRUE)
         message(STATUS "[libwebrtc] Found pre-built OpenSSL for ${OPENSSL_PLATFORM_DIR}")
+    else()
+        # 方式2：标准 Unix 结构（lib/libssl.a, include/）
+        set(OPENSSL_STD_SSL_LIB "${OPENSSL_ROOT_DIR}/lib/libssl.a")
+        set(OPENSSL_STD_CRYPTO_LIB "${OPENSSL_ROOT_DIR}/lib/libcrypto.a")
+        set(OPENSSL_STD_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
+        
+        if(EXISTS ${OPENSSL_STD_SSL_LIB} AND EXISTS ${OPENSSL_STD_CRYPTO_LIB} AND EXISTS ${OPENSSL_STD_INCLUDE_DIR})
+            set(OPENSSL_PREBUILT_FOUND TRUE)
+            set(OPENSSL_SSL_LIB "${OPENSSL_STD_SSL_LIB}")
+            set(OPENSSL_CRYPTO_LIB "${OPENSSL_STD_CRYPTO_LIB}")
+            set(OPENSSL_INCLUDE_DIR "${OPENSSL_STD_INCLUDE_DIR}")
+            message(STATUS "[libwebrtc] Found pre-built OpenSSL (standard layout) at ${OPENSSL_ROOT_DIR}")
+        else()
+            # 方式3：系统库可能是 .so 或 .dylib
+            set(OPENSSL_SO_EXT "")
+            if(APPLE)
+                set(OPENSSL_SO_EXT "dylib")
+            elseif(UNIX)
+                set(OPENSSL_SO_EXT "so")
+            endif()
+            
+            if(OPENSSL_SO_EXT)
+                set(OPENSSL_SHARED_SSL_LIB "${OPENSSL_ROOT_DIR}/lib/libssl.${OPENSSL_SO_EXT}")
+                set(OPENSSL_SHARED_CRYPTO_LIB "${OPENSSL_ROOT_DIR}/lib/libcrypto.${OPENSSL_SO_EXT}")
+                
+                if(EXISTS ${OPENSSL_SHARED_SSL_LIB} AND EXISTS ${OPENSSL_SHARED_CRYPTO_LIB} AND EXISTS ${OPENSSL_STD_INCLUDE_DIR})
+                    set(OPENSSL_PREBUILT_FOUND TRUE)
+                    set(OPENSSL_SSL_LIB "${OPENSSL_SHARED_SSL_LIB}")
+                    set(OPENSSL_CRYPTO_LIB "${OPENSSL_SHARED_CRYPTO_LIB}")
+                    set(OPENSSL_INCLUDE_DIR "${OPENSSL_STD_INCLUDE_DIR}")
+                    message(STATUS "[libwebrtc] Found pre-built OpenSSL (shared libs) at ${OPENSSL_ROOT_DIR}")
+                endif()
+            endif()
+        endif()
     endif()
     
     if(OPENSSL_PREBUILT_FOUND)
         # 创建导入库目标（预编译库）
-        add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
-        add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
+        if(OPENSSL_SSL_LIB MATCHES "\.a$" OR OPENSSL_SSL_LIB MATCHES "\.lib$")
+            add_library(OpenSSL::SSL STATIC IMPORTED GLOBAL)
+            add_library(OpenSSL::Crypto STATIC IMPORTED GLOBAL)
+        else()
+            add_library(OpenSSL::SSL SHARED IMPORTED GLOBAL)
+            add_library(OpenSSL::Crypto SHARED IMPORTED GLOBAL)
+        endif()
         
         set_target_properties(OpenSSL::SSL PROPERTIES
             IMPORTED_LOCATION ${OPENSSL_SSL_LIB}

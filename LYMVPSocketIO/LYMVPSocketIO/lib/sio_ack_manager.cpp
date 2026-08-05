@@ -10,6 +10,7 @@
 #include "rtc_base/task_queue.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "rtc_base/time_utils.h"
+#include "rtc_base/synchronization/mutex.h"
 #include <chrono>
 #include <iostream>
 
@@ -70,7 +71,7 @@ bool SioAckManager::register_ack_callback(int ack_id,
         return false;
     }
     
-    std::lock_guard<std::mutex> lock(mutex_);
+    webrtc::MutexLock lock(&mutex_);
     
     // 检查是否已存在
     if (pending_acks_.find(ack_id) != pending_acks_.end()) {
@@ -89,7 +90,7 @@ bool SioAckManager::register_ack_callback(int ack_id,
     
     // 更新统计
     {
-        std::lock_guard<std::mutex> stats_lock(stats_mutex_);
+        webrtc::MutexLock stats_lock(&stats_mutex_);
         total_requests_++;
     }
     
@@ -101,7 +102,7 @@ bool SioAckManager::handle_ack_response(int ack_id, const std::vector<Json::Valu
     std::chrono::steady_clock::time_point create_time;
     
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        webrtc::MutexLock lock(&mutex_);
         
         auto it = pending_acks_.find(ack_id);
         if (it == pending_acks_.end()) {
@@ -118,7 +119,7 @@ bool SioAckManager::handle_ack_response(int ack_id, const std::vector<Json::Valu
         
         // 更新统计
         {
-            std::lock_guard<std::mutex> stats_lock(stats_mutex_);
+            webrtc::MutexLock stats_lock(&stats_mutex_);
             success_requests_++;
             auto response_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - create_time);
@@ -139,23 +140,23 @@ bool SioAckManager::handle_ack_response(int ack_id, const std::vector<Json::Valu
 }
 
 bool SioAckManager::cancel_ack(int ack_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    webrtc::MutexLock lock(&mutex_);
     return pending_acks_.erase(ack_id) > 0;
 }
 
 void SioAckManager::clear_all_acks() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    webrtc::MutexLock lock(&mutex_);
     pending_acks_.clear();
 }
 
 void SioAckManager::set_default_timeout(std::chrono::milliseconds timeout) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    webrtc::MutexLock lock(&mutex_);
     default_timeout_ = timeout;
 }
 
 SioAckManager::Stats SioAckManager::get_stats() const {
-    std::lock_guard<std::mutex> stats_lock(stats_mutex_);
-    std::lock_guard<std::mutex> lock(mutex_);
+    webrtc::MutexLock stats_lock(&stats_mutex_);
+    webrtc::MutexLock lock(&mutex_);
     
     Stats stats;
     stats.total_requests = total_requests_;
@@ -233,7 +234,7 @@ void SioAckManager::check_timeouts() {
     std::vector<std::pair<int, AckTimeoutCallback>> timeout_callbacks;
     
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        webrtc::MutexLock lock(&mutex_);
         
         for (auto& kv : pending_acks_) {
             int ack_id = kv.first;
@@ -251,7 +252,7 @@ void SioAckManager::check_timeouts() {
                 
                 // 更新统计
                 {
-                    std::lock_guard<std::mutex> stats_lock(stats_mutex_);
+                    webrtc::MutexLock stats_lock(&stats_mutex_);
                     timeout_requests_++;
                 }
             }

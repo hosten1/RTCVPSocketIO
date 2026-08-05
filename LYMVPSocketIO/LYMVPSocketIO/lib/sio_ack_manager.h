@@ -11,12 +11,12 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
-#include <mutex>
 #include <atomic>
 #include <chrono>
 #include <vector>
 #include <condition_variable>
 #include "json/json.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "absl/memory/memory.h"
@@ -81,13 +81,13 @@ private:
     std::shared_ptr<rtc::TaskQueue> task_queue_;
     webrtc::RepeatingTaskHandle timeout_checker_handle_;
     
-    mutable std::mutex mutex_;
-    std::atomic<int> next_ack_id_;
+    mutable webrtc::Mutex mutex_;
+    std::atomic<uint64_t> next_ack_id_;
     std::unordered_map<int, AckInfo> pending_acks_;
     std::chrono::milliseconds default_timeout_;
     
     // 统计信息
-    mutable std::mutex stats_mutex_;
+    mutable webrtc::Mutex stats_mutex_;
     int total_requests_;
     int timeout_requests_;
     int success_requests_;

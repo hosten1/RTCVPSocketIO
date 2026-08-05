@@ -75,9 +75,19 @@ using namespace ws;
             [strongSelf dispatchOnCallbackQueue:^{
                 NSError *error = nil;
                 if (!reason.empty()) {
-                    error = [NSError errorWithDomain:@"RTCCPPCWebSocket"
-                                                code:static_cast<NSInteger>(code)
-                                            userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithUTF8String:reason.c_str()]}];
+                    NSString *reasonStr = [[NSString alloc] initWithBytes:reason.data()
+                                                                   length:reason.size()
+                                                                 encoding:NSUTF8StringEncoding];
+                    if (!reasonStr) {
+                        reasonStr = [[NSString alloc] initWithBytes:reason.data()
+                                                             length:reason.size()
+                                                           encoding:NSASCIIStringEncoding];
+                    }
+                    if (reasonStr) {
+                        error = [NSError errorWithDomain:@"RTCCPPCWebSocket"
+                                                    code:static_cast<NSInteger>(code)
+                                                userInfo:@{NSLocalizedDescriptionKey: reasonStr}];
+                    }
                 }
                 if (strongSelf.delegate && [strongSelf.delegate respondsToSelector:@selector(websocketDidDisconnect:error:)]) {
                     [strongSelf.delegate websocketDidDisconnect:strongSelf error:error];

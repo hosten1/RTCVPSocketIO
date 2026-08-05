@@ -1,7 +1,9 @@
 #include "websocket_frame.h"
 #include <cstring>
-#include <random>
 #include <arpa/inet.h>
+
+#include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 
 #ifdef __APPLE__
 #include <libkern/OSByteOrder.h>
@@ -11,11 +13,20 @@
 
 namespace ws {
 
+namespace {
+webrtc::Mutex g_random_mutex;
+bool g_random_initialized = false;
+unsigned int g_random_seed = 0;
+}
+
 uint32_t WebSocketFrameCoder::generateMaskingKey() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<uint32_t> dis;
-    return dis(gen);
+    webrtc::MutexLock lock(&g_random_mutex);
+    if (!g_random_initialized) {
+        g_random_seed = static_cast<unsigned int>(time(nullptr));
+        g_random_initialized = true;
+    }
+    g_random_seed = g_random_seed * 1103515245 + 12345;
+    return static_cast<uint32_t>(g_random_seed);
 }
 
 void WebSocketFrameCoder::maskData(uint8_t* data, size_t len, uint32_t key) {
@@ -31,6 +42,11 @@ void WebSocketFrameCoder::maskData(uint8_t* data, size_t len, uint32_t key) {
 }
 
 std::vector<uint8_t> WebSocketFrameCoder::encode(const WebSocketFrame& frame, bool mask) {
+    RTC_LOG(LS_VERBOSE) << "Encoding frame: opcode=" << static_cast<int>(frame.opcode)
+                        << " fin=" << (frame.fin ? "yes" : "no")
+                        << " payload_size=" << frame.payload.size()
+                        << " masked=" << (mask ? "yes" : "no");
+    
     std::vector<uint8_t> result;
     result.reserve(14 + frame.payload.size());
     
@@ -80,6 +96,7 @@ std::vector<uint8_t> WebSocketFrameCoder::encode(const WebSocketFrame& frame, bo
         result.insert(result.end(), frame.payload.begin(), frame.payload.end());
     }
     
+    RTC_LOG(LS_VERBOSE) << "Frame encoded, total size: " << result.size();
     return result;
 }
 
@@ -127,6 +144,7 @@ std::vector<uint8_t> WebSocketFrameCoder::encodeClose(uint16_t code, const std::
 FrameParseResult WebSocketFrameCoder::parse(const uint8_t* data, size_t len, 
                                              WebSocketFrame& out_frame, size_t& out_consumed) {
     if (len < 2) {
+        RTC_LOG(LS_VERBOSE) << "Frame parse: incomplete (need at least 2 bytes, have " << len << ")";
         return FrameParseResult::Incomplete;
     }
     
@@ -147,13 +165,19 @@ FrameParseResult WebSocketFrameCoder::parse(const uint8_t* data, size_t len,
     if (payload_len_byte < 126) {
         payload_len = payload_len_byte;
     } else if (payload_len_byte == 126) {
-        if (len < offset + 2) return FrameParseResult::Incomplete;
+        if (len < offset + 2) {
+            RTC_LOG(LS_VERBOSE) << "Frame parse: incomplete (need extended payload length)";
+            return FrameParseResult::Incomplete;
+        }
         uint16_t len16;
         std::memcpy(&len16, data + offset, 2);
         payload_len = ntohs(len16);
         offset += 2;
     } else {
-        if (len < offset + 8) return FrameParseResult::Incomplete;
+        if (len < offset + 8) {
+            RTC_LOG(LS_VERBOSE) << "Frame parse: incomplete (need extended payload length)";
+            return FrameParseResult::Incomplete;
+        }
         uint64_t len64;
         std::memcpy(&len64, data + offset, 8);
         payload_len = be64toh(len64);
@@ -163,12 +187,17 @@ FrameParseResult WebSocketFrameCoder::parse(const uint8_t* data, size_t len,
     out_frame.payload_length = payload_len;
     
     if (out_frame.masked) {
-        if (len < offset + 4) return FrameParseResult::Incomplete;
+        if (len < offset + 4) {
+            RTC_LOG(LS_VERBOSE) << "Frame parse: incomplete (need masking key)";
+            return FrameParseResult::Incomplete;
+        }
         std::memcpy(&out_frame.masking_key, data + offset, 4);
         offset += 4;
     }
     
     if (len < offset + payload_len) {
+        RTC_LOG(LS_VERBOSE) << "Frame parse: incomplete (need " << (offset + payload_len) 
+                            << " bytes, have " << len << ")";
         return FrameParseResult::Incomplete;
     }
     
@@ -181,6 +210,13 @@ FrameParseResult WebSocketFrameCoder::parse(const uint8_t* data, size_t len,
     }
     
     out_consumed = offset + payload_len;
+    
+    RTC_LOG(LS_VERBOSE) << "Frame parsed: opcode=" << static_cast<int>(out_frame.opcode)
+                        << " fin=" << (out_frame.fin ? "yes" : "no")
+                        << " payload_size=" << payload_len
+                        << " masked=" << (out_frame.masked ? "yes" : "no")
+                        << " consumed=" << out_consumed;
+    
     return FrameParseResult::Ok;
 }
 

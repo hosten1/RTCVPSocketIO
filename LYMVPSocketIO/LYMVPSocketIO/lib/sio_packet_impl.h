@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <functional>
 #include <atomic>
-#include <mutex>
 #include <chrono>
 #include <condition_variable>
 #include <sstream>
@@ -40,6 +39,10 @@ using EventCallback = std::function<void(const SioPacket &packet)>;
 using SendResultCallback = std::function<void(bool success, const std::string& error)>;
 using TextSendCallback = std::function<bool(const std::string& text_packet, const std::vector<SmartBuffer> binary_data)>;
 
+// 简洁 API 回调类型
+using AckResponder = std::function<void(const std::vector<Json::Value>& args)>;
+using EventHandler = std::function<void(const std::vector<Json::Value>& args, AckResponder ack)>;
+
 
 // 包发送器
 class PacketSender : public std::enable_shared_from_this<PacketSender> {
@@ -56,11 +59,17 @@ public:
                    enable_logging(false) {}
     };
     
+    static std::shared_ptr<PacketSender> Create(std::shared_ptr<IAckManager> ack_manager,
+                                               webrtc::TaskQueueFactory* task_queue_factory = nullptr,
+                                               const Config& config = Config());
+    
     PacketSender(std::shared_ptr<IAckManager> ack_manager,
                 webrtc::TaskQueueFactory* task_queue_factory = nullptr,
                 const Config& config = Config());
     
     ~PacketSender();
+    
+    void Start();
     
     // 配置方法
     void set_config(const Config& config);
@@ -94,6 +103,48 @@ public:
         TextSendCallback text_callback,
         const std::string& namespace_s = "/");
     
+    // ─── 简洁 API (Socket.IO 风格) ──────────────────────────
+    
+    // 设置发送回调（设置一次即可，后续 emit 自动使用）
+    void set_send_callback(TextSendCallback callback);
+    
+    // 发送事件（无 ACK）
+    // 用法: sender->emit("event_name", {arg1, arg2});
+    void emit(const std::string& event_name,
+              std::initializer_list<Json::Value> args,
+              const std::string& namespace_s = "/");
+    
+    // 发送事件（带 ACK 回调）
+    // 用法: sender->emit("event_name", {arg1, arg2},
+    //                   [](const std::vector<Json::Value>& data) { ... });
+    void emit(const std::string& event_name,
+              std::initializer_list<Json::Value> args,
+              AckCallback ack_callback,
+              const std::string& namespace_s = "/");
+    
+    // 发送事件（带 ACK 回调 + 超时回调）
+    // 用法: sender->emit("event_name", {arg1, arg2},
+    //                   [](const std::vector<Json::Value>& data) { ... },
+    //                   [](int ack_id) { ... },
+    //                   std::chrono::seconds(5));
+    void emit(const std::string& event_name,
+              std::initializer_list<Json::Value> args,
+              AckCallback ack_callback,
+              AckTimeoutCallback timeout_callback,
+              std::chrono::milliseconds timeout,
+              const std::string& namespace_s = "/");
+    
+    // 发送事件（vector 版本，无 ACK）
+    void emit(const std::string& event_name,
+              const std::vector<Json::Value>& args,
+              const std::string& namespace_s = "/");
+    
+    // 发送事件（vector 版本，带 ACK 回调）
+    void emit(const std::string& event_name,
+              const std::vector<Json::Value>& args,
+              AckCallback ack_callback,
+              const std::string& namespace_s = "/");
+    
     // 重置发送器
     void reset();
     
@@ -116,9 +167,16 @@ private:
         std::chrono::milliseconds timeout;
         bool waiting_for_ack;
         std::string event_name;
+        std::vector<Json::Value> args;
+        std::string namespace_s;
+        int retry_count;
+        AckCallback ack_callback;
+        AckTimeoutCallback timeout_callback;
+        TextSendCallback send_callback;
         
         PendingRequest() : ack_id(-1), timeout(0),
-                          waiting_for_ack(false) {}
+                          waiting_for_ack(false),
+                          retry_count(0) {}
         
         bool is_expired() const {
             auto now = std::chrono::steady_clock::now();
@@ -126,10 +184,10 @@ private:
         }
     };
     
-    void initialize_task_queue();
     void cleanup_expired_requests();
     void start_cleanup_timer();
     void stop_cleanup_timer();
+    bool retry_request(PendingRequest& request);
     
     std::shared_ptr<IAckManager> ack_manager_;
     std::unique_ptr<SioPacketBuilder> packet_builder_;
@@ -141,6 +199,10 @@ private:
     
     mutable webrtc::Mutex stats_mutex_;
     Stats stats_;
+    
+    // 简洁 API 支持
+    TextSendCallback send_callback_;
+    mutable webrtc::Mutex send_callback_mutex_;
     
     mutable webrtc::Mutex pending_mutex_;
     std::unordered_map<int, PendingRequest> pending_requests_;
@@ -184,6 +246,23 @@ public:
     
     // 设置事件回调
     void set_event_callback(EventCallback callback);
+    
+    // ─── 简洁 API (Socket.IO 风格) ──────────────────────────
+    
+    // 注册事件处理器
+    // 用法: receiver->on("event_name", [](const std::vector<Json::Value>& args, AckResponder ack) {
+    //           ack({Json::Value("response")});
+    //       });
+    void on(const std::string& event_name, EventHandler handler);
+    
+    // 设置发送回调（用于 ack 响应发送）
+    void set_send_callback(TextSendCallback send_callback);
+    
+    // 移除事件处理器
+    void off(const std::string& event_name);
+    
+    // 移除所有事件处理器
+    void remove_all_listeners();
     
     // 处理文本包
     bool process_text_packet(const std::string& text_packet);
@@ -252,10 +331,16 @@ private:
     void initialize_task_queue();
     void process_complete_packet(const SioPacket& packet);
     void handle_ack_packet(const SioPacket& packet);
+    void dispatch_to_event_handler(const SioPacket& packet);
     
     std::shared_ptr<IAckManager> ack_manager_;
     std::unique_ptr<SioPacketBuilder> packet_builder_;
     EventCallback event_callback_;
+    
+    // 简洁 API 支持
+    std::unordered_map<std::string, EventHandler> event_handlers_;
+    TextSendCallback send_callback_;
+    mutable webrtc::Mutex handlers_mutex_;
     
     Config config_;
     std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory_;
