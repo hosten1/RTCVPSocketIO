@@ -148,6 +148,17 @@ public:
     // 生成调试信息字符串
     std::string to_string() const;
     
+    // ===== getters =====
+    const std::string& event_name() const { return event_name_; }
+    int ack_id() const { return ack_id_; }
+    const std::string& json_data() const { return json_data_; }
+    const std::vector<Json::Value>& args() const { return args_; }
+    
+    // ===== setters =====
+    void set_event_name(const std::string& name) { event_name_ = name; }
+    void set_ack_id(int id) { ack_id_ = id; }
+    void set_args(const std::vector<Json::Value>& args) { args_ = args; }
+    void add_arg(const Json::Value& arg) { args_.push_back(arg); }
     
     std::vector<SmartBuffer> attachments;  // 二进制附件（使用智能指针管理的Buffer）
     
@@ -178,10 +189,10 @@ private:
     
     SocketIOVersion version_;
     
-    std::string event_name_ = nullptr;
+    std::string event_name_;
     
     int ack_id_{-1};
-    std::string json_data_ = nullptr;  // JSON数据
+    std::string json_data_;  // JSON数据
     
     std::vector<Json::Value> args_;
     
@@ -195,22 +206,47 @@ class SIOPacket {
     
 public:
     
-    SIOPacket(SocketIOVersion versionIn) {}
+    SIOPacket(SocketIOVersion versionIn);
     
     // 解析完整数据包
     bool parse(const std::string& packet, const std::vector<SmartBuffer>& binaries = std::vector<SmartBuffer>());
     
     // 构建完整数据包
-    std::string build() const;
+    std::string build();
     
     // 检查是否包含二进制数据
-//    bool has_binary() const { return body.has_binary(); }
+    bool has_binary() const;
     
     // 生成调试信息字符串
     std::string to_string() const;
+    
+    // ===== getters =====
+    SocketIOVersion version() const { return version_; }
+    PacketType type() const { return header_.type(); }
+    const std::string& namespace_str() const { return header_.namespace_str(); }
+    int ack_id() const { return header_.ack_id(); }
+    bool has_ack() const { return header_.has_ack(); }
+    const std::string& event_name() const { return event_name_; }
+    const std::vector<Json::Value>& args() const { return args_; }
+    const std::vector<SmartBuffer>& binary_parts() const { return binary_parts_; }
+    const SIOHeader& header() const { return header_; }
+    
+    // ===== setters =====
+    void set_version(SocketIOVersion version) { version_ = version; header_.set_version(version); }
+    void set_type(PacketType type) { header_.set_type(type); }
+    void set_namespace(const std::string& ns) { header_.set_namespace(ns); }
+    void set_ack_id(int ack_id) { header_.set_ack_id(ack_id); }
+    void set_event_name(const std::string& name) { event_name_ = name; }
+    void set_args(const std::vector<Json::Value>& args) { args_ = args; }
+    void add_arg(const Json::Value& arg) { args_.push_back(arg); }
+    void add_binary_part(const SmartBuffer& buffer) { binary_parts_.push_back(buffer); }
+    
 private:
-//    SIOHeader header{nullptr};
-//    SIOBody body{nullptr};
+    SocketIOVersion version_;
+    SIOHeader header_;
+    std::string event_name_;
+    std::vector<Json::Value> args_;
+    std::vector<SmartBuffer> binary_parts_;
 };
 }//namespace sio
 

@@ -140,7 +140,7 @@ set(SOURCE_FILES
     src/RTCVPProbe.m
     lib/sio_packet_impl.cc
     lib/sio_packet_builder.cpp
-    lib/sio_packet_types.cpp
+    lib/sio_packet.cpp
     lib/sio_ack_manager.cpp
     
     # Source 目录 - utils
@@ -284,7 +284,7 @@ source_group("Test" FILES
 add_executable(test_sio_packet
     lib/sio_packet_impl.cc
     lib/sio_packet_builder.cpp
-    lib/sio_packet_types.cpp
+    lib/sio_packet.cpp
     lib/sio_ack_manager.cpp
     lib/test/test_sio_packet.cpp
     lib/test/main.cpp
@@ -294,7 +294,7 @@ add_executable(test_sio_packet
 add_executable(test_sio_binary_packet
     lib/sio_packet_impl.cc
     lib/sio_packet_builder.cpp
-    lib/sio_packet_types.cpp
+    lib/sio_packet.cpp
     lib/sio_ack_manager.cpp
     lib/test/test_sio_binary_packet.cpp
 )
@@ -387,5 +387,44 @@ set_target_properties(test_sio_packet PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
     OUTPUT_NAME "test_sio_packet"
+    LINKER_LANGUAGE CXX
+)
+
+# 添加全量协议测试
+add_executable(test_protocol_full
+    lib/sio_packet_impl.cc
+    lib/sio_packet_builder.cpp
+    lib/sio_packet.cpp
+    lib/sio_ack_manager.cpp
+    lib/test/test_protocol_full.cpp
+)
+
+# 为全量协议测试设置include目录
+target_include_directories(test_protocol_full
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/Category
+    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_BINARY_DIR}
+)
+
+# 为全量协议测试设置链接库
+target_link_libraries(test_protocol_full
+    PRIVATE
+    libwebrtc
+    pthread
+)
+
+# 为全量协议测试设置属性
+set_target_properties(test_protocol_full PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+    OUTPUT_NAME "test_protocol_full"
     LINKER_LANGUAGE CXX
 )

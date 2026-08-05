@@ -758,7 +758,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
         }
     }
     
-    std::string namespace_s = "/"; // 默认命名空间
+    std::string namespace_s = self.nsp.UTF8String; // 使用配置的命名空间
     
     if (ack > 0) {
         // 如果需要ACK，使用send_event_with_ack方法
@@ -867,7 +867,7 @@ Json::Value convertOCObjectToJsonValue(id obj) {
             data_array.push_back(convertOCObjectToJsonValue(item));
         }
     }
-    std::string namespace_s = "/"; // 默认命名空间
+    std::string namespace_s = self.nsp.UTF8String; // 使用配置的命名空间
     
     // 使用send_event_with_ack方法发送带ACK的事件
     pack_sender->send_event_with_ack(event.UTF8String, data_array, 

@@ -63,6 +63,7 @@ bool SIOHeader::build_sio_string(
     }else{
         build_v3_sio_str(binary_count, ss);
     }
+    return true;
 }
 
 // 生成调试信息字符串
@@ -392,7 +393,7 @@ bool SIOHeader::build_v2_sio_str(const int binary_count,std::stringstream& ss) {
     // V2二进制计数在JSON中处理，不在头部
     
    
-    RTC_LOG(LS_INFO) << "Encoded V2 packet content: " << ss;
+    RTC_LOG(LS_INFO) << "Encoded V2 packet content: " << ss.str();
     return true;
 }
 
@@ -529,7 +530,17 @@ std::string SIOBody::build(const SIOHeader& header,bool isEvent){
 
 // 生成调试信息字符串
 std::string SIOBody::to_string() const{
-    
+    std::ostringstream oss;
+    oss << "SIOBody {" << std::endl;
+    oss << "  version: " << static_cast<int>(version_) << std::endl;
+    oss << "  event_name: " << event_name_ << std::endl;
+    oss << "  ack_id: " << ack_id_ << std::endl;
+    oss << "  args_count: " << args_.size() << std::endl;
+    oss << "  has_binary: " << (has_binary_ ? "true" : "false") << std::endl;
+    oss << "  attachments_count: " << attachments.size() << std::endl;
+    oss << "  json_data: " << json_data_ << std::endl;
+    oss << "}";
+    return oss.str();
 }
 
 
@@ -615,6 +626,7 @@ bool SIOBody::parse_v2(const std::string& packet, const SIOHeader& header,const 
         }
     }
     RTC_LOG(LS_INFO) << "Decoded V2 packet completed, event: " << event_name_ << ", args: " << args_.size();
+    return true;
 }
 
 // 解析V3协议包体
@@ -696,11 +708,13 @@ bool SIOBody::parse_v3(const std::string& packet, const SIOHeader& header, const
     }
     
     RTC_LOG(LS_INFO) << "Decoded V3 packet completed, event: " << event_name_ << ", args: " << args_.size();
+    return true;
 }
 
 // 解析V4协议包体
 bool SIOBody::parse_v4(const std::string& packet, const SIOHeader& header, const std::vector<SmartBuffer>& binaries){
-    
+    RTC_LOG(LS_INFO) << "Parsing V4 packet body (using V3 parser)";
+    return parse_v3(packet, header, binaries);
 }
 
 // 构建V2协议包体
@@ -860,12 +874,94 @@ std::string SIOBody::build_v2(const PacketType type) {
 
 // 构建V3协议包体
 std::string SIOBody::build_v3(const PacketType type) {
-    return "";
+    RTC_LOG(LS_INFO) << "Building V3 packet body, type: " << static_cast<int>(type);
+    
+    Json::Value json_data;
+    std::vector<SmartBuffer> binary_parts;
+    std::map<std::string, int> binary_map;
+    
+    if (type == PacketType::ACK || type == PacketType::BINARY_ACK) {
+        Json::Value args_array(Json::arrayValue);
+        for (const auto& arg : args_) {
+            Json::Value processed_arg;
+            extract_binary_data(arg, processed_arg, binary_parts, binary_map);
+            args_array.append(processed_arg);
+        }
+        json_data = args_array;
+        RTC_LOG(LS_INFO) << "Built V3 ACK JSON data with " << args_array.size() << " args";
+    } else {
+        Json::Value event_array(Json::arrayValue);
+        event_array.append(Json::Value(event_name_));
+        
+        for (const auto& arg : args_) {
+            Json::Value processed_arg;
+            extract_binary_data(arg, processed_arg, binary_parts, binary_map);
+            event_array.append(processed_arg);
+        }
+        json_data = event_array;
+        RTC_LOG(LS_INFO) << "Built V3 EVENT JSON data with event: " << event_name_ << ", args: " << event_array.size() - 1;
+    }
+    
+    attachments = binary_parts;
+    has_binary_ = !binary_parts.empty();
+    int binary_count = static_cast<int>(binary_parts.size());
+    
+    RTC_LOG(LS_INFO) << "Extracted V3 binary parts: " << binary_parts.size() << ", is_binary: " << has_binary_;
+    
+    std::stringstream ss;
+    
+    int packet_type = static_cast<int>(type);
+    if (has_binary_) {
+        if (type == PacketType::EVENT) {
+            packet_type = static_cast<int>(PacketType::BINARY_EVENT);
+        } else if (type == PacketType::ACK) {
+            packet_type = static_cast<int>(PacketType::BINARY_ACK);
+        }
+        RTC_LOG(LS_INFO) << "Converted to binary packet type: " << packet_type;
+    }
+    ss << packet_type;
+    
+    if (has_binary_ && binary_count > 0) {
+        ss << binary_count << "-";
+        RTC_LOG(LS_INFO) << "Added binary count: " << binary_count;
+    }
+    
+    bool has_namespace = (!header_->namespace_str().empty() && header_->namespace_str() != "/");
+    if (has_namespace) {
+        if (header_->namespace_str()[0] != '/') {
+            ss << "/" << header_->namespace_str();
+        } else {
+            ss << header_->namespace_str();
+        }
+        RTC_LOG(LS_INFO) << "Added namespace: " << header_->namespace_str();
+    }
+    
+    if (header_->ack_id() >= 0) {
+        if (has_namespace) {
+            ss << ",";
+        }
+        ss << header_->ack_id();
+        RTC_LOG(LS_INFO) << "Added ACK ID: " << header_->ack_id();
+    }
+    
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = "";
+    writer["emitUTF8"] = true;
+    writer["precision"] = 17;
+    writer["dropNullPlaceholders"] = false;
+    writer["enableYAMLCompatibility"] = false;
+    
+    std::string json_str = Json::writeString(writer, json_data);
+    ss << json_str;
+    
+    RTC_LOG(LS_INFO) << "Built V3 packet: text length=" << ss.str().length() << ", binary parts=" << binary_parts.size();
+    return ss.str();
 }
 
 // 构建V4协议包体
 std::string SIOBody::build_v4(const PacketType type) {
-    return "";
+    RTC_LOG(LS_INFO) << "Building V4 packet body (using V3 format), type: " << static_cast<int>(type);
+    return build_v3(type);
 }
 
 
@@ -1055,6 +1151,87 @@ void SIOBody::extract_binary_data(const Json::Value& data,
 // 检查是否包含二进制数据
 bool SIOBody::has_binary() const {
     return !attachments.empty();
+}
+
+// ============================================================================
+// SIOPacket 类实现
+// ============================================================================
+
+SIOPacket::SIOPacket(SocketIOVersion versionIn) 
+    : version_(versionIn), header_(versionIn) {
+    RTC_LOG(LS_INFO) << "SIOPacket created with version: " << static_cast<int>(versionIn);
+}
+
+bool SIOPacket::parse(const std::string& packet, const std::vector<SmartBuffer>& binaries) {
+    RTC_LOG(LS_INFO) << "SIOPacket::parse, packet length: " << packet.length() 
+                     << ", binaries: " << binaries.size();
+    
+    if (!header_.parse(packet)) {
+        RTC_LOG(LS_ERROR) << "Failed to parse packet header";
+        return false;
+    }
+    
+    SIOBody body(version_);
+    if (!body.parse(packet, header_, binaries)) {
+        RTC_LOG(LS_ERROR) << "Failed to parse packet body";
+        return false;
+    }
+    
+    event_name_ = body.event_name().empty() ? "" : body.event_name();
+    args_ = body.args();
+    binary_parts_ = binaries;
+    
+    RTC_LOG(LS_INFO) << "SIOPacket::parse succeeded, event: " << event_name_ 
+                     << ", args: " << args_.size() 
+                     << ", binary_parts: " << binary_parts_.size();
+    return true;
+}
+
+std::string SIOPacket::build() {
+    RTC_LOG(LS_INFO) << "SIOPacket::build, version: " << static_cast<int>(version_)
+                     << ", event: " << event_name_;
+    
+    SIOBody body(version_);
+    body.set_event_name(event_name_);
+    body.set_args(args_);
+    body.set_ack_id(header_.ack_id());
+    
+    bool isEvent = (header_.type() == PacketType::EVENT || 
+                    header_.type() == PacketType::BINARY_EVENT);
+    
+    std::string result = body.build(header_, isEvent);
+    binary_parts_ = body.attachments;
+    
+    if (body.has_binary()) {
+        header_.set_binary_count(static_cast<int>(binary_parts_.size()));
+        if (isEvent) {
+            header_.set_type(PacketType::BINARY_EVENT);
+        } else {
+            header_.set_type(PacketType::BINARY_ACK);
+        }
+    }
+    
+    RTC_LOG(LS_INFO) << "SIOPacket::build succeeded, result length: " << result.length()
+                     << ", binary_parts: " << binary_parts_.size();
+    return result;
+}
+
+bool SIOPacket::has_binary() const {
+    return !binary_parts_.empty();
+}
+
+std::string SIOPacket::to_string() const {
+    std::ostringstream oss;
+    oss << "SIOPacket {" << std::endl;
+    oss << "  version: " << static_cast<int>(version_) << std::endl;
+    oss << "  type: " << static_cast<int>(header_.type()) << std::endl;
+    oss << "  namespace: " << header_.namespace_str() << std::endl;
+    oss << "  ack_id: " << header_.ack_id() << std::endl;
+    oss << "  event_name: " << event_name_ << std::endl;
+    oss << "  args_count: " << args_.size() << std::endl;
+    oss << "  binary_parts: " << binary_parts_.size() << std::endl;
+    oss << "}";
+    return oss.str();
 }
 
 }//namespace sio
