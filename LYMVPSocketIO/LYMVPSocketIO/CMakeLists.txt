@@ -79,7 +79,7 @@ if(PLATFORM_ANDROID)
     set(CMAKE_MODULE_LINKER_FLAGS "" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
     
-    set(ANDROID_COMPAT_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/android/compat/android_compat.h")
+    set(ANDROID_COMPAT_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/platform/android/compat/android_compat.h")
     add_compile_options(-include "${ANDROID_COMPAT_HEADER}")
     add_compile_definitions(
         JSONCPP_NO_LOCALE_SUPPORT=1
@@ -204,7 +204,7 @@ endif()
 
 # ─── websocket (C++ WebSocket 实现) ───────────────────────────────
 if(USE_CPP_WEBSOCKET)
-    set(WEBSOCKET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket")
+    set(WEBSOCKET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/core/websocket")
     set(WS_USE_OPENSSL ON CACHE BOOL "" FORCE)
     set(WS_USE_ZLIB ON CACHE BOOL "" FORCE)
     set(WS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -225,7 +225,7 @@ if(USE_CPP_WEBSOCKET)
     add_subdirectory(${WEBSOCKET_DIR} websocket_build)
 
     # ─── engineio (Engine.IO 层，支持 polling + websocket 传输) ──────
-    set(ENGINEIO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/engineio")
+    set(ENGINEIO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/core/engineio")
     add_subdirectory(${ENGINEIO_DIR} engineio_build)
     message(STATUS "Engine.IO layer: enabled (polling + websocket)")
 endif()
@@ -247,40 +247,40 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/LYMVPSocketIO)
 # 收集所有头文件
 set(ALL_HEADER_FILES
     # 根目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/LYMVPSocketIO.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/LYMVPSocketIO.h
     
     # Source 目录 - 根目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOClient.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngine.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngine+Private.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketEngineProtocol.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOConfig.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOProtocolVersion.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketLogger.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPStringReader.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPProbe.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOClient.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketEngine.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketEngine+Private.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketEngineProtocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOConfig.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOProtocolVersion.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketLogger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPStringReader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPProbe.h
     
     # Source 目录 - utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/NSString+RTCVPSocketIO.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/NSString+Random.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCDefaultSocketLogger.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPSocketIOClientProtocol.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPAFNetworkReachabilityManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPTimer.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPTimeoutManager.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPWebSocketProtocolFixer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/NSString+RTCVPSocketIO.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/NSString+Random.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/RTCDefaultSocketLogger.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/RTCVPSocketIOClientProtocol.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/RTCVPAFNetworkReachabilityManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/RTCVPTimer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/RTCVPTimeoutManager.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils/RTCVPWebSocketProtocolFixer.h
     
     # jetfire 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRSecurity.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRWebSocket.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/jetfire/RTCJFRSecurity.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/jetfire/RTCJFRWebSocket.h
     
     # lib 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_types.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_impl.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_builder.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_jsoncpp_binary_helper.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_packet_printer.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_client.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio/sio_packet_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio/sio_packet_impl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio/sio_packet_builder.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio/sio_jsoncpp_binary_helper.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio/sio_packet_printer.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio/sio_client.h
 )
 
 # 复制头文件到框架目录
@@ -305,36 +305,36 @@ endforeach()
 # 添加源文件
 set(SOURCE_FILES
     # Source 目录 - 根目录
-    src/RTCVPSocketIOClient.mm
-    src/RTCVPSocketEngine.m
-    src/RTCVPSocketIOConfig.m
-    src/RTCVPSocketLogger.m
-    src/RTCVPStringReader.m
-    src/RTCVPProbe.m
-    lib/sio_packet_impl.cc
-    lib/sio_packet_builder.cpp
-    lib/sio_packet.cpp
-    lib/sio_ack_manager.cpp
-    lib/sio_client.cpp
+    platform/apple/Sources/RTCVPSocketIOClient.mm
+    platform/apple/Sources/RTCVPSocketEngine.m
+    platform/apple/Sources/RTCVPSocketIOConfig.m
+    platform/apple/Sources/RTCVPSocketLogger.m
+    platform/apple/Sources/RTCVPStringReader.m
+    platform/apple/Sources/RTCVPProbe.m
+    core/socketio/sio_packet_impl.cc
+    core/socketio/sio_packet_builder.cpp
+    core/socketio/sio_packet.cpp
+    core/socketio/sio_ack_manager.cpp
+    core/socketio/sio_client.cpp
     
     # Source 目录 - utils
-    src/utils/NSString+RTCVPSocketIO.m
-    src/utils/NSString+Random.m
-    src/utils/RTCDefaultSocketLogger.m
-    src/utils/RTCVPTimer.m
-    src/utils/RTCVPTimeoutManager.m
-    src/utils/RTCVPWebSocketProtocolFixer.m
-    src/utils/RTCVPAFNetworkReachabilityManager.m
+    platform/apple/Sources/Utils/NSString+RTCVPSocketIO.m
+    platform/apple/Sources/Utils/NSString+Random.m
+    platform/apple/Sources/Utils/RTCDefaultSocketLogger.m
+    platform/apple/Sources/Utils/RTCVPTimer.m
+    platform/apple/Sources/Utils/RTCVPTimeoutManager.m
+    platform/apple/Sources/Utils/RTCVPWebSocketProtocolFixer.m
+    platform/apple/Sources/Utils/RTCVPAFNetworkReachabilityManager.m
     
     # jetfire 目录
-    jetfire/RTCJFRSecurity.m
-    jetfire/RTCJFRWebSocket.m
+    platform/apple/jetfire/RTCJFRSecurity.m
+    platform/apple/jetfire/RTCJFRWebSocket.m
 )
 
 # C++ WebSocket 模式下添加的源文件
 if(USE_CPP_WEBSOCKET)
     list(APPEND SOURCE_FILES
-        lib/websocket/RTCCPPCWebSocket.mm
+        platform/apple/WebSocket/RTCCPPCWebSocket.mm
     )
 endif()
 
@@ -351,14 +351,14 @@ set_target_properties(libVPSocketIO PROPERTIES
     FRAMEWORK TRUE
     FRAMEWORK_VERSION A
     MACOSX_FRAMEWORK_IDENTIFIER com.luoyongmeng.LYMVPSocketIO
-    MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist"
+    MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Info.plist"
     PUBLIC_HEADER "
-        ${CMAKE_CURRENT_SOURCE_DIR}/LYMVPSocketIO.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOClientProtocol.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOClient.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOConfig.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketIOProtocolVersion.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/RTCVPSocketLogger.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/LYMVPSocketIO.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOClientProtocol.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOClient.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOConfig.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketIOProtocolVersion.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/RTCVPSocketLogger.h
     "
     OUTPUT_NAME "LYMVPSocketIO"
 )
@@ -373,11 +373,12 @@ target_include_directories(libVPSocketIO
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/WebSocket
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
 )
 
 # C++ WebSocket 模式下额外添加的 include
@@ -442,12 +443,12 @@ endif() # PLATFORM_APPLE
 if(PLATFORM_ANDROID)
 
 add_library(lymvpsocketio SHARED
-    android/jni/socketio_jni.cpp
-    lib/sio_packet_impl.cc
-    lib/sio_packet_builder.cpp
-    lib/sio_packet.cpp
-    lib/sio_ack_manager.cpp
-    lib/sio_client.cpp
+    platform/android/jni/socketio_jni.cpp
+    core/socketio/sio_packet_impl.cc
+    core/socketio/sio_packet_builder.cpp
+    core/socketio/sio_packet.cpp
+    core/socketio/sio_ack_manager.cpp
+    core/socketio/sio_client.cpp
 )
 
 target_include_directories(lymvpsocketio
@@ -457,8 +458,8 @@ target_include_directories(lymvpsocketio
     ${LIBEVENT_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/engineio
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/engineio
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
 )
 
 target_compile_definitions(lymvpsocketio
@@ -483,12 +484,12 @@ if(NOT PLATFORM_ANDROID AND NOT IOS)
 
 # 添加测试目标 - 全量协议单元测试
 add_executable(test_protocol_full
-    lib/sio_packet_impl.cc
-    lib/sio_packet_builder.cpp
-    lib/sio_packet.cpp
-    lib/sio_ack_manager.cpp
-    lib/sio_client.cpp
-    lib/test/test_protocol_full.cpp
+    core/socketio/sio_packet_impl.cc
+    core/socketio/sio_packet_builder.cpp
+    core/socketio/sio_packet.cpp
+    core/socketio/sio_ack_manager.cpp
+    core/socketio/sio_client.cpp
+    tests/integration/test_protocol_full.cpp
 )
 
 # 为全量协议测试设置include目录
@@ -497,11 +498,11 @@ target_include_directories(test_protocol_full
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
     ${CMAKE_BINARY_DIR}
 )
 
@@ -524,12 +525,12 @@ set_target_properties(test_protocol_full PROPERTIES
 
 # Socket.IO 全量测试 + 边界测试 + 报告生成
 add_executable(test_socketio_full
-    lib/sio_packet_impl.cc
-    lib/sio_packet_builder.cpp
-    lib/sio_packet.cpp
-    lib/sio_ack_manager.cpp
-    lib/sio_client.cpp
-    lib/test/test_socketio_full.cpp
+    core/socketio/sio_packet_impl.cc
+    core/socketio/sio_packet_builder.cpp
+    core/socketio/sio_packet.cpp
+    core/socketio/sio_ack_manager.cpp
+    core/socketio/sio_client.cpp
+    tests/integration/test_socketio_full.cpp
 )
 
 target_include_directories(test_socketio_full
@@ -537,8 +538,8 @@ target_include_directories(test_socketio_full
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -569,12 +570,12 @@ set_target_properties(test_socketio_full PROPERTIES
 # C++ 集成测试（需要真实服务端，WebSocket + SioClient 桥接）
 if(USE_CPP_WEBSOCKET)
     add_executable(test_cpp_integration
-        lib/sio_packet_impl.cc
-        lib/sio_packet_builder.cpp
-        lib/sio_packet.cpp
-        lib/sio_ack_manager.cpp
-        lib/sio_client.cpp
-        lib/test/test_cpp_integration.cpp
+        core/socketio/sio_packet_impl.cc
+        core/socketio/sio_packet_builder.cpp
+        core/socketio/sio_packet.cpp
+        core/socketio/sio_ack_manager.cpp
+        core/socketio/sio_client.cpp
+        tests/integration/test_cpp_integration.cpp
     )
 
     target_include_directories(test_cpp_integration
@@ -582,8 +583,8 @@ if(USE_CPP_WEBSOCKET)
         ${LIBWEBRTC_INCLUDE_DIRS}
         ${JSONCPP_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
@@ -615,12 +616,12 @@ if(USE_CPP_WEBSOCKET)
     
     # ─── Polling 集成测试（HTTP 轮询 + SioClient） ────────────────────
     add_executable(test_polling_integration
-        lib/test/test_polling_integration.cpp
-        lib/sio_packet_impl.cc
-        lib/sio_packet_builder.cpp
-        lib/sio_packet.cpp
-        lib/sio_ack_manager.cpp
-        lib/sio_client.cpp
+        tests/integration/test_polling_integration.cpp
+        core/socketio/sio_packet_impl.cc
+        core/socketio/sio_packet_builder.cpp
+        core/socketio/sio_packet.cpp
+        core/socketio/sio_ack_manager.cpp
+        core/socketio/sio_client.cpp
     )
     
     target_include_directories(test_polling_integration
@@ -629,9 +630,9 @@ if(USE_CPP_WEBSOCKET)
         ${JSONCPP_INCLUDE_DIRS}
         ${LIBEVENT_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/engineio
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/engineio
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
     
@@ -670,18 +671,18 @@ endif()
 
 # 添加原生集成测试（Mac Objective-C）
 add_executable(test_native_integration
-    lib/test/test_native_integration.m
+    tests/integration/test_native_integration.m
 )
 
 target_include_directories(test_native_integration
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
     ${CMAKE_BINARY_DIR}
 )
 
@@ -715,7 +716,7 @@ target_include_directories(socketio_demo
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
@@ -750,7 +751,7 @@ set_target_properties(socketio_demo PROPERTIES
 # WebSocket + 协议集成测试 (仅 C++ WebSocket 模式)
 if(USE_CPP_WEBSOCKET)
     add_executable(test_websocket_unit
-        lib/websocket/test/test_websocket.cpp
+        core/websocket/test/test_websocket.cpp
     )
 
     target_include_directories(test_websocket_unit
@@ -759,7 +760,7 @@ if(USE_CPP_WEBSOCKET)
         ${JSONCPP_INCLUDE_DIRS}
         ${LIBEVENT_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
         ${CMAKE_BINARY_DIR}
     )
 
@@ -782,11 +783,11 @@ if(USE_CPP_WEBSOCKET)
     )
 
     add_executable(test_websocket_integration
-        lib/sio_packet_impl.cc
-        lib/sio_packet_builder.cpp
-        lib/sio_packet.cpp
-        lib/sio_ack_manager.cpp
-        lib/test/test_websocket_integration.cpp
+        core/socketio/sio_packet_impl.cc
+        core/socketio/sio_packet_builder.cpp
+        core/socketio/sio_packet.cpp
+        core/socketio/sio_ack_manager.cpp
+        tests/integration/test_websocket_integration.cpp
     )
 
     target_include_directories(test_websocket_integration
@@ -795,12 +796,12 @@ if(USE_CPP_WEBSOCKET)
         ${JSONCPP_INCLUDE_DIRS}
         ${LIBEVENT_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
         ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
         ${CMAKE_BINARY_DIR}
     )
 

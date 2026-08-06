@@ -5,7 +5,7 @@ VPSocketIO.xcodeproj/project.xcworkspace/xcuserdata/
 frameworks/
 testServer/node_modules/
 VPSocketIO.xcodeproj/xcuserdata/
-build/
+build*/
 build.log
 testServer/logs/
 third_part/libwebrtc/build/
@@ -22,4 +22,4 @@ LYMVPSocketIO/LYMVPSocketIO/build-*
 LYMVPSocketIO/LYMVPSocketIO/android/toolchains/
 LYMVPSocketIO/LYMVPSocketIO/build_android_test/
 LYMVPSocketIO/LYMVPSocketIO/build_*
-LYMVPSocketIO/LYMVPSocketIO/android/output/libs/armeabi-v7a/liblymvpsocketio.so
+LYMVPSocketIO/LYMVPSocketIO/android/output/libs/
