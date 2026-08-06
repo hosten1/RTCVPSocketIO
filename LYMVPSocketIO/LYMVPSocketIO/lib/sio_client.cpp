@@ -106,6 +106,15 @@ void SioClient::emit(const std::string& event_name,
     sender_->emit(event_name, args, std::move(ack_callback), namespace_s);
 }
 
+void SioClient::emit(const std::string& event_name,
+                     const std::vector<Json::Value>& args,
+                     AckCallback ack_callback,
+                     AckTimeoutCallback timeout_callback,
+                     std::chrono::milliseconds timeout,
+                     const std::string& namespace_s) {
+    sender_->emit(event_name, args, std::move(ack_callback), std::move(timeout_callback), timeout, namespace_s);
+}
+
 bool SioClient::process_text_packet(const std::string& text_packet) {
     return receiver_->process_text_packet(text_packet);
 }

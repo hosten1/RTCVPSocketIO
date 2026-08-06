@@ -533,6 +533,26 @@ void PacketSender::emit(const std::string& event_name,
     }
 }
 
+void PacketSender::emit(const std::string& event_name,
+                       const std::vector<Json::Value>& args,
+                       AckCallback ack_callback,
+                       AckTimeoutCallback timeout_callback,
+                       std::chrono::milliseconds timeout,
+                       const std::string& namespace_s) {
+    TextSendCallback cb;
+    {
+        webrtc::MutexLock lock(&send_callback_mutex_);
+        cb = send_callback_;
+    }
+    if (cb) {
+        send_event_with_ack(event_name, args, cb,
+                            ack_callback,
+                            std::move(timeout_callback),
+                            timeout,
+                            namespace_s);
+    }
+}
+
 // ============================================================================
 // PacketReceiver 类实现
 // ============================================================================

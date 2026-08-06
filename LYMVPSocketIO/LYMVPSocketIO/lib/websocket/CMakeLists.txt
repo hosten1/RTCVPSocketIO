@@ -111,36 +111,40 @@ endif()
 
 # ─── zlib (optional, for permessage-deflate) ──────────────────────
 if(WS_USE_ZLIB)
-    find_package(ZLIB QUIET)
-    if(ZLIB_FOUND)
-        set(ZLIB_LIBRARIES ZLIB::ZLIB)
-        message(STATUS "WebSocket: zlib found (system)")
+    if(ZLIB_FOUND AND ZLIB_LIBRARIES)
+        message(STATUS "WebSocket: using zlib from parent project")
     else()
-        get_filename_component(WS_THIRD_PARTY_DIR 
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party" ABSOLUTE)
-        
-        set(ZLIB_SRC_DIR "${WS_THIRD_PARTY_DIR}/zlib")
-        
-        if(EXISTS "${ZLIB_SRC_DIR}/CMakeLists.txt")
-            message(STATUS "WebSocket: building zlib from source (${ZLIB_SRC_DIR})")
-            
-            set(ZLIB_BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
-            set(ZLIB_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-            
-            add_subdirectory(${ZLIB_SRC_DIR} zlib_build EXCLUDE_FROM_ALL)
-            
-            if(TARGET zlibstatic)
-                set(ZLIB_LIBRARIES zlibstatic)
-            elseif(TARGET zlib)
-                set(ZLIB_LIBRARIES zlib)
-            endif()
-            
-            set(ZLIB_INCLUDE_DIRS "${ZLIB_SRC_DIR}" "${CMAKE_BINARY_DIR}/zlib_build")
-            set(ZLIB_FOUND TRUE)
-            message(STATUS "WebSocket: zlib built from source")
+        find_package(ZLIB QUIET)
+        if(ZLIB_FOUND)
+            set(ZLIB_LIBRARIES ZLIB::ZLIB)
+            message(STATUS "WebSocket: zlib found (system)")
         else()
-            message(WARNING "WebSocket: zlib not found in system or third_party, compression disabled")
-            set(WS_USE_ZLIB OFF)
+            get_filename_component(WS_THIRD_PARTY_DIR 
+                "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party" ABSOLUTE)
+            
+            set(ZLIB_SRC_DIR "${WS_THIRD_PARTY_DIR}/zlib")
+            
+            if(EXISTS "${ZLIB_SRC_DIR}/CMakeLists.txt")
+                message(STATUS "WebSocket: building zlib from source (${ZLIB_SRC_DIR})")
+                
+                set(ZLIB_BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+                set(ZLIB_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+                
+                add_subdirectory(${ZLIB_SRC_DIR} zlib_build EXCLUDE_FROM_ALL)
+                
+                if(TARGET zlibstatic)
+                    set(ZLIB_LIBRARIES zlibstatic)
+                elseif(TARGET zlib)
+                    set(ZLIB_LIBRARIES zlib)
+                endif()
+                
+                set(ZLIB_INCLUDE_DIRS "${ZLIB_SRC_DIR}" "${CMAKE_BINARY_DIR}/zlib_build")
+                set(ZLIB_FOUND TRUE)
+                message(STATUS "WebSocket: zlib built from source")
+            else()
+                message(WARNING "WebSocket: zlib not found in system or third_party, compression disabled")
+                set(WS_USE_ZLIB OFF)
+            endif()
         endif()
     endif()
 endif()

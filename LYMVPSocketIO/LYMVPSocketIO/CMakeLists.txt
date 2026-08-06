@@ -1,50 +1,60 @@
 cmake_minimum_required(VERSION 3.16)
 
-# 设置项目名称
-project(RTCVPSocketIO C CXX OBJC OBJCXX)
-
-# 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# 启用 Objective-C 和 Objective-C++ 支持
-enable_language(OBJC)
-enable_language(OBJCXX)
-
-# 设置 Objective-C 编译选项
-set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
-
-# 设置 Objective-C++ 编译选项
-set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
-
-# 设置 iOS/macOS 相关编译选项
-set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum iOS/macOS version" FORCE)
-
-# 根据操作系统设置宏定义
-if(APPLE)
+# ==================== 平台检测 ====================
+if(ANDROID OR CMAKE_SYSTEM_NAME STREQUAL "Android" OR DEFINED ENV{ANDROID_NDK_HOME})
+    set(PLATFORM_ANDROID TRUE)
+    add_compile_definitions(
+        WEBRTC_POSIX
+        WEBRTC_ANDROID
+        WEBRTC_LINUX
+        USE_CPP_WEBSOCKET=1
+    )
+    message(STATUS "Platform: Android")
+    project(RTCVPSocketIO C CXX)
+elseif(APPLE)
+    set(PLATFORM_APPLE TRUE)
+    project(RTCVPSocketIO C CXX OBJC OBJCXX)
+    enable_language(OBJC)
+    enable_language(OBJCXX)
+    set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
+    set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum iOS/macOS version" FORCE)
     if(IOS)
-        add_compile_definitions(
-            WEBRTC_POSIX
-            WEBRTC_IOS
-        )
+        add_compile_definitions(WEBRTC_POSIX WEBRTC_IOS)
     else()
-        add_compile_definitions(
-            WEBRTC_POSIX
-            WEBRTC_MAC
-        )
+        add_compile_definitions(WEBRTC_POSIX WEBRTC_MAC)
     endif()
+    message(STATUS "Platform: Apple")
+else()
+    set(PLATFORM_OTHER TRUE)
+    add_compile_definitions(
+        WEBRTC_POSIX
+        USE_CPP_WEBSOCKET=1
+    )
+    project(RTCVPSocketIO C CXX)
+    message(STATUS "Platform: Other (desktop Linux/...)")
 endif()
 
 # ==================== 三方依赖 ====================
 set(THIRD_PARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 
 # ─── WebSocket 实现选择 ──────────────────────────────────────────
-option(USE_CPP_WEBSOCKET "Use C++ WebSocket implementation (libevent-based) instead of ObjC jetfire" OFF)
-if(USE_CPP_WEBSOCKET)
+if(PLATFORM_ANDROID)
+    set(USE_CPP_WEBSOCKET ON CACHE BOOL "" FORCE)
     add_compile_definitions(USE_CPP_WEBSOCKET=1)
-    message(STATUS "WebSocket implementation: C++ (libevent-based)")
+    message(STATUS "WebSocket implementation: C++ (libevent-based) - forced on Android")
 else()
-    message(STATUS "WebSocket implementation: ObjC (jetfire)")
+    option(USE_CPP_WEBSOCKET "Use C++ WebSocket implementation (libevent-based) instead of ObjC jetfire" OFF)
+    if(USE_CPP_WEBSOCKET)
+        add_compile_definitions(USE_CPP_WEBSOCKET=1)
+        message(STATUS "WebSocket implementation: C++ (libevent-based)")
+    else()
+        message(STATUS "WebSocket implementation: ObjC (jetfire)")
+    endif()
 endif()
 
 # ─── libwebrtc ────────────────────────────────────────────────────
@@ -52,7 +62,7 @@ set(LIBWEBRTC_DIR "${THIRD_PARTY_DIR}/libwebrtc")
 
 # 关闭 libwebrtc 不需要的模块，加快编译
 set(WEBRTC_BUILD_WEBRTC_THREAD ON CACHE BOOL "" FORCE)
-set(WEBRTC_BUILD_WEBRTC_STUN ON CACHE BOOL "" FORCE)
+set(WEBRTC_BUILD_WEBRTC_STUN OFF CACHE BOOL "" FORCE)
 set(WEBRTC_BUILD_WEBRTC_AUDIO_TOOL OFF CACHE BOOL "" FORCE)
 set(WEBRTC_BUILD_RED OFF CACHE BOOL "" FORCE)
 set(WEBRTC_BUILD_FEC OFF CACHE BOOL "" FORCE)
@@ -60,6 +70,40 @@ set(WEBRTC_BUILD_VIDEO OFF CACHE BOOL "" FORCE)
 set(WEBRTC_BUILD_COMMON_VIDEO OFF CACHE BOOL "" FORCE)
 set(WEBRTC_BUILD_GCC OFF CACHE BOOL "" FORCE)
 set(WEBRTC_BUILD_WEBRTC_LOGGING ON CACHE BOOL "" FORCE)
+
+if(PLATFORM_ANDROID)
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+    set(CMAKE_SHARED_LINKER_FLAGS "" CACHE STRING "" FORCE)
+    set(CMAKE_MODULE_LINKER_FLAGS "" CACHE STRING "" FORCE)
+    set(CMAKE_EXE_LINKER_FLAGS "" CACHE STRING "" FORCE)
+    
+    set(ANDROID_COMPAT_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/android/compat/android_compat.h")
+    add_compile_options(-include "${ANDROID_COMPAT_HEADER}")
+    add_compile_definitions(
+        JSONCPP_NO_LOCALE_SUPPORT=1
+        __STDC_FORMAT_MACROS=1
+        __STDC_LIMIT_MACROS=1
+        __STDC_CONSTANT_MACROS=1
+    )
+endif()
+
+# ─── OpenSSL (用于 libevent 的 TLS 支持) ──────────────────────────
+set(OPENSSL_CMAKE_DIR "${LIBWEBRTC_DIR}/deps/openssl-cmake/openssl-cmake-1.1.1w-20250419")
+if(EXISTS "${OPENSSL_CMAKE_DIR}/CMakeLists.txt")
+    set(OPENSSL_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)
+    set(WITH_APPS OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    add_subdirectory("${OPENSSL_CMAKE_DIR}" openssl_build)
+    if(TARGET ssl AND TARGET crypto)
+        add_library(OpenSSL::SSL ALIAS ssl)
+        add_library(OpenSSL::Crypto ALIAS crypto)
+        message(STATUS "OpenSSL: building from source (${OPENSSL_CMAKE_DIR})")
+    endif()
+else()
+    message(WARNING "OpenSSL source not found, TLS support may be limited")
+endif()
 
 add_subdirectory(${LIBWEBRTC_DIR} libwebrtc_build)
 
@@ -118,6 +162,32 @@ if(USE_CPP_WEBSOCKET)
     endif()
 endif()
 
+# ─── zlib (permessage-deflate 压缩) ───────────────────────────────
+set(ZLIB_DIR "${THIRD_PARTY_DIR}/zlib")
+
+if(EXISTS "${ZLIB_DIR}/CMakeLists.txt")
+    message(STATUS "Found zlib source at ${ZLIB_DIR}")
+    
+    set(ZLIB_BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+    set(ZLIB_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
+    
+    add_subdirectory(${ZLIB_DIR} zlib_build)
+    
+    if(TARGET zlibstatic)
+        set(ZLIB_LIBRARIES zlibstatic)
+    elseif(TARGET zlib)
+        set(ZLIB_LIBRARIES zlib)
+    endif()
+    
+    set(ZLIB_INCLUDE_DIRS "${ZLIB_DIR}" "${CMAKE_BINARY_DIR}/zlib_build")
+    set(ZLIB_FOUND TRUE)
+    message(STATUS "zlib: building from source")
+else()
+    set(ZLIB_FOUND FALSE)
+    message(WARNING "zlib source not found at ${ZLIB_DIR}, compression will be disabled")
+endif()
+
 # ─── jsoncpp ──────────────────────────────────────────────────────
 set(JSONCPP_DIR "${THIRD_PARTY_DIR}/jsoncpp")
 
@@ -132,7 +202,7 @@ else()
     )
 endif()
 
-# ─── websocket (C++ WebSocket 实现，仅 USE_CPP_WEBSOCKET 时编译) ────
+# ─── websocket (C++ WebSocket 实现) ───────────────────────────────
 if(USE_CPP_WEBSOCKET)
     set(WEBSOCKET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket")
     set(WS_USE_OPENSSL ON CACHE BOOL "" FORCE)
@@ -142,20 +212,34 @@ if(USE_CPP_WEBSOCKET)
     set(LIBWEBRTC_INCLUDE_DIRS ${LIBWEBRTC_INCLUDE_DIRS} CACHE STRING "" FORCE)
     set(LIBWEBRTC_LIBRARIES libwebrtc CACHE STRING "" FORCE)
 
+    if(TARGET OpenSSL::SSL AND TARGET OpenSSL::Crypto)
+        get_target_property(OPENSSL_INCLUDE_DIR OpenSSL::SSL INTERFACE_INCLUDE_DIRECTORIES)
+        set(OPENSSL_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}" CACHE STRING "" FORCE)
+    endif()
+
+    if(ZLIB_FOUND)
+        set(ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS} CACHE STRING "" FORCE)
+        set(ZLIB_LIBRARIES ${ZLIB_LIBRARIES} CACHE STRING "" FORCE)
+    endif()
+
     add_subdirectory(${WEBSOCKET_DIR} websocket_build)
+
+    # ─── engineio (Engine.IO 层，支持 polling + websocket 传输) ──────
+    set(ENGINEIO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lib/engineio")
+    add_subdirectory(${ENGINEIO_DIR} engineio_build)
+    message(STATUS "Engine.IO layer: enabled (polling + websocket)")
 endif()
+
+# ============================================
+# Apple 平台：Objective-C framework
+# ============================================
+if(PLATFORM_APPLE)
 
 # 根据操作系统添加特定链接库
-if(APPLE)
-    if(NOT IOS)
-        # macOS 特有链接选项
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework Foundation")
-    endif()
+if(NOT IOS)
+    # macOS 特有链接选项
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework Foundation")
 endif()
-
-# ============================================
-# 关键修改1：创建框架头文件目录结构
-# ============================================
 
 # 创建框架头文件目录
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/LYMVPSocketIO)
@@ -186,10 +270,6 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPTimeoutManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/RTCVPWebSocketProtocolFixer.h
     
-    # Category 目录
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category/RTCVPSocketEngine+EnginePollable.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category/RTCVPSocketEngine+EngineWebsocket.h
-    
     # jetfire 目录
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRSecurity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire/RTCJFRWebSocket.h
@@ -203,11 +283,7 @@ set(ALL_HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lib/sio_client.h
 )
 
-# ============================================
-# 关键修改2：复制头文件到框架目录结构
-# ============================================
-
-# 自定义目标：复制头文件到框架结构
+# 复制头文件到框架目录
 add_custom_target(copy_framework_headers ALL
     COMMENT "Copying headers to framework structure"
 )
@@ -250,10 +326,6 @@ set(SOURCE_FILES
     src/utils/RTCVPWebSocketProtocolFixer.m
     src/utils/RTCVPAFNetworkReachabilityManager.m
     
-    # Category 目录
-    Category/RTCVPSocketEngine+EnginePollable.m
-    Category/RTCVPSocketEngine+EngineWebsocket.m
-    
     # jetfire 目录
     jetfire/RTCJFRSecurity.m
     jetfire/RTCJFRWebSocket.m
@@ -274,10 +346,6 @@ add_library(libVPSocketIO STATIC
 # 依赖头文件复制目标
 add_dependencies(libVPSocketIO copy_framework_headers)
 
-# ============================================
-# 关键修改3：设置正确的包含目录
-# ============================================
-
 # 设置为 framework 类型
 set_target_properties(libVPSocketIO PROPERTIES
     FRAMEWORK TRUE
@@ -295,24 +363,18 @@ set_target_properties(libVPSocketIO PROPERTIES
     OUTPUT_NAME "LYMVPSocketIO"
 )
 
-# ============================================
-# 关键修改4：设置包含目录 - 支持 <LYMVPSocketIO/...>
-# ============================================
-
-# 添加 include 目录 - 这是支持 <LYMVPSocketIO/...> 的关键
 target_include_directories(libVPSocketIO
     PUBLIC
     # 构建目录，这样 #include <LYMVPSocketIO/xxx.h> 就能工作
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
     
-    # 原始源文件目录（用于.cpp/.mm文件）
+    # 原始源文件目录
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
@@ -326,15 +388,9 @@ if(USE_CPP_WEBSOCKET)
     )
 endif()
 
-# ============================================
-# 关键修改5：修改头文件中的包含路径
-# ============================================
-
-# 如果不想修改现有头文件，可以在CMake中添加定义
-# 让头文件在CMake构建时使用双引号，在Xcode构建时使用角括号
 target_compile_definitions(libVPSocketIO
     PRIVATE
-    -DRTCVPSOCKETIO_CMAKE_BUILD=1  # 定义这个宏，让头文件知道是CMake构建
+    -DRTCVPSOCKETIO_CMAKE_BUILD=1
 )
 
 # 链接库
@@ -378,28 +434,52 @@ install(TARGETS libVPSocketIO
     PUBLIC_HEADER DESTINATION include
 )
 
-# ============================================
-# 可选：创建符号链接，而不是复制文件（更快）
-# ============================================
+endif() # PLATFORM_APPLE
 
-# 如果想用符号链接而不是复制，可以用下面的代码替代上面的复制部分
-# （注意：符号链接在某些平台可能不可用）
-# 注释掉符号链接创建，因为在某些环境下会遇到权限问题
-# if(UNIX)
-#     add_custom_target(create_framework_symlinks ALL
-#         # 先尝试删除已存在的路径（忽略错误）
-#         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/LYMVPSocketIO || true
-#         COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_BINARY_DIR}/LYMVPSocketIO || true
-#         # 然后创建目录和符号链接
-#         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}
-#         COMMAND ${CMAKE_COMMAND} -E create_symlink
-#             ${CMAKE_CURRENT_SOURCE_DIR}/src
-#             ${CMAKE_BINARY_DIR}/LYMVPSocketIO
-#         COMMENT "Creating symbolic links for framework headers"
-#     )
-#     
-#     add_dependencies(libVPSocketIO create_framework_symlinks)
-# endif()
+# ============================================
+# Android 平台：JNI 共享库（纯 C++）
+# ============================================
+if(PLATFORM_ANDROID)
+
+add_library(lymvpsocketio SHARED
+    android/jni/socketio_jni.cpp
+    lib/sio_packet_impl.cc
+    lib/sio_packet_builder.cpp
+    lib/sio_packet.cpp
+    lib/sio_ack_manager.cpp
+    lib/sio_client.cpp
+)
+
+target_include_directories(lymvpsocketio
+    PRIVATE
+    ${LIBWEBRTC_INCLUDE_DIRS}
+    ${JSONCPP_INCLUDE_DIRS}
+    ${LIBEVENT_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/engineio
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+)
+
+target_compile_definitions(lymvpsocketio
+    PRIVATE
+    JSONCPP_USING_SECURE_MEMORY=0
+)
+
+target_link_libraries(lymvpsocketio
+    engineio
+    websocket
+    libwebrtc
+    jsoncpp
+    event
+    event_extra
+    event_openssl
+    log
+)
+
+endif() # PLATFORM_ANDROID
+
+if(NOT PLATFORM_ANDROID AND NOT IOS)
 
 # 添加测试目标 - 全量协议单元测试
 add_executable(test_protocol_full
@@ -418,7 +498,6 @@ target_include_directories(test_protocol_full
     ${JSONCPP_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
@@ -533,6 +612,58 @@ if(USE_CPP_WEBSOCKET)
     )
     
     message(STATUS "C++ integration test: enabled (requires real server)")
+    
+    # ─── Polling 集成测试（HTTP 轮询 + SioClient） ────────────────────
+    add_executable(test_polling_integration
+        lib/test/test_polling_integration.cpp
+        lib/sio_packet_impl.cc
+        lib/sio_packet_builder.cpp
+        lib/sio_packet.cpp
+        lib/sio_ack_manager.cpp
+        lib/sio_client.cpp
+    )
+    
+    target_include_directories(test_polling_integration
+        PRIVATE
+        ${LIBWEBRTC_INCLUDE_DIRS}
+        ${JSONCPP_INCLUDE_DIRS}
+        ${LIBEVENT_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/engineio
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+    
+    target_compile_definitions(test_polling_integration
+        PRIVATE
+        WS_USE_WEBRTC
+        WS_USE_OPENSSL
+        JSONCPP_USING_SECURE_MEMORY=0
+    )
+    
+    target_link_libraries(test_polling_integration
+        PRIVATE
+        engineio
+        websocket
+        libwebrtc
+        jsoncpp
+        event
+        event_extra
+        event_openssl
+        pthread
+        dl
+    )
+    
+    set_target_properties(test_polling_integration PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        OUTPUT_NAME "test_polling_integration"
+        LINKER_LANGUAGE CXX
+    )
+    
+    message(STATUS "HTTP Polling integration test: enabled (requires real server)")
 else()
     message(STATUS "C++ integration test: disabled (USE_CPP_WEBSOCKET=OFF)")
 endif()
@@ -547,7 +678,6 @@ target_include_directories(test_native_integration
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
@@ -586,7 +716,6 @@ target_include_directories(socketio_demo
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/Category
     ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/lib
@@ -667,7 +796,6 @@ if(USE_CPP_WEBSOCKET)
         ${LIBEVENT_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
-        ${CMAKE_CURRENT_SOURCE_DIR}/Category
         ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
@@ -694,3 +822,5 @@ if(USE_CPP_WEBSOCKET)
         LINKER_LANGUAGE CXX
     )
 endif()
+
+endif() # NOT PLATFORM_ANDROID

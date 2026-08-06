@@ -18,7 +18,7 @@ namespace webrtc_impl {
 
 class RefCounter {
  public:
-  explicit RefCounter(int ref_count) : ref_count_(ref_count) {}
+  RefCounter(int ref_count) : ref_count_(ref_count) {}
   RefCounter() = delete;
 
   void IncRef() { rtc::AtomicOps::Increment(&ref_count_); }

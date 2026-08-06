@@ -145,6 +145,14 @@ public:
               AckCallback ack_callback,
               const std::string& namespace_s = "/");
     
+    // 发送事件（vector 版本，带 ACK 回调 + 超时回调）
+    void emit(const std::string& event_name,
+              const std::vector<Json::Value>& args,
+              AckCallback ack_callback,
+              AckTimeoutCallback timeout_callback,
+              std::chrono::milliseconds timeout,
+              const std::string& namespace_s = "/");
+    
     // 重置发送器
     void reset();
     

@@ -76,6 +76,13 @@ public:
               AckCallback ack_callback,
               const std::string& namespace_s = "/");
     
+    void emit(const std::string& event_name,
+              const std::vector<Json::Value>& args,
+              AckCallback ack_callback,
+              AckTimeoutCallback timeout_callback,
+              std::chrono::milliseconds timeout,
+              const std::string& namespace_s = "/");
+    
     bool process_text_packet(const std::string& text_packet);
     bool process_binary_data(const SmartBuffer& binary_data);
     

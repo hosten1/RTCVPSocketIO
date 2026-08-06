@@ -19,3 +19,7 @@ test-server/v3/node_modules/
 test-server/v2/package-lock.json
 test-server/v3/package-lock.json
 LYMVPSocketIO/LYMVPSocketIO/build-*
+LYMVPSocketIO/LYMVPSocketIO/android/toolchains/
+LYMVPSocketIO/LYMVPSocketIO/build_android_test/
+LYMVPSocketIO/LYMVPSocketIO/build_*
+LYMVPSocketIO/LYMVPSocketIO/android/output/libs/armeabi-v7a/liblymvpsocketio.so
