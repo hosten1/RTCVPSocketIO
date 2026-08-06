@@ -8,10 +8,13 @@
 - [架构概览](#架构概览)
 - [类图](#类图)
 - [快速开始](#快速开始)
-- [Mac Demo](#mac-demo)
+- [平台支持](#平台支持)
+- [编译指南](#编译指南)
 - [测试](#测试)
 - [WebRTC 组件使用清单](#webrtc-组件使用清单)
 - [目录结构](#目录结构)
+- [更新日志](#更新日志)
+- [License](#license)
 
 ## 特性
 
@@ -21,43 +24,46 @@
 - ✅ 命名空间（Namespace）支持
 - ✅ 房间（Room）功能
 - ✅ 自动重连（可选）
+- ✅ permessage-deflate 压缩（基于 zlib 源码编译）
 - ✅ 基于 WebRTC TaskQueue 的异步架构
 - ✅ 基于 WebRTC FileRotatingLogSink 的文件日志
-- ✅ 跨平台 WebSocket 实现（C++ + libevent）
+- ✅ 跨平台 WebSocket 实现（C++ + libevent + OpenSSL）
 - ✅ macOS / iOS Objective-C 封装
+- ✅ Android JNI / Java 封装
 
 ## 架构概览
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                Objective-C 层 (macOS/iOS)                │
-│  RTCVPSocketIOClient  ──  RTCVPSocketEngine              │
-│  RTCVPSocketIOConfig   ──  RTCVPTimeoutManager           │
+│               平台封装层 (Platform Layer)                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │  iOS / macOS │  │   Android    │  │    ...       │  │
+│  │  Objective-C │  │  JNI / Java  │  │              │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────────┘  │
+└─────────┼─────────────────┼─────────────────────────────┘
+          │                 │
+┌─────────▼─────────────────▼─────────────────────────────┐
+│                    C++ 核心层 (core)                     │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │              Socket.IO 协议层                     │  │
+│  │  PacketSender / PacketReceiver / SioAckManager   │  │
+│  └───────────────────────┬───────────────────────────┘  │
+│                          │                              │
+│  ┌───────────────────────▼───────────────────────────┐  │
+│  │             Engine.IO 协议层                      │  │
+│  │      PollingTransport / WebSocketTransport        │  │
+│  └───────────────────────┬───────────────────────────┘  │
+│                          │                              │
+│  ┌───────────────────────▼───────────────────────────┐  │
+│  │             WebSocket 传输层                       │  │
+│  │      WebSocketClient + libevent + OpenSSL          │  │
+│  └───────────────────────────────────────────────────┘  │
 └───────────────────────────┬─────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────┐
-│                      C++ 核心层                          │
-│  ┌──────────────┐    ┌──────────────┐                   │
-│  │ SioPacket    │    │SioPacketBldr │  协议编解码       │
-│  └──────┬───────┘    └──────┬───────┘                   │
-│         │                   │                           │
-│  ┌──────▼───────┐    ┌──────▼───────┐                   │
-│  │ PacketSender │    │PacketReceiver│  发送/接收        │
-│  └──────┬───────┘    └──────┬───────┘                   │
-│         │                   │                           │
-│  ┌──────▼───────────────────▼───────┐                   │
-│  │         SioAckManager            │  ACK 管理         │
-│  └──────────────────────────────────┘                   │
-│                                                          │
-│  ┌──────────────────────────────────┐                   │
-│  │         WebSocketClient          │  WebSocket 层     │
-│  └───────────────┬──────────────────┘                   │
-└──────────────────┼──────────────────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────────────────┐
-│                    WebRTC 基础设施                       │
+│                  WebRTC 基础设施                         │
 │  TaskQueue / RepeatingTask / Mutex / Logging / Buffer   │
-└──────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## 类图
@@ -256,9 +262,9 @@ classDiagram
 ### 推荐：简洁 API（Socket.IO 风格）
 
 ```cpp
-#include "sio_packet_impl.h"
-#include "sio_ack_manager.h"
-#include "websocket/websocket_logger.h"
+#include "core/socketio/sio_packet_impl.h"
+#include "core/socketio/sio_ack_manager.h"
+#include "core/websocket/websocket_logger.h"
 
 using namespace sio;
 
@@ -328,10 +334,10 @@ receiver->remove_all_listeners();
 ### 底层 API（直接控制）
 
 ```cpp
-#include "sio_packet_builder.h"
-#include "sio_ack_manager.h"
-#include "websocket/websocket_client.h"
-#include "websocket/websocket_logger.h"
+#include "core/socketio/sio_packet_builder.h"
+#include "core/socketio/sio_ack_manager.h"
+#include "core/websocket/websocket_client.h"
+#include "core/websocket/websocket_logger.h"
 
 // 1. 初始化文件日志
 ws::WebSocketLogger::Instance().InitFileLog("./logs", "socketio", 10*1024*1024, 5);
@@ -371,7 +377,7 @@ client.sendText(encoded.text_packet);
 **C++ WebSocket 层：**
 
 ```cpp
-#include "websocket/websocket_client.h"
+#include "core/websocket/websocket_client.h"
 
 ws::WebSocketClient client;
 client.setURL("wss://localhost:3004/socket.io/?EIO=4&transport=websocket");
@@ -423,34 +429,92 @@ RTCVPSocketIOClient *client = [[RTCVPSocketIOClient alloc]
 [client connect];
 ```
 
-## Mac Demo
+### Android Java 使用
 
-项目包含一个 Mac 命令行 Demo，可直接运行测试。
+```java
+import com.lymvpsocketio.SocketIOClient;
 
-### 编译运行
+SocketIOClient client = new SocketIOClient();
+client.setVersion(SocketIOClient.SocketIOVersion.V4);
+client.setTransport(SocketIOClient.TransportType.WEBSOCKET);
+
+client.setConnectCallback(new SocketIOClient.ConnectCallback() {
+    @Override
+    public void onConnected() {
+        Log.d(TAG, "Connected, SID: " + client.getSid());
+    }
+
+    @Override
+    public void onDisconnected(String reason) {
+        Log.d(TAG, "Disconnected: " + reason);
+    }
+
+    @Override
+    public void onError(String error) {
+        Log.e(TAG, "Error: " + error);
+    }
+});
+
+client.connect("http://10.0.2.2:3000");
+```
+
+## 平台支持
+
+| 平台 | 架构 | 状态 | 说明 |
+|------|------|------|------|
+| **macOS** | x86_64 / arm64 | ✅ 支持 | Framework / .dylib |
+| **iOS** | arm64 / x86_64 (simulator) | ✅ 支持 | Framework / .a |
+| **Android** | armeabi-v7a / arm64-v8a / x86 | ✅ 支持 | .so |
+| **Linux** | x86_64 | ✅ 支持 | .a / .so |
+
+## 编译指南
+
+### macOS
 
 ```bash
 cd LYMVPSocketIO/LYMVPSocketIO
-mkdir -p build && cd build
-cmake ..
-make socketio_demo -j$(sysctl -n hw.ncpu)
-./test/socketio_demo
+mkdir build && cd build
+cmake .. -DUSE_CPP_WEBSOCKET=ON -DCMAKE_BUILD_TYPE=Release
+make -j$(sysctl -n hw.ncpu) libVPSocketIO
 ```
 
-### 功能菜单
+### iOS
 
+使用项目根目录的 `build-ios.sh` 脚本：
+
+```bash
+# 编译真机版
+./build-ios.sh --platform device --cpp-websocket
+
+# 编译模拟器版
+./build-ios.sh --platform simulator --cpp-websocket
+
+# 合并真机和模拟器为通用 framework
+./build-ios.sh --platform universal --cpp-websocket
 ```
-=== 菜单 ===
-1. 连接 V2 服务器 (localhost:3002)
-2. 连接 V3 服务器 (localhost:3003)
-3. 发送文本消息
-4. 发送二进制消息
-5. 发送带 ACK 的消息
-6. 加入房间
-7. 发送房间消息
-8. 断开连接
-9. 退出
+
+### Android
+
+使用 `platform/android/build_android.sh` 脚本：
+
+```bash
+cd platform/android
+bash build_android.sh
 ```
+
+输出文件位于 `platform/android/output/libs/<abi>/liblymvpsocketio.so`。
+
+> 注意：需要提前配置 NDK 路径，默认使用 `/Users/vrv/Documents/luoyongmeng/lym/ndklib/android-ndk-r10e`。
+
+### CMake 选项
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `USE_CPP_WEBSOCKET` | OFF | 使用 C++ WebSocket 实现（否则使用 Jetfire） |
+| `USE_OPENSSL` | ON | 启用 OpenSSL TLS 支持 |
+| `USE_ZLIB` | ON | 启用 zlib permessage-deflate 压缩 |
+| `BUILD_TESTS` | ON | 构建测试目标 |
+| `BUILD_DEMO` | ON | 构建 Demo 程序 |
 
 ## 测试
 
@@ -511,37 +575,55 @@ make test_websocket_unit
 
 ```
 LYMVPSocketIO/LYMVPSocketIO/
-├── lib/                          # C++ 核心库
-│   ├── sio_packet.h/.cpp         # Socket.IO 数据包
-│   ├── sio_packet_builder.h/.cpp # 数据包构建器
-│   ├── sio_packet_impl.h/.cc     # 发送/接收实现
-│   ├── sio_ack_manager.h/.cpp    # ACK 管理器
-│   ├── sio_ack_manager_interface.h # ACK 接口
-│   ├── sio_packet_types.h        # 类型定义
-│   ├── sio_smart_buffer.hpp      # 智能缓冲区
-│   ├── sio_jsoncpp_binary_helper.hpp # JSON二进制辅助
-│   ├── sio_packet_printer.hpp    # 数据包调试打印
-│   ├── websocket/                # WebSocket 实现
-│   │   ├── websocket_client.h/.cpp
-│   │   ├── websocket_frame.h/.cpp
-│   │   ├── websocket_handshake.h/.cpp
-│   │   └── websocket_logger.h/.cpp
-│   └── test/                     # 测试
-│       ├── test_socketio_full.cpp
-│       ├── test_protocol_full.cpp
-│       └── test_websocket_integration.cpp
-├── src/                          # Objective-C 封装
-│   ├── RTCVPSocketIOClient.h/.mm
-│   ├── RTCVPSocketEngine.h/.m
-│   ├── RTCVPSocketIOConfig.h/.m
-│   └── utils/                    # 工具类
-├── Category/                     # 分类
-├── jetfire/                      # Jetfire WebSocket (备用)
-├── third_party/                  # 第三方依赖
-│   ├── libWebRTC/                # WebRTC 库
-│   └── jsoncpp/                  # JSON 库
-└── CMakeLists.txt                # CMake 构建配置
+├── CMakeLists.txt              # 顶层 CMake 配置
+│
+├── core/                       # C++ 核心代码（跨平台）
+│   ├── socketio/               # Socket.IO 协议层
+│   │   ├── sio_packet.h/.cpp
+│   │   ├── sio_packet_builder.h/.cpp
+│   │   ├── sio_packet_impl.h/.cc
+│   │   ├── sio_ack_manager.h/.cpp
+│   │   └── ...
+│   ├── engineio/               # Engine.IO 协议层
+│   │   ├── engineio_client.h/.cpp
+│   │   ├── engineio_polling_transport.h/.cpp
+│   │   └── ...
+│   └── websocket/              # WebSocket 传输层
+│       ├── websocket_client.h/.cpp
+│       ├── websocket_frame.h/.cpp
+│       ├── websocket_deflater.cpp
+│       └── ...
+│
+├── platform/                   # 平台相关代码
+│   ├── apple/                  # Apple 平台 (iOS/macOS)
+│   │   ├── Info.plist
+│   │   ├── LYMVPSocketIO.h
+│   │   ├── Sources/            # Objective-C 封装层
+│   │   ├── Utils/              # 工具类
+│   │   ├── WebSocket/          # WebSocket ObjC 包装
+│   │   └── jetfire/            # Jetfire WebSocket (备用)
+│   │
+│   └── android/                # Android 平台
+│       ├── build_android.sh    # 构建脚本
+│       ├── java/               # Java 接口
+│       ├── jni/                # JNI 桥接
+│       └── compat/             # 兼容性头文件
+│
+├── tests/
+│   └── integration/            # 集成测试
+│
+├── third_party/                # 第三方依赖
+│   ├── libwebrtc/              # WebRTC 库
+│   ├── zlib/                   # zlib 源码（permessage-deflate）
+│   ├── jsoncpp/                # JSON 库
+│   └── libevent/ (编译时生成)
+│
+└── resource/                   # 参考文档
 ```
+
+## 更新日志
+
+详细变更记录请查看 [CHANGELOG.md](./CHANGELOG.md)。
 
 ## License
 
