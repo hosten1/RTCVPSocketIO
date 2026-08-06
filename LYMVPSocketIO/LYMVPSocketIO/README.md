@@ -364,6 +364,44 @@ ack_manager->register_ack_callback(ack_id,
 client.sendText(encoded.text_packet);
 ```
 
+### HTTPS / WSS 自签名证书配置
+
+在开发或测试环境中，经常需要使用自签名证书的 HTTPS 服务器。以下是不同层级的配置方式：
+
+**C++ WebSocket 层：**
+
+```cpp
+#include "websocket/websocket_client.h"
+
+ws::WebSocketClient client;
+client.setURL("wss://localhost:3004/socket.io/?EIO=4&transport=websocket");
+
+// 启用自签名证书支持（跳过证书验证，仅用于开发/测试环境）
+client.setSelfSignedSSL(true);
+
+client.connect();
+```
+
+> ⚠️ **安全提示**：`setSelfSignedSSL(true)` 会跳过证书验证，仅建议在开发/测试环境使用。生产环境请使用正规 CA 签发的证书。
+
+**Objective-C 层：**
+
+```objc
+#import "RTCCPPCWebSocket.h"
+
+// C++ WebSocket 模式下直接设置
+RTCCPPCWebSocket *ws = [[RTCCPPCWebSocket alloc] init];
+ws.selfSignedSSL = YES;
+```
+
+**生成自签名证书（测试用）：**
+
+```bash
+# 使用 openssl 生成自签名证书
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
+    -days 365 -nodes -subj "/CN=localhost"
+```
+
 ### Objective-C 使用
 
 ```objc

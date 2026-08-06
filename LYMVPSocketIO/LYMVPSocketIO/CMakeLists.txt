@@ -487,6 +487,56 @@ set_target_properties(test_socketio_full PROPERTIES
     LINKER_LANGUAGE CXX
 )
 
+# C++ 集成测试（需要真实服务端，WebSocket + SioClient 桥接）
+if(USE_CPP_WEBSOCKET)
+    add_executable(test_cpp_integration
+        lib/sio_packet_impl.cc
+        lib/sio_packet_builder.cpp
+        lib/sio_packet.cpp
+        lib/sio_ack_manager.cpp
+        lib/sio_client.cpp
+        lib/test/test_cpp_integration.cpp
+    )
+
+    target_include_directories(test_cpp_integration
+        PRIVATE
+        ${LIBWEBRTC_INCLUDE_DIRS}
+        ${JSONCPP_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/websocket
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/test
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    target_compile_definitions(test_cpp_integration
+        PRIVATE
+        WS_USE_WEBRTC
+        WS_USE_ZLIB
+        JSONCPP_USING_SECURE_MEMORY=0
+    )
+
+    target_link_libraries(test_cpp_integration
+        PRIVATE
+        websocket
+        libwebrtc
+        jsoncpp
+        pthread
+        dl
+    )
+
+    set_target_properties(test_cpp_integration PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test"
+        OUTPUT_NAME "test_cpp_integration"
+        LINKER_LANGUAGE CXX
+    )
+    
+    message(STATUS "C++ integration test: enabled (requires real server)")
+else()
+    message(STATUS "C++ integration test: disabled (USE_CPP_WEBSOCKET=OFF)")
+endif()
+
 # 添加原生集成测试（Mac Objective-C）
 add_executable(test_native_integration
     lib/test/test_native_integration.m

@@ -200,6 +200,8 @@ add_subdirectory(${WEBRTC_SRC_DIR}/modules)
 # ==================== 创建 libwebrtc 主库 ====================
 add_library(libwebrtc STATIC
     $<TARGET_OBJECTS:rtc_base>
+    $<TARGET_OBJECTS:base64>
+    $<TARGET_OBJECTS:sigslot>
     $<TARGET_OBJECTS:api>
     $<TARGET_OBJECTS:system_wrappers>
     $<TARGET_OBJECTS:common_audio_module>

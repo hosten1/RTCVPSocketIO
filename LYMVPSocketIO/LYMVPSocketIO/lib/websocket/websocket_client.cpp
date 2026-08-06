@@ -91,6 +91,11 @@ struct WebSocketClient::Impl {
     std::unique_ptr<rtc::Thread> event_thread_;
     std::atomic<bool> running_{false};
     
+#ifdef WS_USE_OPENSSL
+    SSL_CTX* ssl_ctx_ = nullptr;
+    SSL* ssl_ = nullptr;
+#endif
+    
     webrtc::Mutex send_mtx_;
     std::deque<std::vector<uint8_t>> send_queue_;
     
@@ -134,6 +139,18 @@ struct WebSocketClient::Impl {
             bev_ = nullptr;
             RTC_LOG(LS_VERBOSE) << "Bufferevent freed";
         }
+#ifdef WS_USE_OPENSSL
+        if (ssl_) {
+            SSL_free(ssl_);
+            ssl_ = nullptr;
+            RTC_LOG(LS_VERBOSE) << "SSL freed";
+        }
+        if (ssl_ctx_) {
+            SSL_CTX_free(ssl_ctx_);
+            ssl_ctx_ = nullptr;
+            RTC_LOG(LS_VERBOSE) << "SSL_CTX freed";
+        }
+#endif
         if (notify_fd_[0] >= 0) {
             close(notify_fd_[0]);
             notify_fd_[0] = -1;
@@ -481,7 +498,8 @@ struct WebSocketClient::Impl {
     }
     
     bool connectTCP() {
-        RTC_LOG(LS_INFO) << "Connecting to " << url_info_.host << ":" << url_info_.port;
+        RTC_LOG(LS_INFO) << "Connecting to " << url_info_.host << ":" << url_info_.port
+                         << " TLS=" << (url_info_.use_tls ? "yes" : "no");
         
         if (!base_) {
             base_ = event_base_new();
@@ -499,10 +517,50 @@ struct WebSocketClient::Impl {
         notify_event_ = event_new(base_, notify_fd_[0], EV_READ | EV_PERSIST, onNotify, this);
         event_add(notify_event_, nullptr);
         
-        bev_ = bufferevent_socket_new(base_, -1, BEV_OPT_CLOSE_ON_FREE);
-        if (!bev_) {
-            RTC_LOG(LS_ERROR) << "Failed to create bufferevent";
-            return false;
+#ifdef WS_USE_OPENSSL
+        if (url_info_.use_tls) {
+            RTC_LOG(LS_INFO) << "Creating SSL context for TLS connection";
+            
+            ssl_ctx_ = SSL_CTX_new(TLS_client_method());
+            if (!ssl_ctx_) {
+                RTC_LOG(LS_ERROR) << "Failed to create SSL_CTX";
+                return false;
+            }
+            
+            if (parent_->self_signed_ssl_) {
+                RTC_LOG(LS_INFO) << "Self-signed SSL enabled, skipping certificate verification";
+                SSL_CTX_set_verify(ssl_ctx_, SSL_VERIFY_NONE, nullptr);
+            } else {
+                SSL_CTX_set_verify(ssl_ctx_, SSL_VERIFY_PEER, nullptr);
+            }
+            
+            SSL_CTX_set_options(ssl_ctx_, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION);
+            
+            ssl_ = SSL_new(ssl_ctx_);
+            if (!ssl_) {
+                RTC_LOG(LS_ERROR) << "Failed to create SSL object";
+                return false;
+            }
+            
+            SSL_set_tlsext_host_name(ssl_, url_info_.host.c_str());
+            
+            bev_ = bufferevent_openssl_socket_new(base_, -1, ssl_,
+                                                  BUFFEREVENT_SSL_CONNECTING,
+                                                  BEV_OPT_CLOSE_ON_FREE);
+            if (!bev_) {
+                RTC_LOG(LS_ERROR) << "Failed to create SSL bufferevent";
+                return false;
+            }
+            
+            RTC_LOG(LS_INFO) << "SSL bufferevent created successfully";
+        } else
+#endif
+        {
+            bev_ = bufferevent_socket_new(base_, -1, BEV_OPT_CLOSE_ON_FREE);
+            if (!bev_) {
+                RTC_LOG(LS_ERROR) << "Failed to create bufferevent";
+                return false;
+            }
         }
         
         bufferevent_setcb(bev_, readcb, nullptr, eventcb, this);

@@ -202,6 +202,125 @@ typedef void (^TestCompletion)(BOOL success, NSString *error);
         } timeout:5];
     }];
     
+    [self addTest:@"ACK with string parameter" block:^(TestCompletion completion) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) { completion(NO, @"self nil"); return; }
+        
+        [strongSelf.client emitWithAck:@"echo"
+                                  items:@[@"hello_world"]
+                               ackBlock:^(NSArray *data, NSError *error) {
+            if (error) {
+                completion(NO, error.localizedDescription);
+                return;
+            }
+            if (data.count > 0 && [data[0] isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = data[0];
+                if (dict[@"echoed"] && [dict[@"echoed"] isEqualToString:@"hello_world"]) {
+                    completion(YES, nil);
+                } else {
+                    completion(NO, [NSString stringWithFormat:@"String ACK mismatch: %@", dict[@"echoed"]]);
+                }
+            } else {
+                completion(NO, @"No data in ACK");
+            }
+        } timeout:5];
+    }];
+    
+    [self addTest:@"ACK with multiple parameters" block:^(TestCompletion completion) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) { completion(NO, @"self nil"); return; }
+        
+        [strongSelf.client emitWithAck:@"echo"
+                                  items:@[@"first", @{@"key": @"value"}, @(123)]
+                               ackBlock:^(NSArray *data, NSError *error) {
+            if (error) {
+                completion(NO, error.localizedDescription);
+                return;
+            }
+            if (data.count > 0 && [data[0] isKindOfClass:[NSDictionary class]]) {
+                NSDictionary *dict = data[0];
+                NSArray *echoed = dict[@"echoed"];
+                if (echoed && [echoed isKindOfClass:[NSArray class]] && echoed.count >= 3) {
+                    if ([echoed[0] isEqualToString:@"first"] &&
+                        [echoed[2] isEqualToNumber:@(123)]) {
+                        completion(YES, nil);
+                    } else {
+                        completion(NO, @"Multi-param ACK content mismatch");
+                    }
+                } else {
+                    completion(NO, [NSString stringWithFormat:@"Invalid multi-param: %@", dict]);
+                }
+            } else {
+                completion(NO, @"No data in ACK");
+            }
+        } timeout:5];
+    }];
+    
+    [self addTest:@"concurrent ACK requests" block:^(TestCompletion completion) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) { completion(NO, @"self nil"); return; }
+        
+        __block int completedCount = 0;
+        __block int totalCount = 5;
+        __block BOOL failed = NO;
+        
+        void (^checkDone)(void) = ^{
+            if (completedCount == totalCount && !failed) {
+                completion(YES, nil);
+            }
+        };
+        
+        for (int i = 0; i < totalCount; i++) {
+            NSString *msg = [NSString stringWithFormat:@"msg_%d", i];
+            [strongSelf.client emitWithAck:@"echo"
+                                      items:@[msg]
+                                   ackBlock:^(NSArray *data, NSError *error) {
+                if (failed) return;
+                
+                if (error) {
+                    failed = YES;
+                    completion(NO, [NSString stringWithFormat:@"ACK %d failed: %@", i, error.localizedDescription]);
+                    return;
+                }
+                
+                completedCount++;
+                checkDone();
+            } timeout:5];
+        }
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (!failed && completedCount < totalCount) {
+                completion(NO, [NSString stringWithFormat:@"Only %d of %d ACKs completed", completedCount, totalCount]);
+            }
+        });
+    }];
+    
+    [self addTest:@"ACK timeout (no handler)" block:^(TestCompletion completion) {
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) { completion(NO, @"self nil"); return; }
+        
+        __block BOOL gotTimeout = NO;
+        
+        [strongSelf.client emitWithAck:@"nonexistent_event_xyz"
+                                  items:@[@"test"]
+                               ackBlock:^(NSArray *data, NSError *error) {
+            if (error && error.code == kRTCVPSocketAckEmitterErrorSendFailed) {
+                gotTimeout = YES;
+                completion(YES, nil);
+            } else if (error) {
+                completion(YES, nil);
+            } else {
+                completion(NO, @"Expected timeout but got ACK response");
+            }
+        } timeout:2];
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (!gotTimeout) {
+                completion(NO, @"Timeout callback not triggered");
+            }
+        });
+    }];
+    
     [self addTest:@"chat message broadcast" block:^(TestCompletion completion) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) { completion(NO, @"self nil"); return; }
