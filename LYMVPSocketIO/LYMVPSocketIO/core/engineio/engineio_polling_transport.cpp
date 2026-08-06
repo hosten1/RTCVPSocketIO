@@ -1,6 +1,7 @@
 #include "core/engineio/engineio_polling_transport.h"
 #include "core/engineio/http_client.h"
 #include "api/task_queue/default_task_queue_factory.h"
+#include "rtc_base/logging.h"
 
 #include "json/json.h"
 
@@ -81,18 +82,24 @@ void PollingTransport::set_self_signed_ssl(bool enabled) {
 
 void PollingTransport::connect(const std::string& url) {
     if (impl_->connecting.exchange(true) || impl_->connected.load()) {
+        RTC_LOG(LS_WARNING) << "[Polling] Connect called but already connecting/connected";
         return;
     }
+    
+    RTC_LOG(LS_INFO) << "[Polling] Connecting to: " << url;
     
     impl_->base_url = url;
     impl_->should_stop.store(false);
     
     impl_->poll_thread = std::thread([this]() {
+        RTC_LOG(LS_INFO) << "[Polling] Poll thread started";
         poll_thread_func();
+        RTC_LOG(LS_INFO) << "[Polling] Poll thread exited";
     });
 }
 
 void PollingTransport::disconnect() {
+    RTC_LOG(LS_INFO) << "[Polling] Disconnecting";
     impl_->should_stop.store(true);
     
     if (impl_->poll_thread.joinable()) {
@@ -101,16 +108,20 @@ void PollingTransport::disconnect() {
     
     impl_->connected.store(false);
     impl_->connecting.store(false);
+    RTC_LOG(LS_INFO) << "[Polling] Disconnected";
 }
 
 void PollingTransport::send(const std::string& message) {
     if (!impl_->connected.load()) {
+        RTC_LOG(LS_WARNING) << "[Polling] Send called but not connected";
         return;
     }
     
     std::string packet;
     packet += static_cast<char>(EnginePacketType::MESSAGE);
     packet += message;
+    
+    RTC_LOG(LS_VERBOSE) << "[Polling] Sending message, length=" << message.length();
     
     auto self = shared_from_this();
     if (impl_->send_task_queue) {
@@ -137,23 +148,30 @@ void PollingTransport::send_ping() {
 }
 
 void PollingTransport::poll_thread_func() {
+    RTC_LOG(LS_INFO) << "[Polling] Starting handshake";
     do_handshake();
     
     if (!impl_->connected.load()) {
+        RTC_LOG(LS_ERROR) << "[Polling] Handshake failed, poll thread exiting";
         impl_->connecting.store(false);
         return;
     }
+    
+    RTC_LOG(LS_INFO) << "[Polling] Handshake successful, starting poll loop";
     
     while (!impl_->should_stop.load()) {
         do_poll();
     }
     
+    RTC_LOG(LS_INFO) << "[Polling] Poll loop stopped";
     impl_->connected.store(false);
     impl_->connecting.store(false);
 }
 
 void PollingTransport::do_handshake() {
     std::string handshake_url = build_url(false, "polling");
+    
+    RTC_LOG(LS_INFO) << "[Polling] Performing handshake, URL: " << handshake_url;
     
     HttpResponse response = impl_->http_client->get(
         handshake_url,
@@ -162,6 +180,9 @@ void PollingTransport::do_handshake() {
     );
     
     if (!response.success || response.body.empty()) {
+        RTC_LOG(LS_ERROR) << "[Polling] Handshake failed: " 
+                        << (response.error_message.empty() ? "empty response" : response.error_message)
+                        << ", status_code=" << response.status_code;
         if (on_error_) {
             on_error_(response.error_message.empty()
                 ? "handshake failed"
@@ -170,11 +191,14 @@ void PollingTransport::do_handshake() {
         return;
     }
     
+    RTC_LOG(LS_VERBOSE) << "[Polling] Handshake response, length=" << response.body.length();
     handle_engine_packet(response.body);
 }
 
 void PollingTransport::do_poll() {
     std::string poll_url = build_url(true, "polling");
+    
+    RTC_LOG(LS_VERBOSE) << "[Polling] Polling, URL: " << poll_url;
     
     HttpResponse response = impl_->http_client->get(
         poll_url,
@@ -183,21 +207,28 @@ void PollingTransport::do_poll() {
     );
     
     if (!response.success) {
-        if (!impl_->should_stop.load() && on_error_) {
-            on_error_("poll failed: " + response.error_message);
+        if (!impl_->should_stop.load()) {
+            RTC_LOG(LS_ERROR) << "[Polling] Poll failed: " << response.error_message;
+            if (on_error_) {
+                on_error_("poll failed: " + response.error_message);
+            }
         }
         return;
     }
     
     if (response.body.empty()) {
+        RTC_LOG(LS_VERBOSE) << "[Polling] Poll response empty";
         return;
     }
     
+    RTC_LOG(LS_VERBOSE) << "[Polling] Poll response received, length=" << response.body.length();
     handle_engine_packet(response.body);
 }
 
 void PollingTransport::do_post(const std::string& payload) {
     std::string post_url = build_url(true, "polling");
+    
+    RTC_LOG(LS_VERBOSE) << "[Polling] POST request, payload length=" << payload.length();
     
     HttpResponse response = impl_->http_client->post(
         post_url,
@@ -210,12 +241,17 @@ void PollingTransport::do_post(const std::string& payload) {
     );
     
     if (!response.success) {
+        RTC_LOG(LS_ERROR) << "[Polling] POST failed: " << response.error_message;
         if (on_error_) on_error_("post failed: " + response.error_message);
+    } else {
+        RTC_LOG(LS_VERBOSE) << "[Polling] POST successful, status_code=" << response.status_code;
     }
 }
 
 void PollingTransport::handle_engine_packet(const std::string& packet_data) {
     auto packets = decode_packets(packet_data);
+    
+    RTC_LOG(LS_VERBOSE) << "[Polling] Handling engine packet, decoded " << packets.size() << " packets";
     
     for (const auto& packet : packets) {
         if (packet.empty()) continue;
@@ -225,14 +261,17 @@ void PollingTransport::handle_engine_packet(const std::string& packet_data) {
         
         switch (type_char) {
             case '0':
+                RTC_LOG(LS_INFO) << "[Polling] Received OPEN packet";
                 handle_open(data);
                 break;
             case '1':
+                RTC_LOG(LS_INFO) << "[Polling] Received CLOSE packet";
                 if (on_close_) on_close_("transport close");
                 impl_->connected.store(false);
                 impl_->should_stop.store(true);
                 break;
             case '2': {
+                RTC_LOG(LS_VERBOSE) << "[Polling] Received PING, sending PONG";
                 std::string pong_packet;
                 pong_packet += static_cast<char>(EnginePacketType::PONG);
                 auto self = shared_from_this();
@@ -244,12 +283,15 @@ void PollingTransport::handle_engine_packet(const std::string& packet_data) {
                 break;
             }
             case '3':
+                RTC_LOG(LS_VERBOSE) << "[Polling] Received PONG";
                 if (on_pong_) on_pong_();
                 break;
             case '4':
+                RTC_LOG(LS_VERBOSE) << "[Polling] Received MESSAGE, length=" << data.length();
                 handle_message(data);
                 break;
             default:
+                RTC_LOG(LS_WARNING) << "[Polling] Unknown packet type: " << type_char;
                 break;
         }
     }
@@ -261,7 +303,10 @@ void PollingTransport::handle_open(const std::string& data) {
     Json::Value root;
     std::string errors;
     
+    RTC_LOG(LS_INFO) << "[Polling] Parsing OPEN packet";
+    
     if (!reader->parse(data.data(), data.data() + data.size(), &root, &errors)) {
+        RTC_LOG(LS_ERROR) << "[Polling] Failed to parse open packet: " << errors;
         if (on_error_) on_error_("failed to parse open packet: " + errors);
         return;
     }
@@ -276,6 +321,10 @@ void PollingTransport::handle_open(const std::string& data) {
         impl_->ping_timeout = root["pingTimeout"].asInt();
     }
     
+    RTC_LOG(LS_INFO) << "[Polling] OPEN parsed: sid=" << impl_->sid
+                    << ", ping_interval=" << impl_->ping_interval
+                    << ", ping_timeout=" << impl_->ping_timeout;
+    
     impl_->connected.store(true);
     impl_->connecting.store(false);
     
@@ -283,6 +332,7 @@ void PollingTransport::handle_open(const std::string& data) {
 }
 
 void PollingTransport::handle_message(const std::string& data) {
+    RTC_LOG(LS_VERBOSE) << "[Polling] Handling message, length=" << data.length();
     if (on_message_) on_message_(data);
 }
 

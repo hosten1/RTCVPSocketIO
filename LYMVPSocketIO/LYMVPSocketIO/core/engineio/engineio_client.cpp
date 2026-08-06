@@ -4,6 +4,7 @@
 #include "core/engineio/http_client.h"
 #include "core/websocket/websocket_client.h"
 #include "api/task_queue/default_task_queue_factory.h"
+#include "rtc_base/logging.h"
 
 #include <memory>
 
@@ -77,21 +78,29 @@ void EngineIOClient::set_transport(TransportType type) {
 void EngineIOClient::create_transport() {
     int version = static_cast<int>(impl_->config.version);
     
+    RTC_LOG(LS_INFO) << "[EngineIO] Creating transport, type=" 
+                    << (impl_->config.transport == TransportType::POLLING ? "polling" : "websocket")
+                    << ", version=" << version;
+    
     if (impl_->config.transport == TransportType::POLLING) {
         if (!impl_->http_client) {
             impl_->http_client = HttpClient::Create();
+            RTC_LOG(LS_INFO) << "[EngineIO] Created new HttpClient created";
         }
         auto polling = PollingTransport::Create(
             impl_->http_client, version, impl_->task_queue_factory);
         polling->set_self_signed_ssl(impl_->config.self_signed_ssl);
         impl_->transport = polling;
+        RTC_LOG(LS_INFO) << "[EngineIO] PollingTransport created";
     } else {
         if (!impl_->ws_client) {
             impl_->ws_client = std::make_shared<ws::WebSocketClient>();
+            RTC_LOG(LS_INFO) << "[EngineIO] Created new WebSocketClient";
         }
         auto ws = WebSocketTransport::Create(impl_->ws_client, version);
         ws->set_self_signed_ssl(impl_->config.self_signed_ssl);
         impl_->transport = ws;
+        RTC_LOG(LS_INFO) << "[EngineIO] WebSocketTransport created";
     }
     
     setup_transport_callbacks();
@@ -128,11 +137,17 @@ void EngineIOClient::setup_transport_callbacks() {
 }
 
 void EngineIOClient::connect(const std::string& url) {
-    if (impl_->connected) return;
+    if (impl_->connected) {
+        RTC_LOG(LS_WARNING) << "[EngineIO] Connect called but already connected";
+        return;
+    }
+    
+    RTC_LOG(LS_INFO) << "[EngineIO] Connecting to: " << url;
     
     create_transport();
     
     if (!impl_->transport) {
+        RTC_LOG(LS_ERROR) << "[EngineIO] Failed to create transport";
         if (impl_->on_error) {
             impl_->on_error("failed to create transport");
         }
@@ -143,6 +158,7 @@ void EngineIOClient::connect(const std::string& url) {
 }
 
 void EngineIOClient::disconnect() {
+    RTC_LOG(LS_INFO) << "[EngineIO] Disconnecting";
     if (impl_->transport) {
         impl_->transport->disconnect();
     }
@@ -151,15 +167,22 @@ void EngineIOClient::disconnect() {
 
 void EngineIOClient::send(const std::string& message) {
     if (impl_->transport && impl_->connected) {
+        RTC_LOG(LS_VERBOSE) << "[EngineIO] Sending message, length=" << message.length();
         impl_->transport->send(message);
+    } else {
+        RTC_LOG(LS_WARNING) << "[EngineIO] Send called but not connected";
     }
 }
 
 void EngineIOClient::on_transport_open(const std::string& sid,
-                                        int /*ping_interval*/,
-                                        int /*ping_timeout*/) {
+                                        int ping_interval,
+                                        int ping_timeout) {
     impl_->sid = sid;
     impl_->connected = true;
+    
+    RTC_LOG(LS_INFO) << "[EngineIO] Transport opened, sid=" << sid 
+                    << ", ping_interval=" << ping_interval 
+                    << ", ping_timeout=" << ping_timeout;
     
     if (impl_->on_open) {
         impl_->on_open();
@@ -167,12 +190,14 @@ void EngineIOClient::on_transport_open(const std::string& sid,
 }
 
 void EngineIOClient::on_transport_message(const std::string& message) {
+    RTC_LOG(LS_VERBOSE) << "[EngineIO] Received message, length=" << message.length();
     if (impl_->on_message) {
         impl_->on_message(message);
     }
 }
 
 void EngineIOClient::on_transport_close(const std::string& reason) {
+    RTC_LOG(LS_INFO) << "[EngineIO] Transport closed, reason=" << reason;
     impl_->connected = false;
     
     if (impl_->on_close) {
@@ -181,6 +206,7 @@ void EngineIOClient::on_transport_close(const std::string& reason) {
 }
 
 void EngineIOClient::on_transport_error(const std::string& error) {
+    RTC_LOG(LS_ERROR) << "[EngineIO] Transport error: " << error;
     if (impl_->on_error) {
         impl_->on_error(error);
     }

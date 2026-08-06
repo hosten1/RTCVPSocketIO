@@ -5,6 +5,7 @@ plugins {
 android {
     namespace 'com.lymvpsocketio.demo'
     compileSdk 35
+    buildToolsVersion "35.0.1"
 
     defaultConfig {
         applicationId "com.lymvpsocketio.demo"

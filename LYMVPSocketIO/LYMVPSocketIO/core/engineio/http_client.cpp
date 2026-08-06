@@ -1,4 +1,5 @@
 #include "core/engineio/http_client.h"
+#include "rtc_base/logging.h"
 
 #include <event2/event.h>
 #include <event2/http.h>
@@ -99,8 +100,13 @@ HttpResponse HttpClient::do_request(HttpMethod method,
                                     int timeout_sec) {
     HttpResponse response;
     
+    RTC_LOG(LS_INFO) << "[HttpClient] " << (method == HttpMethod::GET ? "GET" : "POST") 
+                    << " request to: " << url
+                    << ", timeout=" << timeout_sec << "s";
+    
     struct evhttp_uri* http_uri = evhttp_uri_parse(url.c_str());
     if (!http_uri) {
+        RTC_LOG(LS_ERROR) << "[HttpClient] Malformed URL: " << url;
         response.success = false;
         response.error_message = "malformed url: " + url;
         return response;
@@ -132,8 +138,13 @@ HttpResponse HttpClient::do_request(HttpMethod method,
         uri_str += query;
     }
     
+    RTC_LOG(LS_VERBOSE) << "[HttpClient] Host=" << host << ", port=" << port 
+                       << ", https=" << (is_https ? "yes" : "no")
+                       << ", uri=" << uri_str;
+    
     struct event_base* base = event_base_new();
     if (!base) {
+        RTC_LOG(LS_ERROR) << "[HttpClient] Failed to create event_base";
         response.success = false;
         response.error_message = "failed to create event_base";
         evhttp_uri_free(http_uri);
@@ -147,6 +158,7 @@ HttpResponse HttpClient::do_request(HttpMethod method,
     if (is_https) {
         ssl_ctx = SSL_CTX_new(TLS_client_method());
         if (!ssl_ctx) {
+            RTC_LOG(LS_ERROR) << "[HttpClient] Failed to create SSL_CTX";
             response.success = false;
             response.error_message = "failed to create SSL_CTX";
             event_base_free(base);
@@ -159,6 +171,7 @@ HttpResponse HttpClient::do_request(HttpMethod method,
         
         ssl = SSL_new(ssl_ctx);
         if (!ssl) {
+            RTC_LOG(LS_ERROR) << "[HttpClient] Failed to create SSL";
             response.success = false;
             response.error_message = "failed to create SSL";
             SSL_CTX_free(ssl_ctx);
@@ -168,6 +181,7 @@ HttpResponse HttpClient::do_request(HttpMethod method,
         }
         
         if (impl_->self_signed_ssl_.load()) {
+            RTC_LOG(LS_INFO) << "[HttpClient] Self-signed SSL enabled, skipping verification";
             SSL_set_verify(ssl, SSL_VERIFY_NONE, nullptr);
         }
         
@@ -182,6 +196,7 @@ HttpResponse HttpClient::do_request(HttpMethod method,
     }
     
     if (!bev) {
+        RTC_LOG(LS_ERROR) << "[HttpClient] Failed to create bufferevent";
         response.success = false;
         response.error_message = "failed to create bufferevent";
         if (ssl) SSL_free(ssl);
@@ -199,6 +214,7 @@ HttpResponse HttpClient::do_request(HttpMethod method,
         base, nullptr, bev, host, port);
     
     if (!evcon) {
+        RTC_LOG(LS_ERROR) << "[HttpClient] Failed to create http connection";
         response.success = false;
         response.error_message = "failed to create http connection";
         if (ssl) SSL_free(ssl);
@@ -218,6 +234,7 @@ HttpResponse HttpClient::do_request(HttpMethod method,
     
     struct evhttp_request* req = evhttp_request_new(on_request_done, &req_data);
     if (!req) {
+        RTC_LOG(LS_ERROR) << "[HttpClient] Failed to create http request";
         response.success = false;
         response.error_message = "failed to create http request";
         evhttp_connection_free(evcon);
@@ -248,11 +265,15 @@ HttpResponse HttpClient::do_request(HttpMethod method,
         char cl_buf[32];
         snprintf(cl_buf, sizeof(cl_buf), "%zu", body.size());
         evhttp_add_header(output_headers, "Content-Length", cl_buf);
+        
+        RTC_LOG(LS_VERBOSE) << "[HttpClient] POST body size=" << body.size()
+                           << ", content_type=" << content_type;
     }
     
     int ret = evhttp_make_request(evcon, req, cmd_type, uri_str.c_str());
     
     if (ret != 0) {
+        RTC_LOG(LS_ERROR) << "[HttpClient] evhttp_make_request failed, ret=" << ret;
         response.success = false;
         response.error_message = "evhttp_make_request failed";
         evhttp_connection_free(evcon);
@@ -272,6 +293,11 @@ HttpResponse HttpClient::do_request(HttpMethod method,
     if (ssl_ctx) SSL_CTX_free(ssl_ctx);
     event_base_free(base);
     evhttp_uri_free(http_uri);
+    
+    RTC_LOG(LS_INFO) << "[HttpClient] Request completed: success=" << response.success
+                    << ", status_code=" << response.status_code
+                    << ", body_length=" << response.body.length()
+                    << ", error=" << response.error_message;
     
     return response;
 }

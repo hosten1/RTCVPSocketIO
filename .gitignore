@@ -23,3 +23,5 @@ LYMVPSocketIO/LYMVPSocketIO/android/toolchains/
 LYMVPSocketIO/LYMVPSocketIO/build_android_test/
 LYMVPSocketIO/LYMVPSocketIO/build_*
 LYMVPSocketIO/LYMVPSocketIO/android/output/libs/
+AndroidDemo/app/src/main/jniLibs/armeabi-v7a/liblymvpsocketio.so
+AndroidDemo/.gradle/

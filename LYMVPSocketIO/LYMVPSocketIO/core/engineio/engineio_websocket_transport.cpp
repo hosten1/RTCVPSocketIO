@@ -1,5 +1,6 @@
 #include "core/engineio/engineio_websocket_transport.h"
 #include "core/websocket/websocket_client.h"
+#include "rtc_base/logging.h"
 
 #include "json/json.h"
 
@@ -48,26 +49,33 @@ bool WebSocketTransport::is_connected() const {
 }
 
 void WebSocketTransport::connect(const std::string& url) {
-    if (impl_->connecting || impl_->connected) return;
+    if (impl_->connecting || impl_->connected) {
+        RTC_LOG(LS_WARNING) << "[EngineWS] Connect called but already connecting/connected";
+        return;
+    }
     
     impl_->connecting = true;
     
     auto self = shared_from_this();
     
     impl_->ws_client->setOnConnect([self]() {
+        RTC_LOG(LS_INFO) << "[EngineWS] WebSocket connected";
         self->handle_ws_connect();
     });
     
     impl_->ws_client->setOnText([self](const std::string& text) {
+        RTC_LOG(LS_VERBOSE) << "[EngineWS] Received text, length=" << text.length();
         self->handle_ws_message(text);
     });
     
     impl_->ws_client->setOnDisconnect([self](const std::string& reason, ws::CloseCode code) {
         (void)code;
+        RTC_LOG(LS_INFO) << "[EngineWS] WebSocket disconnected, reason=" << reason;
         self->handle_ws_disconnect();
     });
     
     impl_->ws_client->setOnError([self](const std::string& error) {
+        RTC_LOG(LS_ERROR) << "[EngineWS] WebSocket error: " << error;
         self->handle_ws_error(error);
     });
     
@@ -87,31 +95,42 @@ void WebSocketTransport::connect(const std::string& url) {
         ws_url += "&EIO=" + eio_version + "&transport=" + transport;
     }
     
+    RTC_LOG(LS_INFO) << "[EngineWS] Connecting to: " << ws_url;
+    
     impl_->ws_client->setURL(ws_url);
     impl_->ws_client->connect();
 }
 
 void WebSocketTransport::disconnect() {
-    if (impl_->disconnecting) return;
+    if (impl_->disconnecting) {
+        RTC_LOG(LS_WARNING) << "[EngineWS] Disconnect called but already disconnecting";
+        return;
+    }
     
+    RTC_LOG(LS_INFO) << "[EngineWS] Disconnecting";
     impl_->disconnecting = true;
     
     if (impl_->connected) {
         std::string close_packet;
         close_packet += static_cast<char>(EnginePacketType::CLOSE);
         impl_->ws_client->sendText(close_packet);
+        RTC_LOG(LS_VERBOSE) << "[EngineWS] Sent CLOSE packet";
     }
     
     impl_->ws_client->disconnect();
 }
 
 void WebSocketTransport::send(const std::string& message) {
-    if (!impl_->connected) return;
+    if (!impl_->connected) {
+        RTC_LOG(LS_WARNING) << "[EngineWS] Send called but not connected";
+        return;
+    }
     
     std::string packet;
     packet += static_cast<char>(EnginePacketType::MESSAGE);
     packet += message;
     
+    RTC_LOG(LS_VERBOSE) << "[EngineWS] Sending message, length=" << message.length();
     impl_->ws_client->sendText(packet);
 }
 
@@ -126,6 +145,7 @@ void WebSocketTransport::send_ping() {
 }
 
 void WebSocketTransport::handle_ws_connect() {
+    RTC_LOG(LS_INFO) << "[EngineWS] WebSocket connection established, waiting for OPEN packet";
 }
 
 void WebSocketTransport::handle_ws_message(const std::string& text) {
@@ -137,8 +157,10 @@ void WebSocketTransport::handle_ws_disconnect() {
     impl_->connecting = false;
     
     if (on_close_ && !impl_->disconnecting) {
+        RTC_LOG(LS_INFO) << "[EngineWS] WebSocket disconnected by peer";
         on_close_("websocket disconnect");
     } else if (on_close_ && impl_->disconnecting) {
+        RTC_LOG(LS_INFO) << "[EngineWS] WebSocket disconnected by client";
         on_close_("client disconnect");
     }
     
@@ -146,23 +168,29 @@ void WebSocketTransport::handle_ws_disconnect() {
 }
 
 void WebSocketTransport::handle_ws_error(const std::string& error) {
+    RTC_LOG(LS_ERROR) << "[EngineWS] WebSocket error: " << error;
     if (on_error_) {
         on_error_(error);
     }
 }
 
 void WebSocketTransport::handle_engine_packet(const std::string& packet) {
-    if (packet.empty()) return;
+    if (packet.empty()) {
+        RTC_LOG(LS_WARNING) << "[EngineWS] Received empty packet";
+        return;
+    }
     
     char type_char = packet[0];
     std::string content = packet.substr(1);
     
     switch (type_char) {
         case static_cast<char>(EnginePacketType::OPEN):
+            RTC_LOG(LS_INFO) << "[EngineWS] Received OPEN packet";
             handle_open(content);
             break;
             
         case static_cast<char>(EnginePacketType::CLOSE):
+            RTC_LOG(LS_INFO) << "[EngineWS] Received CLOSE packet";
             impl_->connected = false;
             impl_->connecting = false;
             if (on_close_) {
@@ -171,6 +199,7 @@ void WebSocketTransport::handle_engine_packet(const std::string& packet) {
             break;
             
         case static_cast<char>(EnginePacketType::PING): {
+            RTC_LOG(LS_VERBOSE) << "[EngineWS] Received PING, sending PONG";
             std::string pong_packet;
             pong_packet += static_cast<char>(EnginePacketType::PONG);
             pong_packet += content;
@@ -179,16 +208,19 @@ void WebSocketTransport::handle_engine_packet(const std::string& packet) {
         }
             
         case static_cast<char>(EnginePacketType::PONG):
+            RTC_LOG(LS_VERBOSE) << "[EngineWS] Received PONG";
             if (on_pong_) {
                 on_pong_();
             }
             break;
             
         case static_cast<char>(EnginePacketType::MESSAGE):
+            RTC_LOG(LS_VERBOSE) << "[EngineWS] Received MESSAGE, length=" << content.length();
             handle_message(content);
             break;
             
         default:
+            RTC_LOG(LS_WARNING) << "[EngineWS] Unknown packet type: " << type_char;
             break;
     }
 }
@@ -199,7 +231,10 @@ void WebSocketTransport::handle_open(const std::string& data) {
     std::string errors;
     std::istringstream iss(data);
     
+    RTC_LOG(LS_INFO) << "[EngineWS] Parsing OPEN packet";
+    
     if (!Json::parseFromStream(builder, iss, &json, &errors)) {
+        RTC_LOG(LS_ERROR) << "[EngineWS] Failed to parse open packet: " << errors;
         if (on_error_) {
             on_error_("failed to parse open packet");
         }
@@ -216,6 +251,10 @@ void WebSocketTransport::handle_open(const std::string& data) {
         impl_->ping_timeout = json["pingTimeout"].asInt();
     }
     
+    RTC_LOG(LS_INFO) << "[EngineWS] OPEN parsed: sid=" << impl_->sid
+                    << ", ping_interval=" << impl_->ping_interval
+                    << ", ping_timeout=" << impl_->ping_timeout;
+    
     impl_->connecting = false;
     impl_->connected = true;
     
@@ -225,6 +264,7 @@ void WebSocketTransport::handle_open(const std::string& data) {
 }
 
 void WebSocketTransport::handle_message(const std::string& data) {
+    RTC_LOG(LS_VERBOSE) << "[EngineWS] Handling message, length=" << data.length();
     if (on_message_) {
         on_message_(data);
     }
