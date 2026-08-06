@@ -497,11 +497,8 @@ target_include_directories(test_protocol_full
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
     ${CMAKE_BINARY_DIR}
 )
@@ -537,7 +534,7 @@ target_include_directories(test_socketio_full
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
     ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -582,7 +579,7 @@ if(USE_CPP_WEBSOCKET)
         PRIVATE
         ${LIBWEBRTC_INCLUDE_DIRS}
         ${JSONCPP_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
         ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -629,7 +626,7 @@ if(USE_CPP_WEBSOCKET)
         ${LIBWEBRTC_INCLUDE_DIRS}
         ${JSONCPP_INCLUDE_DIRS}
         ${LIBEVENT_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
         ${CMAKE_CURRENT_SOURCE_DIR}/core/engineio
         ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
@@ -677,11 +674,11 @@ add_executable(test_native_integration
 target_include_directories(test_native_integration
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources
     ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
     ${CMAKE_BINARY_DIR}
 )
@@ -715,11 +712,11 @@ add_executable(socketio_demo
 target_include_directories(socketio_demo
     PRIVATE
     ${LIBWEBRTC_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources
     ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
-    ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/jetfire
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
     ${CMAKE_BINARY_DIR}
 )
 
@@ -795,11 +792,10 @@ if(USE_CPP_WEBSOCKET)
         ${LIBWEBRTC_INCLUDE_DIRS}
         ${JSONCPP_INCLUDE_DIRS}
         ${LIBEVENT_INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/socketio
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/Sources/Utils
-        ${CMAKE_CURRENT_SOURCE_DIR}/jetfire
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/apple/jetfire
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib
         ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration
         ${CMAKE_BINARY_DIR}
