@@ -22,6 +22,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(WEBRTC_BUILD_WEBRTC_THREAD "Build WebRTC threading modules" ON)
 option(WEBRTC_BUILD_WEBRTC_STUN "Build WebRTC STUN related modules" ON)
 option(WEBRTC_BUILD_WEBRTC_AUDIO_TOOL "Build WebRTC audio tool modules" ON)
+option(WEBRTC_BUILD_SIGNAL_PROCESSING "Build signal processing library (audio DSP)" ON)
 option(WEBRTC_BUILD_RED "Build RED (RTP redundancy) modules" ON)
 option(WEBRTC_BUILD_FEC "Build FEC (Forward Error Correction) modules" ON)
 option(WEBRTC_BUILD_VIDEO "Build video-related modules" ON)
@@ -198,14 +199,23 @@ add_subdirectory(${WEBRTC_SRC_DIR}/common_audio)
 add_subdirectory(${WEBRTC_SRC_DIR}/modules)
 
 # ==================== 创建 libwebrtc 主库 ====================
-add_library(libwebrtc STATIC
+# 收集所有 OBJECT 库的对象文件
+set(WEBRTC_OBJECT_LIBRARIES
     $<TARGET_OBJECTS:rtc_base>
     $<TARGET_OBJECTS:base64>
     $<TARGET_OBJECTS:sigslot>
     $<TARGET_OBJECTS:api>
     $<TARGET_OBJECTS:system_wrappers>
-    $<TARGET_OBJECTS:common_audio_module>
     $<TARGET_OBJECTS:webrtc_modules>
+)
+
+# 条件性添加 common_audio_module
+if(TARGET common_audio_module)
+    list(APPEND WEBRTC_OBJECT_LIBRARIES $<TARGET_OBJECTS:common_audio_module>)
+endif()
+
+add_library(libwebrtc STATIC
+    ${WEBRTC_OBJECT_LIBRARIES}
 )
 
 target_include_directories(libwebrtc PUBLIC

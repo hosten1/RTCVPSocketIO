@@ -26,27 +26,82 @@ else()
 endif()
 
 # 处理器架构检测 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
+# 支持多种检测方式：
+# 1. CMAKE_SYSTEM_PROCESSOR (Unix Makefiles, Ninja 等单架构生成器)
+# 2. CMAKE_OSX_ARCHITECTURES (Xcode 生成器 - iOS/macOS)
+# 3. ANDROID_ABI (Android NDK)
+# 4. CMAKE_GENERATOR_PLATFORM (Visual Studio 等)
+
+# 首先确定目标架构列表
+set(_TARGET_ARCHS "")
+
+if(CMAKE_OSX_ARCHITECTURES)
+    # Xcode 生成器：可能有多个架构，取第一个用于配置时判断
+    string(REPLACE ";" "," _arch_list "${CMAKE_OSX_ARCHITECTURES}")
+    list(GET CMAKE_OSX_ARCHITECTURES 0 _PRIMARY_ARCH)
+    set(_TARGET_ARCHS ${CMAKE_OSX_ARCHITECTURES})
+elseif(ANDROID_ABI)
+    # Android NDK
+    set(_PRIMARY_ARCH "${ANDROID_ABI}")
+    set(_TARGET_ARCHS "${ANDROID_ABI}")
+elseif(CMAKE_SYSTEM_PROCESSOR)
+    # 传统单架构生成器
+    set(_PRIMARY_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+    set(_TARGET_ARCHS "${CMAKE_SYSTEM_PROCESSOR}")
+else()
+    set(_PRIMARY_ARCH "")
+    set(_TARGET_ARCHS "")
+endif()
+
+# 辅助函数：检查架构列表中是否包含某架构
+macro(_check_arch_match PATTERN OUT_VAR)
+    set(${OUT_VAR} FALSE)
+    foreach(_a ${_TARGET_ARCHS})
+        if(_a MATCHES "${PATTERN}")
+            set(${OUT_VAR} TRUE)
+            break()
+        endif()
+    endforeach()
+endmacro()
+
+# 检测主架构
+_check_arch_match("aarch64|arm64|ARM64" _is_arm64)
+_check_arch_match("armv7|armv7-a|armeabi-v7a" _is_armv7)
+_check_arch_match("arm|ARM" _is_arm_any)
+_check_arch_match("mips|mipsel" _is_mips)
+_check_arch_match("x86_64|amd64|AMD64|x64" _is_x64)
+_check_arch_match("i386|i686|x86|X86" _is_x86)
+
+if(_is_arm64)
     set(CURRENT_CPU "arm64")
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|armv7|armv7-a")
+    set(ARM_VERSION 8)
+    set(ARM_USE_NEON TRUE)
+elseif(_is_armv7 OR (_is_arm_any AND NOT _is_arm64))
     set(CURRENT_CPU "arm")
-    # 简单判断 arm 版本：假设 v7 及以上
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "armv7")
+    if(_is_armv7)
         set(ARM_VERSION 7)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "armv8|aarch64")
-        set(ARM_VERSION 8)
     else()
         set(ARM_VERSION 6)
     endif()
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "mips|mipsel")
+    # NEON 支持默认关闭，用户可通过 ARM_USE_NEON 选项开启
+    if(NOT DEFINED ARM_USE_NEON)
+        set(ARM_USE_NEON FALSE)
+    endif()
+elseif(_is_mips)
     set(CURRENT_CPU "mipsel")
     # MIPS 相关变量，如需精细控制可提供选项
     set(MIPS_FLOAT_ABI "hard")   # 默认 hard，用户可覆盖
     set(MIPS_ARCH_VARIANT "r2")
     set(MIPS_DSP_REV 1)
+elseif(_is_x64)
+    set(CURRENT_CPU "x64")
+elseif(_is_x86)
+    set(CURRENT_CPU "x86")
 else()
     set(CURRENT_CPU "unknown")
 endif()
+
+message(STATUS "[libwebrtc] Target archs: ${_TARGET_ARCHS}, CURRENT_CPU: ${CURRENT_CPU}")
 
 # ==================== 全局编译定义 ====================
 macro(webrtc_add_definitions)

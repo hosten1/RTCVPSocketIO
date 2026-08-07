@@ -340,17 +340,35 @@ endif()
 
 # 创建静态 framework
 # 直接包含 WebRTC 所有 OBJECT 库的对象文件，避免 libwebrtc 主库的问题
+set(WEBRTC_OBJECT_TARGETS
+    rtc_base
+    base64
+    sigslot
+    api
+    system_wrappers
+    webrtc_modules
+)
+
+# 条件性添加 signal_processing 相关的 OBJECT 库
+if(TARGET common_audio_module)
+    list(APPEND WEBRTC_OBJECT_TARGETS common_audio_module)
+endif()
+if(TARGET ooura)
+    list(APPEND WEBRTC_OBJECT_TARGETS ooura)
+endif()
+if(TARGET spl_sqrt_floor)
+    list(APPEND WEBRTC_OBJECT_TARGETS spl_sqrt_floor)
+endif()
+
+# 收集所有 OBJECT 库的生成器表达式
+set(WEBRTC_OBJECT_EXPRESSIONS "")
+foreach(tgt ${WEBRTC_OBJECT_TARGETS})
+    list(APPEND WEBRTC_OBJECT_EXPRESSIONS $<TARGET_OBJECTS:${tgt}>)
+endforeach()
+
 add_library(libVPSocketIO STATIC
     ${SOURCE_FILES}
-    $<TARGET_OBJECTS:rtc_base>
-    $<TARGET_OBJECTS:base64>
-    $<TARGET_OBJECTS:sigslot>
-    $<TARGET_OBJECTS:api>
-    $<TARGET_OBJECTS:system_wrappers>
-    $<TARGET_OBJECTS:common_audio_module>
-    $<TARGET_OBJECTS:webrtc_modules>
-    $<TARGET_OBJECTS:ooura>
-    $<TARGET_OBJECTS:spl_sqrt_floor>
+    ${WEBRTC_OBJECT_EXPRESSIONS}
 )
 
 # 依赖头文件复制目标
