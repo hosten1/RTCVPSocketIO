@@ -23,6 +23,8 @@ set(WEBRTC_API_SOURCES
     ${WEBRTC_SRC_DIR}/api/network_state_predictor.cc
 
     ${WEBRTC_SRC_DIR}/api/video/color_space.cc
+    ${WEBRTC_SRC_DIR}/api/video/hdr_metadata.cc
+    ${WEBRTC_SRC_DIR}/api/video/video_content_type.cc
    
     ${WEBRTC_SRC_DIR}/api/audio_codecs/audio_encoder.cc
 

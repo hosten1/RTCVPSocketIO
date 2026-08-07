@@ -1,0 +1,93 @@
+#!/bin/sh
+set -e
+
+FRAMEWORK_BINARY="@CMAKE_CURRENT_BINARY_DIR@/framework/$CONFIGURATION/LYMVPSocketIO.framework/LYMVPSocketIO"
+
+echo "========================================"
+echo "Merging static libraries into framework..."
+echo "Output: $FRAMEWORK_BINARY"
+echo ""
+
+# 收集所有要合并的库（不包含 framework 自己，后面会单独加）
+# 注意：libevent.a 已经包含了 core 的内容，所以只需要 libevent.a + libevent_openssl.a
+INPUT_LIBS=(
+    "@CMAKE_BINARY_DIR@/jsoncpp_build/$CONFIGURATION$EFFECTIVE_PLATFORM_NAME/libjsoncpp.a"
+    "@CMAKE_BINARY_DIR@/libwebrtc_build/abseil/$CONFIGURATION$EFFECTIVE_PLATFORM_NAME/libabseil.a"
+    "@CMAKE_BINARY_DIR@/websocket_build/$CONFIGURATION$EFFECTIVE_PLATFORM_NAME/libwebsocket.a"
+    "@CMAKE_BINARY_DIR@/libevent_build/lib/$CONFIGURATION/libevent.a"
+    "@CMAKE_BINARY_DIR@/libevent_build/lib/$CONFIGURATION/libevent_openssl.a"
+    "@CMAKE_BINARY_DIR@/openssl_build/ssl/$CONFIGURATION$EFFECTIVE_PLATFORM_NAME/libssl.a"
+    "@CMAKE_BINARY_DIR@/openssl_build/crypto/$CONFIGURATION$EFFECTIVE_PLATFORM_NAME/libcrypto.a"
+    "@CMAKE_BINARY_DIR@/zlib_build/$CONFIGURATION$EFFECTIVE_PLATFORM_NAME/libz.a"
+)
+
+# 检查并只保留存在的库
+VALID_LIBS=("$FRAMEWORK_BINARY")
+echo "  ✓ $(basename "$FRAMEWORK_BINARY") (main library)"
+for lib in "${INPUT_LIBS[@]}"; do
+    if [ -f "$lib" ]; then
+        VALID_LIBS+=("$lib")
+        echo "  ✓ $(basename "$lib")"
+    else
+        echo "  ✗ $(basename "$lib") (NOT FOUND)"
+    fi
+done
+
+echo "========================================"
+
+if [ ${#VALID_LIBS[@]} -eq 0 ]; then
+    echo "ERROR: No valid input libraries found!"
+    exit 1
+fi
+
+# 临时输出文件
+TEMP_DIR="$FRAMEWORK_BINARY.merge_tmp"
+TEMP_OUTPUT="$FRAMEWORK_BINARY.merged"
+
+# 创建临时目录
+rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR"
+
+# 解压所有静态库到临时目录，每个库的对象文件加上唯一前缀，避免重名覆盖
+echo "Extracting all static libraries..."
+LIB_INDEX=0
+for lib in "${VALID_LIBS[@]}"; do
+    LIB_INDEX=$((LIB_INDEX + 1))
+    LIB_NAME=$(basename "$lib" .a)
+    LIB_DIR="$TEMP_DIR/lib_${LIB_INDEX}_${LIB_NAME}"
+    mkdir -p "$LIB_DIR"
+    
+    echo "  Extracting $LIB_NAME..."
+    (cd "$LIB_DIR" && ar -x "$lib" 2>/dev/null || true)
+    
+    # 给每个对象文件加上库前缀，避免重名
+    for obj in "$LIB_DIR"/*.o; do
+        if [ -f "$obj" ]; then
+            obj_name=$(basename "$obj")
+            mv "$obj" "$LIB_DIR/${LIB_INDEX}_${obj_name}"
+        fi
+    done
+done
+
+# 收集所有对象文件
+OBJ_FILES=$(find "$TEMP_DIR" -name "*.o" | sort)
+OBJ_COUNT=$(echo "$OBJ_FILES" | wc -l | tr -d ' ')
+
+echo ""
+echo "Total object files: $OBJ_COUNT"
+
+# 重新打包成静态库
+echo "Creating merged static library..."
+libtool -static -o "$TEMP_OUTPUT" $OBJ_FILES
+
+# 清理临时目录
+rm -rf "$TEMP_DIR"
+
+# 替换原文件
+mv "$TEMP_OUTPUT" "$FRAMEWORK_BINARY"
+
+echo ""
+echo "✅ Successfully merged all libraries!"
+du -sh "$FRAMEWORK_BINARY"
+echo "Total object files: $(ar -t "$FRAMEWORK_BINARY" | wc -l)"
+echo "========================================"

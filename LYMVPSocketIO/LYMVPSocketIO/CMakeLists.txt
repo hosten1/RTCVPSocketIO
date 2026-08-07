@@ -339,8 +339,18 @@ if(USE_CPP_WEBSOCKET)
 endif()
 
 # 创建静态 framework
+# 直接包含 WebRTC 所有 OBJECT 库的对象文件，避免 libwebrtc 主库的问题
 add_library(libVPSocketIO STATIC
     ${SOURCE_FILES}
+    $<TARGET_OBJECTS:rtc_base>
+    $<TARGET_OBJECTS:base64>
+    $<TARGET_OBJECTS:sigslot>
+    $<TARGET_OBJECTS:api>
+    $<TARGET_OBJECTS:system_wrappers>
+    $<TARGET_OBJECTS:common_audio_module>
+    $<TARGET_OBJECTS:webrtc_modules>
+    $<TARGET_OBJECTS:ooura>
+    $<TARGET_OBJECTS:spl_sqrt_floor>
 )
 
 # 依赖头文件复制目标
@@ -426,6 +436,27 @@ target_compile_options(libVPSocketIO PRIVATE
     -fobjc-arc
     -fobjc-arc-exceptions
 )
+
+# ─── 合并所有依赖静态库到 framework 中 ──────────────────────────────
+# WebRTC 的 OBJECT 库已经直接包含在 libVPSocketIO 中了
+# 这里用 libtool 把其他 STATIC 库合并进来
+# 最终用户只需要链接一个 LYMVPSocketIO.framework
+
+if(APPLE)
+    # 使用 configure_file 配置 shell 脚本，替换 @...@ 变量
+    set(MERGE_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/merge_framework_libs.sh")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/merge_framework_libs.sh.in"
+        "${MERGE_SCRIPT}"
+        @ONLY
+    )
+    
+    add_custom_command(TARGET libVPSocketIO POST_BUILD
+        COMMENT "Merging external dependencies into LYMVPSocketIO framework..."
+        COMMAND sh "${MERGE_SCRIPT}"
+        VERBATIM
+    )
+endif()
 
 # 安装规则
 install(TARGETS libVPSocketIO

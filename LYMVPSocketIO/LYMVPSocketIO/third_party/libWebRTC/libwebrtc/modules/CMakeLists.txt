@@ -17,6 +17,7 @@ set(WEBRTC_MODULES_SOURCES
     ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/rtp_header_extension_map.cc
     ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/rtp_header_extension_size.cc
     ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/rtp_header_extensions.cc
+    ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.cc
     ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/rtp_packet_received.cc
     ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/rtp_packet.cc
     ${WEBRTC_SRC_DIR}/modules/rtp_rtcp/source/time_util.cc
